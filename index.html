@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Casino App</title>
+
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<!-- TOPBAR FIXA -->
+<header class="topbar">
+  <div class="logo">🎰 CasinoApp</div>
+  <div class="saldoBox">
+    💰 R$ <span id="saldo">0.00</span>
+  </div>
+</header>
+
+<!-- HOME -->
+<section id="home" class="screen active">
+
+  <div class="banner">
+    <h2>🔥 Bônus de boas-vindas ativo</h2>
+    <p>Jogue e ganhe até 10x</p>
+  </div>
+
+  <div class="grid">
+
+    <div class="gameCard" onclick="openGame()">
+      🎲 Número 0-99
+    </div>
+
+    <div class="gameCard disabled">
+      🎰 Em breve: Roleta
+    </div>
+
+    <div class="gameCard disabled">
+      🎯 Em breve: Crash
+    </div>
+
+  </div>
+
+</section>
+
+<!-- GAME -->
+<section id="game" class="screen">
+
+  <div class="panel">
+
+    <h3>🎲 Aposta</h3>
+
+    <input type="number" id="numero" placeholder="Número 0-99">
+    <input type="number" id="valorAposta" placeholder="Valor da aposta">
+
+    <button class="btn" onclick="apostar()">Confirmar aposta</button>
+
+  </div>
+
+  <div class="panel">
+
+    <h3>🎰 Resultado</h3>
+
+    <div id="resultadoTexto" class="result">--</div>
+
+    <button class="btn secondary" onclick="sortear()">Iniciar rodada</button>
+
+  </div>
+
+</section>
+
+<!-- BOTTOM NAV -->
+<nav class="bottomNav">
+  <button onclick="show('home')">🏠</button>
+  <button onclick="show('game')">🎮</button>
+  <button onclick="show('home')">📊</button>
+  <button onclick="show('home')">👤</button>
+</nav>
+
+<script src="app.js"></script>
+
+</body>
+</html>
