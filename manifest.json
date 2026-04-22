@@ -1,8 +1,0 @@
-{
-  "name": "Casino Game",
-  "short_name": "Casino",
-  "start_url": "index.html",
-  "display": "standalone",
-  "background_color": "#020617",
-  "theme_color": "#22c55e"
-}
