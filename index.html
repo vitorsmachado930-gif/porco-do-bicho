@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Porco do Bicho</title>
+
+<link rel="stylesheet" href="./css/style.css">
+</head>
+
+<body>
+
+<header class="topo">
+
+  <div class="logo">
+    <img src="./img/mascote.png" class="logo-img">
+    <h2>Porco do Bicho</h2>
+  </div>
+
+  <div class="saldo-box">
+    Saldo: R$ <span id="saldo">0.00</span>
+  </div>
+
+</header>
+
+<nav class="menu">
+  <button onclick="trocarTela('home')" class="active">Home</button>
+  <button onclick="trocarTela('apostar')">Apostar</button>
+</nav>
+
+<div class="container">
+
+  <!-- HOME -->
+  <div id="home">
+    <div class="card destaque">
+      <h3>Ganhe até R$1.000.000</h3>
+      <p>Aposte rápido e simples</p>
+      <button class="btn-main" onclick="depositar()">Depositar R$100</button>
+    </div>
+  </div>
+
+  <!-- APOSTAR -->
+  <div id="apostar" style="display:none;">
+    <div class="card">
+      <h3>Escolha um animal</h3>
+
+      <div class="animais" id="listaAnimais"></div>
+
+      <input type="number" id="valor" placeholder="Valor da aposta">
+
+      <button class="btn-main" onclick="apostar()">Apostar</button>
+
+      <p id="resultado"></p>
+
+      <!-- ANIMAÇÃO -->
+      <div id="roleta"></div>
+
+      <h4>Histórico</h4>
+      <div id="historico"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="./js/script.js"></script>
+</body>
+</html>
+<a href="https://wa.me/5511967430488?text=Olá,%20tenho%20interesse%20no%20site" 
+   class="whatsapp-btn" target="_blank">
+   <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png">
+</a>
