@@ -25,7 +25,8 @@ jobs:
           port: 21
           protocol: ftps
           local-dir: ./
-          server-dir: /public_html/
+          server-dir: /
+          state-name: .ftp-deploy-sync-state-hostinger-v2.json
           dangerous-clean-slate: false
           exclude: |
             **/.git*
