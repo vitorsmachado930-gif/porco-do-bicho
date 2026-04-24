@@ -1,0 +1,86 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0c141c;
+  color: #e8f3ff;
+}
+
+.topo-pagina {
+  border-bottom: 1px solid #00c85344;
+  background: #081018;
+}
+
+.topo-pagina-conteudo {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  padding: 14px 20px;
+  box-sizing: border-box;
+}
+
+.topo-pagina a {
+  color: #00e676;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.conteudo-pagina {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  padding: 22px 20px 30px;
+  box-sizing: border-box;
+}
+
+.card-pagina {
+  background: #121c26;
+  border: 1px solid #00c85333;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+h1 {
+  margin: 0 0 16px;
+  color: #00e676;
+  font-size: 30px;
+}
+
+h2 {
+  margin: 18px 0 10px;
+  color: #9fd5ff;
+  font-size: 20px;
+}
+
+p,
+li {
+  color: #d4e0ed;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+ul {
+  margin: 8px 0 0 20px;
+  padding: 0;
+}
+
+.rodape-pagina {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  padding: 0 20px 26px;
+  box-sizing: border-box;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  h1 {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  p,
+  li {
+    font-size: 15px;
+  }
+}
