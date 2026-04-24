@@ -492,6 +492,13 @@ body.admin-logado .acao-admin {
 }
 
 @media (max-width: 820px) {
+  #resultados {
+    grid-auto-columns: min(78vw, 290px);
+    gap: 10px;
+    padding: 2px 2px 8px 2px;
+    scroll-padding-inline: 6px;
+  }
+
   .banner-topo-conteudo {
     width: min(100%, 460px);
     padding: 6px 12px;
@@ -569,6 +576,16 @@ body.admin-logado .acao-admin {
 
   .resultado-card {
     text-align: center;
+    padding: 8px;
+  }
+
+  .premio {
+    gap: 6px;
+    padding: 4px;
+  }
+
+  .premio img {
+    width: 34px;
   }
 
   .linha-data-aposta {
@@ -583,6 +600,18 @@ body.admin-logado .acao-admin {
   }
 
   #resultados {
-    grid-auto-columns: 100%;
+    grid-auto-columns: min(74vw, 250px);
+    gap: 8px;
+    padding: 2px 2px 8px 2px;
+  }
+
+  .resultado-titulo {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .grupo {
+    font-size: 11px;
+    padding: 2px 5px;
   }
 }
