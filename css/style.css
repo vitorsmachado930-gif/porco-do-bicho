@@ -1,131 +1,475 @@
 body {
   margin: 0;
   font-family: Arial;
-  background: #0f172a;
+  background: #0c141c;
   color: white;
 }
 
-/* TOPO */
-.topo {
-  background: linear-gradient(135deg, #16a34a, #22c55e);
-  padding: 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.logo-img {
-  width: 45px;
-  animation: flutuar 3s infinite;
-  filter: drop-shadow(0 0 8px #22c55e);
-}
-
-@keyframes flutuar {
-  0% {transform: translateY(0);}
-  50% {transform: translateY(-5px);}
-  100% {transform: translateY(0);}
-}
-
-/* MENU */
-.menu {
-  display: flex;
-  justify-content: space-around;
-  background: #1e293b;
-  padding: 10px;
-}
-
-.menu button {
-  background: none;
-  border: none;
-  color: #94a3b8;
-}
-
-.menu .active {
-  color: #22c55e;
-}
-
-/* CONTAINER */
-.container {
-  padding: 15px;
-  max-width: 420px;
-  margin: auto;
-}
-
-/* CARD */
-.card {
-  background: #1e293b;
-  padding: 15px;
-  border-radius: 12px;
-  margin-bottom: 15px;
-}
-
-/* BOTÃO */
-.btn-main {
+.banner-topo {
   width: 100%;
-  padding: 14px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #16a34a, #22c55e);
-  color: white;
+  background: #081018;
+  border-bottom: 1px solid #ffffff1a;
 }
 
-/* GRID */
-.animais {
+.banner-topo-conteudo {
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  padding: 10px 20px;
+  box-sizing: border-box;
+}
+
+.banner-topo-img {
+  width: 100%;
+  display: block;
+  border-radius: 10px;
+  object-fit: cover;
+  max-height: 240px;
+}
+
+.topo {
+  width: 100%;
+  padding: 20px;
+  font-size: 22px;
+  text-align: center;
+  background: #081018;
+}
+
+.cabecalho-usuario {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 20px;
+  background: #102030;
+  border-bottom: 1px solid #00c85333;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.btn-cabecalho-sair {
+  width: auto;
+  margin-top: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.container {
+  width: min(100%, 1100px);
+  padding: 20px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #121c26;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.card-usuario.compacto {
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.card-usuario.compacto h3 {
+  display: none;
+}
+
+.card-usuario.compacto #btnSairUsuario {
+  margin-top: 0;
+}
+
+input,
+select {
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  box-sizing: border-box;
+}
+
+input[readonly] {
+  background: #20303f;
+  color: #d1e7ff;
+}
+
+button {
+  display: block;
+  width: 100%;
+  max-width: none;
+  padding: 10px;
+  background: #00c853;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  margin: 10px 0 0 0;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.filtro-data {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.filtro-data input {
+  margin: 0;
+  width: 220px;
+}
+
+#filtroPraca {
+  margin-bottom: 10px;
+}
+
+.palpite-grupo-container {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.palpite-grupo-container select {
+  margin: 0;
+}
+
+#listaApostas {
+  margin-top: 12px;
+  display: grid;
   gap: 8px;
 }
 
-.animal {
-  background: #334155;
-  border-radius: 10px;
+#listaApostas.apostas-unico {
+  justify-items: center;
+}
+
+#listaApostas.apostas-unico .aposta-item {
+  width: min(100%, 360px);
+}
+
+.aposta-item {
+  background: #0f1a24;
+  border: 1px solid #00c85333;
+  border-radius: 8px;
   padding: 8px;
+  font-size: 14px;
+}
+
+.status-aposta {
+  font-weight: bold;
+}
+
+.status-pendente {
+  color: #fbc02d;
+}
+
+.status-ganhou {
+  color: #00e676;
+}
+
+.status-perdeu {
+  color: #ff6b6b;
+}
+
+.btn-nav {
+  width: auto;
+  min-width: 50px;
+  margin-top: 0;
+}
+
+.btn-hoje {
+  min-width: 68px;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background: #d32f2f;
+}
+
+.btn-secondary {
+  background: #455a64;
+}
+
+#multiplicadoresStatus {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#usuarioStatus {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#limitesApostaStatus {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#infoLimitesAposta,
+#cronometroAposta {
+  margin: 6px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#cronometroAposta.cronometro-encerrado {
+  color: #ff6b6b;
+}
+
+#cronometroAposta.cronometro-aberto {
+  color: #00e676;
+}
+
+#listaApostas .acoes-aposta {
+  margin-top: 8px;
+}
+
+.linha-cronometro {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #9fb3c8;
+}
+
+.linha-horario-aposta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #9fb3c8;
+}
+
+.valor-potencial-destaque {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #00e676;
+  color: #062312;
+  font-weight: 700;
+}
+
+.btn-inline {
+  width: auto;
+  margin-top: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.acao-admin {
+  display: none !important;
+}
+
+body.admin-logado .acao-admin {
+  display: block !important;
+}
+
+#resumoData {
+  margin: 0 0 10px 0;
+  color: #9fb3c8;
+  font-size: 13px;
+  text-align: left;
+}
+
+.navegacao-resultados {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  margin: 0 0 10px 0;
+}
+
+.btn-nav-horizontal {
+  width: auto;
+  flex: 1;
+  margin-top: 0;
+  padding: 8px 10px;
+}
+
+.card-apostas > button {
+  width: 220px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.linha-data-aposta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0 8px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #00c85355;
+  background: #0f1a24;
+}
+
+.rotulo-data-aposta {
+  font-size: 13px;
+  color: #9fb3c8;
+}
+
+#dataApostaAtual {
+  display: inline-block;
+  min-width: 92px;
   text-align: center;
-  cursor: pointer;
+  font-size: 15px;
+  letter-spacing: 0.4px;
+  color: #00e676;
 }
 
-.animal:hover {
-  background: #22c55e;
-  transform: scale(1.08);
+/* RESULTADOS */
+
+#resultados {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 24px) / 3);
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 4px 10px 2px;
+  scroll-snap-type: x mandatory;
 }
 
-.animal img {
-  width: 50px;
+#resultados.resultados-unico {
+  justify-content: center;
+  grid-auto-columns: min(100%, 360px);
+  overflow-x: hidden;
 }
 
-/* ROLETA */
-#roleta {
-  margin-top: 15px;
+#resultados > p {
+  min-width: 100%;
+}
+
+.resultado-card {
+  background: #0f1a24;
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid #00c85333;
+  scroll-snap-align: start;
+  text-align: left;
+}
+
+.resultado-titulo {
   text-align: center;
-  font-size: 20px;
-  height: 30px;
-}
-.whatsapp-btn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 60px;
-  height: 60px;
-  z-index: 999;
-  animation: pulse 2s infinite;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #00e676;
 }
 
-.whatsapp-btn img {
-  width: 100%;
-  border-radius: 50%;
-  box-shadow: 0 0 15px rgba(0,255,0,0.5);
+.premio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #121c26;
+  margin-bottom: 6px;
+  padding: 5px;
+  border-radius: 8px;
 }
 
-/* ANIMAÇÃO */
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+.premio img {
+  width: 40px;
+}
+
+.posicao {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.grupo {
+  background: #00c853;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+@media (max-width: 1024px) {
+  #resultados {
+    grid-auto-columns: calc((100% - 12px) / 2);
+  }
+}
+
+@media (max-width: 820px) {
+  .banner-topo-conteudo {
+    width: min(100%, 560px);
+    padding: 8px 16px;
+  }
+
+  .banner-topo-img {
+    border-radius: 8px;
+    max-height: 200px;
+  }
+
+  .cabecalho-usuario {
+    width: min(100%, 560px);
+    margin: 0 auto;
+  }
+
+  .container {
+    width: min(100%, 560px);
+    padding: 16px;
+  }
+
+  .card {
+    text-align: center;
+  }
+
+  input,
+  select {
+    max-width: 520px;
+    margin: 5px auto;
+  }
+
+  .palpite-grupo-container {
+    max-width: 520px;
+    margin: 5px auto 0 auto;
+  }
+
+  button {
+    max-width: 520px;
+    margin: 10px auto 0 auto;
+  }
+
+  .filtro-data {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .filtro-data input {
+    width: min(100%, 230px);
+  }
+
+  #resumoData {
+    text-align: center;
+  }
+
+  .navegacao-resultados {
+    justify-content: center;
+  }
+
+  .resultado-card {
+    text-align: center;
+  }
+
+  .linha-data-aposta {
+    max-width: 520px;
+    margin: 6px auto 8px auto;
+  }
+}
+
+@media (max-width: 430px) {
+  #resultados {
+    grid-auto-columns: 100%;
+  }
 }

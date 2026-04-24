@@ -1,71 +1,188 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Porco do Bicho</title>
+<title>Resultados</title>
+<link rel="icon" type="image/png" href="img/mascote/icone.png">
+<link rel="apple-touch-icon" href="img/mascote/icone.png">
 
-<link rel="stylesheet" href="./css/style.css">
+<link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
 
-<header class="topo">
-
-  <div class="logo">
-    <img src="./img/mascote.png" class="logo-img">
-    <h2>Porco do Bicho</h2>
+<div class="banner-topo">
+  <div class="banner-topo-conteudo">
+    <img class="banner-topo-img" src="img/mascote/banner.png" alt="Banner do site">
   </div>
+</div>
 
-  <div class="saldo-box">
-    Saldo: R$ <span id="saldo">0.00</span>
-  </div>
+<div class="topo" id="gatilhoAdmin">Resultados do Dia</div>
 
-</header>
-
-<nav class="menu">
-  <button onclick="trocarTela('home')" class="active">Home</button>
-  <button onclick="trocarTela('apostar')">Apostar</button>
-</nav>
+<div id="cabecalhoUsuario" class="cabecalho-usuario" style="display:none;">
+  <span id="cabecalhoUsuarioNome"></span>
+  <button class="btn-danger btn-cabecalho-sair" onclick="sairUsuarioCabecalho()">Sair</button>
+</div>
 
 <div class="container">
 
-  <!-- HOME -->
-  <div id="home">
-    <div class="card destaque">
-      <h3>Ganhe até R$1.000.000</h3>
-      <p>Aposte rápido e simples</p>
-      <button class="btn-main" onclick="depositar()">Depositar R$100</button>
+  <!-- USUÁRIO -->
+  <div class="card card-usuario" id="cardUsuario">
+    <h3>👤 Usuário</h3>
+
+    <div id="usuarioAreaPublica">
+      <input id="cadastroNome" placeholder="Nome">
+      <input id="cadastroLogin" placeholder="Login de acesso">
+      <input id="cadastroSenha" type="password" placeholder="Senha">
+      <button onclick="cadastrarUsuario()">Cadastrar</button>
+
+      <input id="loginUsuario" placeholder="Login">
+      <input id="senhaUsuario" type="password" placeholder="Senha">
+      <button onclick="entrarUsuario()">Entrar para apostar</button>
     </div>
+
+    <div id="usuarioAreaLogado" style="display:none;">
+      <button id="btnSairUsuario" class="btn-danger" onclick="sairUsuario()">Sair</button>
+    </div>
+
+    <p id="usuarioStatus"></p>
   </div>
 
-  <!-- APOSTAR -->
-  <div id="apostar" style="display:none;">
-    <div class="card">
-      <h3>Escolha um animal</h3>
+  <!-- LOGIN -->
+  <div class="card" id="acessoAdmin" style="display:none;">
+    <h3>🔐 Admin</h3>
+    <input id="senhaAdmin" type="password" placeholder="Senha">
+    <button onclick="loginAdmin()">Entrar</button>
+    <button id="btnSairAdmin" class="btn-danger" onclick="logoutAdmin()" style="display:none;">Sair</button>
+    <p id="adminStatus"></p>
+  </div>
 
-      <div class="animais" id="listaAnimais"></div>
+  <!-- PAINEL -->
+  <div class="card" id="painelAdmin" style="display:none;">
 
-      <input type="number" id="valor" placeholder="Valor da aposta">
+    <h3>Cadastrar Resultado</h3>
 
-      <button class="btn-main" onclick="apostar()">Apostar</button>
+    <input id="dataResultado" type="date">
 
-      <p id="resultado"></p>
+    <select id="praca">
+      <option value="">Selecione a praça</option>
+    </select>
 
-      <!-- ANIMAÇÃO -->
-      <div id="roleta"></div>
+    <select id="loteria">
+      <option value="">Selecione a loteria</option>
+    </select>
 
-      <h4>Histórico</h4>
-      <div id="historico"></div>
+    <!-- NÚMEROS -->
+    <input id="n1" placeholder="1º número (4 dígitos)" inputmode="numeric">
+    <input id="g1" placeholder="Grupo/Bicho automático" readonly>
+
+    <input id="n2" placeholder="2º número (4 dígitos)" inputmode="numeric">
+    <input id="g2" placeholder="Grupo/Bicho automático" readonly>
+
+    <input id="n3" placeholder="3º número (4 dígitos)" inputmode="numeric">
+    <input id="g3" placeholder="Grupo/Bicho automático" readonly>
+
+    <input id="n4" placeholder="4º número (4 dígitos)" inputmode="numeric">
+    <input id="g4" placeholder="Grupo/Bicho automático" readonly>
+
+    <input id="n5" placeholder="5º número (4 dígitos)" inputmode="numeric">
+    <input id="g5" placeholder="Grupo/Bicho automático" readonly>
+
+    <button onclick="salvar()">Salvar</button>
+
+    <h3>Multiplicadores de Aposta</h3>
+
+    <input id="multGrupo" type="number" min="0" step="0.01" placeholder="Grupo (x)">
+    <input id="multDuplaGrupo" type="number" min="0" step="0.01" placeholder="Dupla de Grupo (x)">
+    <input id="multTernoGrupo" type="number" min="0" step="0.01" placeholder="Terno de Grupo (x)">
+    <input id="multMilhar" type="number" min="0" step="0.01" placeholder="Milhar (x)">
+    <input id="multCentena" type="number" min="0" step="0.01" placeholder="Centena (x)">
+    <input id="multDezena" type="number" min="0" step="0.01" placeholder="Dezena (x)">
+
+    <button onclick="salvarMultiplicadores()">Salvar Multiplicadores</button>
+    <button class="btn-secondary" onclick="restaurarMultiplicadoresPadrao()">Restaurar Padrão</button>
+    <p id="multiplicadoresStatus"></p>
+
+    <h3>Limites de Aposta</h3>
+
+    <input id="limiteMinimoAposta" type="number" min="0.01" step="0.01" placeholder="Valor mínimo (R$)">
+    <input id="limiteMaximoAposta" type="number" min="0.01" step="0.01" placeholder="Valor máximo (R$)">
+
+    <button onclick="salvarLimitesAposta()">Salvar Limites</button>
+    <button class="btn-secondary" onclick="restaurarLimitesPadrao()">Restaurar Limites Padrão</button>
+    <p id="limitesApostaStatus"></p>
+  </div>
+
+  <div class="card">
+    <h3>Resultados</h3>
+    <div class="filtro-data">
+      <button id="btnDiaAnterior" class="btn-nav" onclick="voltarDia()">◀</button>
+      <input id="filtroData" type="date" onchange="selecionarData(this.value)">
+      <button id="btnDiaHoje" class="btn-nav btn-hoje" onclick="irHoje()">Hoje</button>
+      <button id="btnDiaProximo" class="btn-nav" onclick="avancarDia()">▶</button>
     </div>
+    <select id="filtroPraca" onchange="selecionarPracaFiltro(this.value)">
+      <option value="TODAS">Todas as praças</option>
+    </select>
+    <p id="resumoData"></p>
+    <div class="navegacao-resultados">
+      <button id="btnResultadosPrev" class="btn-nav-horizontal" type="button">◀ Anteriores</button>
+      <button id="btnResultadosNext" class="btn-nav-horizontal" type="button">Próximos ▶</button>
+    </div>
+    <div id="resultados"></div>
+  </div>
+
+  <div class="card card-apostas">
+    <h3>Apostas</h3>
+    <div class="linha-data-aposta" title="Data automática da aposta (dia atual)">
+      <span class="rotulo-data-aposta">Data da aposta</span>
+      <strong id="dataApostaAtual">--/--/--</strong>
+    </div>
+    <input id="dataAposta" type="hidden">
+
+    <select id="pracaAposta">
+      <option value="">Selecione a praça</option>
+    </select>
+
+    <select id="loteriaAposta">
+      <option value="">Selecione a loteria</option>
+    </select>
+
+    <select id="tipoAposta">
+      <option value="">Selecione o tipo de aposta</option>
+      <option value="grupo">Grupo</option>
+      <option value="dupla_grupo">Dupla de Grupo</option>
+      <option value="terno_grupo">Terno de Grupo</option>
+      <option value="milhar">Milhar</option>
+      <option value="centena">Centena</option>
+      <option value="dezena">Dezena</option>
+    </select>
+
+    <div id="palpiteGrupoContainer" class="palpite-grupo-container" style="display:none;">
+      <select id="palpiteGrupo1">
+        <option value="">Selecione o bicho</option>
+      </select>
+      <select id="palpiteGrupo2">
+        <option value="">Selecione o 2º bicho</option>
+      </select>
+      <select id="palpiteGrupo3">
+        <option value="">Selecione o 3º bicho</option>
+      </select>
+    </div>
+
+    <input id="palpiteAposta" placeholder="Palpite numérico (ex: 1234)" inputmode="numeric">
+    <input id="valorAposta" value="R$ 0,00" placeholder="Valor da aposta" inputmode="numeric">
+    <input id="premiacaoAposta" placeholder="Ganho potencial" readonly>
+    <p id="infoLimitesAposta"></p>
+    <p id="cronometroAposta"></p>
+    <button onclick="salvarAposta()">Salvar Aposta</button>
+
+    <div id="listaApostas"></div>
   </div>
 
 </div>
 
-<script src="./js/script.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
-<a href="https://wa.me/5511967430488?text=Olá,%20tenho%20interesse%20no%20site" 
-   class="whatsapp-btn" target="_blank">
-   <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png">
-</a>
