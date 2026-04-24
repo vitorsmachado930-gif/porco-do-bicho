@@ -26,6 +26,8 @@ const PREMIO_FICTICIO_MULTIPLICADOR = {
   centena: 600,
   dezena: 60
 };
+const TIPOS_PREMIACAO_DESTAQUE = ["grupo", "terno_grupo", "milhar"];
+const VALORES_APOSTA_DESTAQUE = [2, 3, 5, 10, 15, 20];
 
 const LIMITES_APOSTA_PADRAO = {
   valorMinimo: 1,
@@ -560,6 +562,161 @@ function formatarMoedaBR(valor) {
   return n.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL"
+  });
+}
+
+function criarGeradorDeterministico(sementeTexto) {
+  const texto = String(sementeTexto || "semente");
+  let estado = 0;
+
+  for (let i = 0; i < texto.length; i++) {
+    estado = (Math.imul(31, estado) + texto.charCodeAt(i)) >>> 0;
+  }
+
+  if (!estado) estado = 123456789;
+
+  return function proximo() {
+    estado = (Math.imul(1664525, estado) + 1013904223) >>> 0;
+    return estado / 4294967296;
+  };
+}
+
+function sortearInteiro(rand, maxExclusive) {
+  if (!Number.isInteger(maxExclusive) || maxExclusive <= 0) return 0;
+  return Math.floor(rand() * maxExclusive);
+}
+
+function formatarBichoComGrupo(grupo) {
+  const numero = Number(grupo);
+  const grupoTxt = String(numero).padStart(2, "0");
+  return `${capitalizar(pegarAnimal(numero))} (${grupoTxt})`;
+}
+
+function montarPalpiteDestaque(tipo, rand) {
+  if (tipo === "milhar") {
+    return String(sortearInteiro(rand, 10000)).padStart(4, "0");
+  }
+
+  if (tipo === "grupo") {
+    const grupo = sortearInteiro(rand, 25) + 1;
+    return formatarBichoComGrupo(grupo);
+  }
+
+  if (tipo === "terno_grupo") {
+    const usados = new Set();
+    const escolhidos = [];
+    while (escolhidos.length < 3) {
+      const grupo = sortearInteiro(rand, 25) + 1;
+      if (usados.has(grupo)) continue;
+      usados.add(grupo);
+      escolhidos.push(formatarBichoComGrupo(grupo));
+    }
+    return escolhidos.join(" | ");
+  }
+
+  return "";
+}
+
+function obterReferenciasPremiacaoDestaque(dataISO) {
+  const data = normalizarDataISO(dataISO);
+  const filtroPraca = obterPracaFiltroAtual();
+
+  const referencias = obterResultadosDisponiveis()
+    .filter((item) => {
+      if (item.data !== data) return false;
+      if (filtroPraca === "TODAS") return true;
+      return item.praca === filtroPraca;
+    })
+    .sort(compararPorHorario);
+
+  if (referencias.length > 0) return referencias;
+
+  return gerarResultadosPadraoDoDia(data)
+    .filter((item) => {
+      if (filtroPraca === "TODAS") return true;
+      return item.praca === filtroPraca;
+    })
+    .sort(compararPorHorario);
+}
+
+function gerarPremiacoesDestaqueDoDia(dataISO) {
+  const data = normalizarDataISO(dataISO) || hojeISO();
+  const rand = criarGeradorDeterministico(
+    `${data}|${obterPracaFiltroAtual()}|premiacoes-destaque`
+  );
+  const referencias = obterReferenciasPremiacaoDestaque(data);
+
+  return TIPOS_PREMIACAO_DESTAQUE.map((tipo, index) => {
+    const valorAposta =
+      VALORES_APOSTA_DESTAQUE[sortearInteiro(rand, VALORES_APOSTA_DESTAQUE.length)] || 2;
+    const premio = Number(calcularPremiacaoFicticia(tipo, valorAposta.toFixed(2)));
+    const palpite = montarPalpiteDestaque(tipo, rand);
+    const tipoLabel = TIPOS_APOSTA[tipo] || tipo;
+    const referencia =
+      referencias.length > 0
+        ? referencias[(index + sortearInteiro(rand, referencias.length)) % referencias.length]
+        : null;
+
+    return {
+      tipo,
+      tipoLabel,
+      palpite,
+      valorAposta,
+      premio,
+      referenciaTexto: referencia ? `${referencia.praca} | ${referencia.loteria}` : ""
+    };
+  });
+}
+
+function criarLinhaPremiacaoDestaque(label, valor) {
+  const linha = document.createElement("div");
+  const strong = document.createElement("strong");
+  strong.innerText = `${label}: `;
+  linha.appendChild(strong);
+  linha.appendChild(document.createTextNode(valor));
+  return linha;
+}
+
+function mostrarPremiacoesDestaque() {
+  const resumo = document.getElementById("resumoPremiacoesDestaque");
+  const listaEl = document.getElementById("listaPremiacoesDestaque");
+  if (!listaEl) return;
+
+  const data = normalizarDataISO(dataSelecionada) || hojeISO();
+  if (resumo) {
+    resumo.innerText = `Bilhetes fictícios de ${formatarDataBR(data)}.`;
+  }
+
+  const cards = gerarPremiacoesDestaqueDoDia(data);
+  listaEl.innerHTML = "";
+
+  cards.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "premiacao-destaque-item";
+
+    const tipo = document.createElement("div");
+    tipo.className = "premiacao-destaque-tipo";
+    tipo.innerText = item.tipoLabel;
+    card.appendChild(tipo);
+
+    card.appendChild(criarLinhaPremiacaoDestaque("Palpite", item.palpite));
+    card.appendChild(
+      criarLinhaPremiacaoDestaque("Valor apostado", formatarMoedaBR(item.valorAposta))
+    );
+
+    const premio = document.createElement("div");
+    premio.className = "premiacao-destaque-valor";
+    premio.innerText = `Premiação: ${formatarMoedaBR(item.premio)}`;
+    card.appendChild(premio);
+
+    if (item.referenciaTexto) {
+      const ref = document.createElement("div");
+      ref.className = "premiacao-destaque-referencia";
+      ref.innerText = item.referenciaTexto;
+      card.appendChild(ref);
+    }
+
+    listaEl.appendChild(card);
   });
 }
 
@@ -2372,6 +2529,7 @@ function mostrar() {
   if (doDia.length === 0) {
     container.innerHTML = "<p>Nenhum resultado cadastrado para esta data.</p>";
     atualizarBotoesNavegacaoResultados();
+    mostrarPremiacoesDestaque();
     mostrarApostas();
     return;
   }
@@ -2410,6 +2568,7 @@ function mostrar() {
   });
 
   atualizarBotoesNavegacaoResultados();
+  mostrarPremiacoesDestaque();
   mostrarApostas();
 }
 

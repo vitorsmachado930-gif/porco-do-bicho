@@ -326,6 +326,13 @@ body.admin-logado .acao-admin {
   padding: 8px 10px;
 }
 
+.resumo-premiacoes-destaque {
+  margin: 0 0 10px 0;
+  color: #9fb3c8;
+  font-size: 13px;
+  text-align: left;
+}
+
 .lista-premiacoes-destaque {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -354,6 +361,12 @@ body.admin-logado .acao-admin {
   background: #ffd600;
   color: #1b1b1b;
   font-weight: 700;
+}
+
+.premiacao-destaque-referencia {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9fb3c8;
 }
 
 .card-apostas > button {
