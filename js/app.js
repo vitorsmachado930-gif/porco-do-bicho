@@ -1745,6 +1745,7 @@ function voltarLoginUsuario() {
 
 function atualizarVisibilidadeUsuario() {
   const cardUsuario = document.getElementById("cardUsuario");
+  const blocoUsuarioTopo = document.getElementById("blocoUsuarioTopo");
   const cabecalhoUsuario = document.getElementById("cabecalhoUsuario");
   const cabecalhoUsuarioNome = document.getElementById("cabecalhoUsuarioNome");
   const areaPublica = document.getElementById("usuarioAreaPublica");
@@ -1765,6 +1766,10 @@ function atualizarVisibilidadeUsuario() {
   if (cardUsuario) {
     cardUsuario.style.display = usuarioAtual ? "none" : "block";
     cardUsuario.classList.toggle("compacto", Boolean(usuarioAtual));
+  }
+
+  if (blocoUsuarioTopo) {
+    blocoUsuarioTopo.style.display = usuarioAtual ? "none" : "block";
   }
 
   if (areaPublica) {

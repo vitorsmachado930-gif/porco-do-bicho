@@ -12,18 +12,12 @@
 
 <body>
 
-<div class="banner-topo" id="gatilhoAdmin">
-  <div class="banner-topo-conteudo">
-    <img class="banner-topo-img" src="img/mascote/banner.png" alt="Banner do site">
-  </div>
-</div>
-
 <div id="cabecalhoUsuario" class="cabecalho-usuario" style="display:none;">
   <span id="cabecalhoUsuarioNome"></span>
   <button class="btn-danger btn-cabecalho-sair" onclick="sairUsuarioCabecalho()">Sair</button>
 </div>
 
-<div class="container">
+<div class="container container-usuario-topo" id="blocoUsuarioTopo">
 
   <!-- USUÁRIO -->
   <div class="card card-usuario" id="cardUsuario">
@@ -63,7 +57,15 @@
 
     <p id="usuarioStatus"></p>
   </div>
+</div>
 
+<div class="banner-topo" id="gatilhoAdmin">
+  <div class="banner-topo-conteudo">
+    <img class="banner-topo-img" src="img/mascote/banner.png" alt="Banner do site">
+  </div>
+</div>
+
+<div class="container">
   <!-- LOGIN -->
   <div class="card" id="acessoAdmin" style="display:none;">
     <h3>🔐 Admin</h3>
