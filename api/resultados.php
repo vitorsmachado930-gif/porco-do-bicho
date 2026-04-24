@@ -24,11 +24,20 @@ function responder(int $status, array $payload): void
 $rootDir = dirname(__DIR__);
 $storageDir = $rootDir . DIRECTORY_SEPARATOR . 'storage';
 $filePath = $storageDir . DIRECTORY_SEPARATOR . 'resultados_sync.json';
+$backupsDir = $storageDir . DIRECTORY_SEPARATOR . 'backups';
+$backupRetencaoDias = 30;
 
 if (!is_dir($storageDir) && !mkdir($storageDir, 0775, true) && !is_dir($storageDir)) {
     responder(500, [
         'ok' => false,
         'error' => 'Nao foi possivel preparar o armazenamento.'
+    ]);
+}
+
+if (!is_dir($backupsDir) && !mkdir($backupsDir, 0775, true) && !is_dir($backupsDir)) {
+    responder(500, [
+        'ok' => false,
+        'error' => 'Nao foi possivel preparar os backups.'
     ]);
 }
 
@@ -97,6 +106,59 @@ function salvarEstado(string $filePath, array $estado): void
         flock($fp, LOCK_UN);
     } finally {
         fclose($fp);
+    }
+}
+
+function salvarBackupDiario(string $backupsDir, array $estado, int $updatedAt): string
+{
+    $timezone = new DateTimeZone('America/Sao_Paulo');
+    $timestampSegundos = (int)floor($updatedAt / 1000);
+    if ($timestampSegundos <= 0) {
+        $timestampSegundos = time();
+    }
+
+    $dataBase = (new DateTimeImmutable('@' . $timestampSegundos))->setTimezone($timezone);
+    $dataArquivo = $dataBase->format('Y-m-d');
+    $backupPath = $backupsDir . DIRECTORY_SEPARATOR . 'resultados-' . $dataArquivo . '.json';
+
+    $conteudoBackup = [
+        'backupDate' => $dataBase->format(DATE_ATOM),
+        'updatedAt' => isset($estado['updatedAt']) ? (int)$estado['updatedAt'] : 0,
+        'resultados' => isset($estado['resultados']) && is_array($estado['resultados'])
+            ? $estado['resultados']
+            : []
+    ];
+
+    salvarEstado($backupPath, $conteudoBackup);
+    return basename($backupPath);
+}
+
+function limparBackupsAntigos(string $backupsDir, int $retencaoDias): void
+{
+    if ($retencaoDias <= 0) {
+        return;
+    }
+
+    $timezone = new DateTimeZone('America/Sao_Paulo');
+    $limite = (new DateTimeImmutable('now', $timezone))
+        ->modify('-' . $retencaoDias . ' days')
+        ->format('Y-m-d');
+
+    $arquivos = glob($backupsDir . DIRECTORY_SEPARATOR . 'resultados-*.json');
+    if (!is_array($arquivos)) {
+        return;
+    }
+
+    foreach ($arquivos as $arquivo) {
+        $nome = basename($arquivo);
+        if (!preg_match('/^resultados-(\d{4}-\d{2}-\d{2})\.json$/', $nome, $match)) {
+            continue;
+        }
+
+        $dataArquivo = $match[1];
+        if ($dataArquivo < $limite) {
+            @unlink($arquivo);
+        }
     }
 }
 
@@ -175,7 +237,21 @@ try {
     ]);
 }
 
+$backupArquivo = '';
+$backupStatus = 'ok';
+try {
+    $backupArquivo = salvarBackupDiario($backupsDir, $novoEstado, $updatedAt);
+    limparBackupsAntigos($backupsDir, $backupRetencaoDias);
+} catch (Throwable $e) {
+    $backupStatus = 'falha';
+}
+
 responder(200, [
     'ok' => true,
-    'updatedAt' => $updatedAt
+    'updatedAt' => $updatedAt,
+    'backup' => [
+        'status' => $backupStatus,
+        'arquivo' => $backupArquivo,
+        'retencaoDias' => $backupRetencaoDias
+    ]
 ]);
