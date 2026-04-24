@@ -90,6 +90,10 @@ body {
   margin-top: 0;
 }
 
+.usuario-entrada-inicial button {
+  margin-top: 0;
+}
+
 .usuario-acoes-publicas {
   display: grid;
   grid-template-columns: 1fr 1fr;
