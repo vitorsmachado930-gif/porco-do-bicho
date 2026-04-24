@@ -22,8 +22,7 @@ body {
   width: 100%;
   display: block;
   border-radius: 10px;
-  object-fit: cover;
-  max-height: 240px;
+  height: auto;
 }
 
 .topo {
@@ -435,7 +434,6 @@ body.admin-logado .acao-admin {
 
   .banner-topo-img {
     border-radius: 6px;
-    max-height: 110px;
   }
 
   .cabecalho-usuario {
