@@ -1279,6 +1279,12 @@ async function sincronizarResultadosRemotos(modo) {
     const hashRemoto = serializarResultadosParaHash(estadoRemoto.resultados);
 
     if (atualizadoRemoto > atualizadoLocal) {
+      if (estadoRemoto.resultados.length === 0 && lista.length > 0) {
+        const tsRecuperacao = Date.now();
+        const tsEnviado = await enviarEstadoResultadosRemotos(tsRecuperacao);
+        salvarAtualizacaoDadosLocal(tsEnviado);
+        return;
+      }
       aplicarEstadoResultadosRemotos(estadoRemoto);
       mostrar();
       return;
