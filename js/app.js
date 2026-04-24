@@ -5,6 +5,9 @@ const MULTIPLICADORES_KEY = "multiplicadores_aposta";
 const USUARIOS_KEY = "usuarios_aposta";
 const USUARIO_SESSAO_KEY = "usuario_sessao_id";
 const LIMITES_APOSTA_KEY = "limites_aposta";
+const DADOS_UPDATED_AT_KEY = "dados_updated_at";
+const RESULTADOS_SYNC_API_URL = "api/resultados.php";
+const RESULTADOS_SYNC_INTERVALO_MS = 30000;
 const MAX_DIAS_HISTORICO = 7;
 const CLIQUES_PARA_EXIBIR_ADMIN = 5;
 const MINUTOS_ANTES_RESULTADO_PARA_FECHAR_APOSTA = 1;
@@ -80,6 +83,10 @@ let timerCliquesAdmin = null;
 let hashLoteriasApostaDisponiveis = "";
 let modoUsuarioPublico = "login";
 let painelUsuarioAberto = false;
+let sincronizacaoResultadosAtiva = false;
+let aplicandoResultadosRemotos = false;
+let sincronizacaoResultadosTimer = null;
+let pushResultadosRemotosTimer = null;
 
 function hojeISO() {
   return dataLocalParaISO(new Date());
@@ -1125,6 +1132,207 @@ function sanitizarLista(arr) {
     .filter(Boolean);
 }
 
+function carregarAtualizacaoDadosLocal() {
+  const bruto = Number(localStorage.getItem(DADOS_UPDATED_AT_KEY));
+  if (!Number.isFinite(bruto) || bruto <= 0) return 0;
+  return Math.floor(bruto);
+}
+
+function salvarAtualizacaoDadosLocal(timestamp) {
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts) || ts <= 0) return 0;
+  const finalTs = Math.floor(ts);
+  localStorage.setItem(DADOS_UPDATED_AT_KEY, String(finalTs));
+  return finalTs;
+}
+
+function serializarResultadosParaHash(arr) {
+  const sane = sanitizarLista(arr).map((item) => ({
+    praca: item.praca,
+    data: item.data,
+    loteria: item.loteria,
+    resultados: (Array.isArray(item.resultados) ? item.resultados : []).map((r) => ({
+      numero: String(r.numero || ""),
+      grupo: String(r.grupo || ""),
+      animal: String(r.animal || "")
+    }))
+  }));
+
+  sane.sort((a, b) => {
+    if (a.data !== b.data) return String(a.data).localeCompare(String(b.data));
+    return compararPorHorario(a, b);
+  });
+  return JSON.stringify(sane);
+}
+
+function agendarPushResultadosRemotos(delayMs) {
+  if (!sincronizacaoResultadosAtiva || aplicandoResultadosRemotos) return;
+  const delay = Number.isFinite(delayMs) ? Math.max(100, delayMs) : 500;
+
+  if (pushResultadosRemotosTimer) {
+    clearTimeout(pushResultadosRemotosTimer);
+  }
+
+  pushResultadosRemotosTimer = window.setTimeout(() => {
+    sincronizarResultadosRemotos("push");
+  }, delay);
+}
+
+async function fetchComTimeout(url, opcoes, timeoutMs) {
+  const timeout = Number.isFinite(timeoutMs) ? timeoutMs : 8000;
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeout);
+
+  try {
+    return await fetch(url, { ...(opcoes || {}), signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function buscarEstadoResultadosRemotos() {
+  const url = `${RESULTADOS_SYNC_API_URL}?t=${Date.now()}`;
+  const resp = await fetchComTimeout(
+    url,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      },
+      cache: "no-store"
+    },
+    7000
+  );
+
+  if (!resp.ok) {
+    throw new Error(`Falha na leitura remota (${resp.status}).`);
+  }
+
+  const payload = await resp.json();
+  const origem = payload && typeof payload === "object" ? payload : {};
+  const resultados = sanitizarLista(origem.resultados);
+  const updatedAt = Number(origem.updatedAt);
+
+  return {
+    resultados,
+    updatedAt: Number.isFinite(updatedAt) && updatedAt > 0 ? Math.floor(updatedAt) : 0
+  };
+}
+
+async function enviarEstadoResultadosRemotos(timestamp) {
+  const ts = Number.isFinite(timestamp) && timestamp > 0 ? Math.floor(timestamp) : Date.now();
+  const payload = {
+    updatedAt: ts,
+    resultados: sanitizarLista(lista)
+  };
+
+  const resp = await fetchComTimeout(
+    RESULTADOS_SYNC_API_URL,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store"
+    },
+    10000
+  );
+
+  if (!resp.ok) {
+    throw new Error(`Falha no envio remoto (${resp.status}).`);
+  }
+
+  return ts;
+}
+
+function aplicarEstadoResultadosRemotos(estadoRemoto) {
+  const remoto = estadoRemoto && typeof estadoRemoto === "object" ? estadoRemoto : {};
+  const resultadosRemotos = sanitizarLista(remoto.resultados);
+  const updatedAtRemoto = Number(remoto.updatedAt);
+  const updatedAtValido =
+    Number.isFinite(updatedAtRemoto) && updatedAtRemoto > 0 ? Math.floor(updatedAtRemoto) : 0;
+
+  aplicandoResultadosRemotos = true;
+  lista = resultadosRemotos;
+  salvarDados({
+    atualizarTimestamp: false,
+    pularSyncRemoto: true
+  });
+  aplicandoResultadosRemotos = false;
+
+  if (updatedAtValido > 0) {
+    salvarAtualizacaoDadosLocal(updatedAtValido);
+  }
+}
+
+async function sincronizarResultadosRemotos(modo) {
+  if (!sincronizacaoResultadosAtiva) return;
+
+  try {
+    const estadoRemoto = await buscarEstadoResultadosRemotos();
+    const atualizadoLocal = carregarAtualizacaoDadosLocal();
+    const atualizadoRemoto = estadoRemoto.updatedAt;
+
+    const hashLocal = serializarResultadosParaHash(lista);
+    const hashRemoto = serializarResultadosParaHash(estadoRemoto.resultados);
+
+    if (atualizadoRemoto > atualizadoLocal) {
+      aplicarEstadoResultadosRemotos(estadoRemoto);
+      mostrar();
+      return;
+    }
+
+    if (atualizadoLocal > atualizadoRemoto) {
+      const tsEnviado = await enviarEstadoResultadosRemotos(atualizadoLocal);
+      salvarAtualizacaoDadosLocal(tsEnviado);
+      return;
+    }
+
+    if (hashLocal === hashRemoto) return;
+
+    if (modo === "bootstrap" && lista.length > 0 && estadoRemoto.resultados.length === 0) {
+      const tsBootstrap = Date.now();
+      const tsEnviado = await enviarEstadoResultadosRemotos(tsBootstrap);
+      salvarAtualizacaoDadosLocal(tsEnviado);
+      return;
+    }
+
+    if (modo === "push") {
+      const tsPush = Date.now();
+      const tsEnviado = await enviarEstadoResultadosRemotos(tsPush);
+      salvarAtualizacaoDadosLocal(tsEnviado);
+      return;
+    }
+
+    aplicarEstadoResultadosRemotos(estadoRemoto);
+    mostrar();
+  } catch (_err) {
+    // Falha remota: o app segue funcionando com armazenamento local.
+  }
+}
+
+async function inicializarSincronizacaoResultadosRemotos() {
+  if (!window.fetch) return;
+
+  try {
+    await buscarEstadoResultadosRemotos();
+    sincronizacaoResultadosAtiva = true;
+  } catch (_err) {
+    sincronizacaoResultadosAtiva = false;
+    return;
+  }
+
+  await sincronizarResultadosRemotos("bootstrap");
+
+  if (!sincronizacaoResultadosTimer) {
+    sincronizacaoResultadosTimer = window.setInterval(() => {
+      sincronizarResultadosRemotos("pull");
+    }, RESULTADOS_SYNC_INTERVALO_MS);
+  }
+}
+
 function carregarDados() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -1137,9 +1345,21 @@ function carregarDados() {
   }
 }
 
-function salvarDados() {
+function salvarDados(opcoes) {
+  const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
+  const atualizarTimestamp = cfg.atualizarTimestamp !== false;
+  const pularSyncRemoto = cfg.pularSyncRemoto === true;
+
   lista = sanitizarLista(lista);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
+
+  if (atualizarTimestamp) {
+    salvarAtualizacaoDadosLocal(Date.now());
+  }
+
+  if (!pularSyncRemoto) {
+    agendarPushResultadosRemotos(500);
+  }
 }
 
 function carregarApostas() {
@@ -2613,14 +2833,17 @@ function mostrar() {
   mostrarApostas();
 }
 
-function init() {
+async function init() {
   lista = sanitizarLista(lista);
   carregarMultiplicadores();
   carregarLimitesAposta();
   apostas = sanitizarApostas(apostas);
   usuarios = sanitizarUsuarios(usuarios);
   usuarioAtual = carregarSessaoUsuario();
-  salvarDados();
+  salvarDados({
+    atualizarTimestamp: false,
+    pularSyncRemoto: true
+  });
   salvarApostas();
   salvarUsuarios();
   salvarLimitesApostaStorage();
@@ -2653,6 +2876,7 @@ function init() {
   aplicarLimitesDeData();
   atualizarEstadoNavegacao();
   atualizarResumoData();
+  await inicializarSincronizacaoResultadosRemotos();
   mostrar();
 }
 
@@ -2682,4 +2906,6 @@ window.voltarDia = voltarDia;
 window.avancarDia = avancarDia;
 window.irHoje = irHoje;
 
-window.addEventListener("load", init);
+window.addEventListener("load", () => {
+  init();
+});
