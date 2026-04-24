@@ -333,6 +333,24 @@ body.admin-logado .acao-admin {
   text-align: left;
 }
 
+.titulo-premiacoes-destaque {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.titulo-premiacoes-destaque h3 {
+  margin: 0;
+}
+
+.data-premiacoes-destaque {
+  display: inline-block;
+  font-size: 13px;
+  color: #00e676;
+  font-weight: 700;
+}
+
 .lista-premiacoes-destaque {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
