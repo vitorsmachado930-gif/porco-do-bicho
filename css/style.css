@@ -499,6 +499,24 @@ body.admin-logado .acao-admin {
     scroll-padding-inline: 6px;
   }
 
+  #resultados.tem-carrossel {
+    scroll-padding-inline: 14px;
+  }
+
+  #resultados.tem-carrossel .resultado-card {
+    scroll-snap-align: center;
+    opacity: 0.72;
+    transform: scale(0.95);
+    transition: transform 0.22s ease, opacity 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  }
+
+  #resultados.tem-carrossel .resultado-card.resultado-card-ativo {
+    opacity: 1;
+    transform: scale(1);
+    border-color: #00e67699;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+  }
+
   .banner-topo-conteudo {
     width: min(100%, 460px);
     padding: 6px 12px;
@@ -603,6 +621,14 @@ body.admin-logado .acao-admin {
     grid-auto-columns: min(68vw, 220px);
     gap: 7px;
     padding: 2px 2px 8px 2px;
+  }
+
+  #resultados.tem-carrossel {
+    scroll-padding-inline: 12px;
+  }
+
+  #resultados.tem-carrossel .resultado-card {
+    transform: scale(0.96);
   }
 
   .resultado-titulo {
