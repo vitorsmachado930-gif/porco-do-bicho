@@ -32,14 +32,31 @@
     <h3>👤 Usuário</h3>
 
     <div id="usuarioAreaPublica">
-      <input id="cadastroNome" placeholder="Nome">
-      <input id="cadastroLogin" placeholder="Login de acesso">
-      <input id="cadastroSenha" type="password" placeholder="Senha">
-      <button onclick="cadastrarUsuario()">Cadastrar</button>
+      <div id="usuarioModoLogin">
+        <input id="loginUsuario" placeholder="Login">
+        <input id="senhaUsuario" type="password" placeholder="Senha">
+        <button onclick="entrarUsuario()">Entrar para apostar</button>
 
-      <input id="loginUsuario" placeholder="Login">
-      <input id="senhaUsuario" type="password" placeholder="Senha">
-      <button onclick="entrarUsuario()">Entrar para apostar</button>
+        <div class="usuario-acoes-publicas">
+          <button class="btn-link" type="button" onclick="abrirRecuperacaoSenha()">Esqueci minha senha</button>
+          <button class="btn-link" type="button" onclick="abrirCadastroUsuario()">Cadastro</button>
+        </div>
+      </div>
+
+      <div id="usuarioModoCadastro" style="display:none;">
+        <input id="cadastroNome" placeholder="Nome">
+        <input id="cadastroLogin" placeholder="Login de acesso">
+        <input id="cadastroSenha" type="password" placeholder="Senha">
+        <button onclick="cadastrarUsuario()">Criar cadastro</button>
+        <button class="btn-secondary" type="button" onclick="voltarLoginUsuario()">Voltar ao login</button>
+      </div>
+
+      <div id="usuarioModoRecuperar" style="display:none;">
+        <input id="recuperarLogin" placeholder="Login cadastrado">
+        <input id="recuperarSenha" type="password" placeholder="Nova senha">
+        <button onclick="redefinirSenhaUsuario()">Salvar nova senha</button>
+        <button class="btn-secondary" type="button" onclick="voltarLoginUsuario()">Voltar ao login</button>
+      </div>
     </div>
 
     <div id="usuarioAreaLogado" style="display:none;">

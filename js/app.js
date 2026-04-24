@@ -75,6 +75,7 @@ let acessoAdminVisivel = false;
 let contadorCliquesAdmin = 0;
 let timerCliquesAdmin = null;
 let hashLoteriasApostaDisponiveis = "";
+let modoUsuarioPublico = "login";
 
 function hojeISO() {
   return dataLocalParaISO(new Date());
@@ -1672,6 +1673,34 @@ function atualizarStatusUsuario(texto, erro) {
   status.innerText = texto || "";
 }
 
+function definirModoUsuarioPublico(modo) {
+  const modoFinal = modo === "cadastro" || modo === "recuperar" ? modo : "login";
+  modoUsuarioPublico = modoFinal;
+
+  const blocoLogin = document.getElementById("usuarioModoLogin");
+  const blocoCadastro = document.getElementById("usuarioModoCadastro");
+  const blocoRecuperar = document.getElementById("usuarioModoRecuperar");
+
+  if (blocoLogin) blocoLogin.style.display = modoFinal === "login" ? "block" : "none";
+  if (blocoCadastro) blocoCadastro.style.display = modoFinal === "cadastro" ? "block" : "none";
+  if (blocoRecuperar) blocoRecuperar.style.display = modoFinal === "recuperar" ? "block" : "none";
+}
+
+function abrirCadastroUsuario() {
+  atualizarStatusUsuario("", false);
+  definirModoUsuarioPublico("cadastro");
+}
+
+function abrirRecuperacaoSenha() {
+  atualizarStatusUsuario("", false);
+  definirModoUsuarioPublico("recuperar");
+}
+
+function voltarLoginUsuario() {
+  atualizarStatusUsuario("", false);
+  definirModoUsuarioPublico("login");
+}
+
 function atualizarVisibilidadeUsuario() {
   const cardUsuario = document.getElementById("cardUsuario");
   const cabecalhoUsuario = document.getElementById("cabecalhoUsuario");
@@ -1698,6 +1727,9 @@ function atualizarVisibilidadeUsuario() {
 
   if (areaPublica) {
     areaPublica.style.display = usuarioAtual ? "none" : "block";
+    if (!usuarioAtual) {
+      definirModoUsuarioPublico(modoUsuarioPublico);
+    }
   }
 
   if (areaLogado) {
@@ -1723,12 +1755,16 @@ function limparCamposUsuario() {
   const cadastroSenha = document.getElementById("cadastroSenha");
   const loginUsuario = document.getElementById("loginUsuario");
   const senhaUsuario = document.getElementById("senhaUsuario");
+  const recuperarLogin = document.getElementById("recuperarLogin");
+  const recuperarSenha = document.getElementById("recuperarSenha");
 
   if (cadastroNome) cadastroNome.value = "";
   if (cadastroLogin) cadastroLogin.value = "";
   if (cadastroSenha) cadastroSenha.value = "";
   if (loginUsuario) loginUsuario.value = "";
   if (senhaUsuario) senhaUsuario.value = "";
+  if (recuperarLogin) recuperarLogin.value = "";
+  if (recuperarSenha) recuperarSenha.value = "";
 }
 
 function cadastrarUsuario() {
@@ -1772,10 +1808,39 @@ function cadastrarUsuario() {
   salvarUsuarios();
   usuarioAtual = novoUsuario;
   salvarSessaoUsuario();
+  definirModoUsuarioPublico("login");
   atualizarVisibilidadeUsuario();
   atualizarStatusUsuario(`Cadastro concluído. Conectado como ${nome} (@${login}).`, false);
   limparCamposUsuario();
   mostrar();
+}
+
+function redefinirSenhaUsuario() {
+  const login = normalizarLoginUsuario(document.getElementById("recuperarLogin").value);
+  const novaSenha = String(document.getElementById("recuperarSenha").value || "");
+
+  if (!login || novaSenha.length < 4) {
+    atualizarStatusUsuario("Informe login e nova senha (mínimo 4 caracteres).", true);
+    alert("Informe login e nova senha (mínimo 4 caracteres).");
+    return;
+  }
+
+  const idx = usuarios.findIndex((u) => u.login === login);
+  if (idx === -1) {
+    atualizarStatusUsuario("Login não encontrado.", true);
+    alert("Login não encontrado.");
+    return;
+  }
+
+  usuarios[idx].senha = novaSenha;
+  salvarUsuarios();
+  definirModoUsuarioPublico("login");
+  const loginUsuario = document.getElementById("loginUsuario");
+  if (loginUsuario) loginUsuario.value = login;
+  atualizarStatusUsuario("Senha atualizada. Faça login.", false);
+
+  const recuperarSenha = document.getElementById("recuperarSenha");
+  if (recuperarSenha) recuperarSenha.value = "";
 }
 
 function entrarUsuario() {
@@ -1797,6 +1862,7 @@ function entrarUsuario() {
 
   usuarioAtual = encontrado;
   salvarSessaoUsuario();
+  definirModoUsuarioPublico("login");
   atualizarVisibilidadeUsuario();
   atualizarStatusUsuario(`Conectado como ${encontrado.nome} (@${encontrado.login}).`, false);
   limparCamposUsuario();
@@ -2291,6 +2357,7 @@ function init() {
   atualizarStatusMultiplicadores("", false);
   atualizarStatusLimitesAposta("", false);
   atualizarVisibilidadeUsuario();
+  definirModoUsuarioPublico("login");
   if (usuarioAtual) {
     atualizarStatusUsuario(`Conectado como ${usuarioAtual.nome} (@${usuarioAtual.login}).`, false);
   } else {
@@ -2307,9 +2374,13 @@ function init() {
 window.loginAdmin = loginAdmin;
 window.logoutAdmin = logoutAdmin;
 window.cadastrarUsuario = cadastrarUsuario;
+window.redefinirSenhaUsuario = redefinirSenhaUsuario;
 window.entrarUsuario = entrarUsuario;
 window.sairUsuario = sairUsuario;
 window.sairUsuarioCabecalho = sairUsuarioCabecalho;
+window.abrirCadastroUsuario = abrirCadastroUsuario;
+window.abrirRecuperacaoSenha = abrirRecuperacaoSenha;
+window.voltarLoginUsuario = voltarLoginUsuario;
 window.salvar = salvar;
 window.salvarMultiplicadores = salvarMultiplicadores;
 window.restaurarMultiplicadoresPadrao = restaurarMultiplicadoresPadrao;
