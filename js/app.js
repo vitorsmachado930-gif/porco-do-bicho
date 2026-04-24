@@ -11,6 +11,7 @@ const RESULTADOS_SYNC_INTERVALO_MS = 30000;
 const MAX_DIAS_HISTORICO = 7;
 const CLIQUES_PARA_EXIBIR_ADMIN = 5;
 const MINUTOS_ANTES_RESULTADO_PARA_FECHAR_APOSTA = 1;
+const PRACA_FIXA = "Rio";
 
 const TIPOS_APOSTA = {
   grupo: "Grupo",
@@ -1432,36 +1433,26 @@ function popularPracas() {
   const selectPraca = document.getElementById("praca");
   if (!selectPraca) return;
 
-  const atual = selectPraca.value;
-  selectPraca.innerHTML = '<option value="">Selecione a praça</option>';
-
-  PRACAS_ORDENADAS.forEach((praca) => {
-    const opt = document.createElement("option");
-    opt.value = praca;
-    opt.textContent = praca;
-    selectPraca.appendChild(opt);
-  });
-
-  const pracaPadrao = PRACAS_ORDENADAS[0] || "";
-  selectPraca.value = atual && PRACAS_ORDENADAS.includes(atual) ? atual : pracaPadrao;
+  selectPraca.innerHTML = "";
+  const opt = document.createElement("option");
+  opt.value = PRACA_FIXA;
+  opt.textContent = PRACA_FIXA;
+  selectPraca.appendChild(opt);
+  selectPraca.value = PRACA_FIXA;
+  selectPraca.disabled = true;
 }
 
 function popularPracasAposta() {
   const selectPraca = document.getElementById("pracaAposta");
   if (!selectPraca) return;
 
-  const atual = selectPraca.value;
-  selectPraca.innerHTML = '<option value="">Selecione a praça</option>';
-
-  PRACAS_ORDENADAS.forEach((praca) => {
-    const opt = document.createElement("option");
-    opt.value = praca;
-    opt.textContent = praca;
-    selectPraca.appendChild(opt);
-  });
-
-  const pracaPadrao = PRACAS_ORDENADAS[0] || "";
-  selectPraca.value = atual && PRACAS_ORDENADAS.includes(atual) ? atual : pracaPadrao;
+  selectPraca.innerHTML = "";
+  const opt = document.createElement("option");
+  opt.value = PRACA_FIXA;
+  opt.textContent = PRACA_FIXA;
+  selectPraca.appendChild(opt);
+  selectPraca.value = PRACA_FIXA;
+  selectPraca.disabled = true;
 }
 
 function popularLoterias() {
@@ -1558,45 +1549,30 @@ function popularLoteriasAposta() {
 function popularFiltroPracas() {
   const filtro = document.getElementById("filtroPraca");
   if (!filtro) return;
-
-  const atual = filtro.value || "TODAS";
-  filtro.innerHTML = '<option value="TODAS">Todas as praças</option>';
-
-  PRACAS_ORDENADAS.forEach((praca) => {
-    const opt = document.createElement("option");
-    opt.value = praca;
-    opt.textContent = praca;
-    filtro.appendChild(opt);
-  });
-
-  filtro.value = atual === "TODAS" || PRACAS_ORDENADAS.includes(atual) ? atual : "TODAS";
+  filtro.innerHTML = "";
+  const opt = document.createElement("option");
+  opt.value = PRACA_FIXA;
+  opt.textContent = PRACA_FIXA;
+  filtro.appendChild(opt);
+  filtro.value = PRACA_FIXA;
+  filtro.disabled = true;
 }
 
-function selecionarPracaAdmin(valor) {
+function selecionarPracaAdmin(_valor) {
   const selectPraca = document.getElementById("praca");
   if (!selectPraca) return;
-  if (valor && PRACAS_ORDENADAS.includes(valor)) {
-    selectPraca.value = valor;
-  }
+  selectPraca.value = PRACA_FIXA;
   popularLoterias();
 }
 
 function obterPracaFiltroAtual() {
-  const filtro = document.getElementById("filtroPraca");
-  if (!filtro) return "TODAS";
-  const valor = String(filtro.value || "TODAS");
-  if (valor === "TODAS") return valor;
-  return PRACAS_ORDENADAS.includes(valor) ? valor : "TODAS";
+  return PRACA_FIXA;
 }
 
-function selecionarPracaFiltro(valor) {
+function selecionarPracaFiltro(_valor) {
   const filtro = document.getElementById("filtroPraca");
   if (filtro) {
-    if (valor === "TODAS" || PRACAS_ORDENADAS.includes(valor)) {
-      filtro.value = valor;
-    } else {
-      filtro.value = "TODAS";
-    }
+    filtro.value = PRACA_FIXA;
   }
   atualizarResumoData();
   mostrar();
@@ -2432,9 +2408,7 @@ function atualizarEstadoNavegacao() {
 function atualizarResumoData() {
   const resumo = document.getElementById("resumoData");
   if (!resumo) return;
-  const filtroPraca = obterPracaFiltroAtual();
-  const pracaTxt = filtroPraca === "TODAS" ? "Todas as praças" : filtroPraca;
-  resumo.innerText = `Data selecionada: ${formatarDataBR(dataSelecionada)} | Praça: ${pracaTxt}`;
+  resumo.innerText = `Data selecionada: ${formatarDataBR(dataSelecionada)} | Praça: ${PRACA_FIXA}`;
 }
 
 function selecionarData(valor) {
@@ -2480,12 +2454,12 @@ function loginAdmin() {
     preencherCamposLimitesAposta();
     atualizarStatusMultiplicadores("Admin conectado.", false);
     atualizarStatusLimitesAposta("Admin conectado.", false);
-    selecionarPracaAdmin("Rio");
+    selecionarPracaAdmin(PRACA_FIXA);
     const pracaAposta = document.getElementById("pracaAposta");
     const dataAposta = document.getElementById("dataAposta");
     if (dataAposta) dataAposta.value = hojeISO();
     if (pracaAposta) {
-      pracaAposta.value = "Rio";
+      pracaAposta.value = PRACA_FIXA;
       popularLoteriasAposta();
     }
     const dataResultado = document.getElementById("dataResultado");

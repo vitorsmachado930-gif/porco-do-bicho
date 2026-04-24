@@ -86,9 +86,11 @@
 
     <input id="dataResultado" type="date">
 
-    <select id="praca">
-      <option value="">Selecione a praça</option>
-    </select>
+    <div class="linha-praca-fixa">
+      <span class="rotulo-praca-fixa">Praça</span>
+      <strong>Rio</strong>
+    </div>
+    <select id="praca" class="select-praca-oculta" aria-hidden="true" tabindex="-1"></select>
 
     <select id="loteria">
       <option value="">Selecione a loteria</option>
@@ -143,9 +145,11 @@
       <button id="btnDiaHoje" class="btn-nav btn-hoje" onclick="irHoje()">Hoje</button>
       <button id="btnDiaProximo" class="btn-nav" onclick="avancarDia()">▶</button>
     </div>
-    <select id="filtroPraca" onchange="selecionarPracaFiltro(this.value)">
-      <option value="TODAS">Todas as praças</option>
-    </select>
+    <div class="linha-praca-fixa linha-praca-fixa-filtro">
+      <span class="rotulo-praca-fixa">Praça</span>
+      <strong>Rio</strong>
+    </div>
+    <select id="filtroPraca" class="select-praca-oculta" aria-hidden="true" tabindex="-1"></select>
     <p id="resumoData"></p>
     <div class="navegacao-resultados">
       <button id="btnResultadosPrev" class="btn-nav-horizontal" type="button">◀ Anteriores</button>
@@ -170,9 +174,11 @@
     </div>
     <input id="dataAposta" type="hidden">
 
-    <select id="pracaAposta">
-      <option value="">Selecione a praça</option>
-    </select>
+    <div class="linha-praca-fixa">
+      <span class="rotulo-praca-fixa">Praça da aposta</span>
+      <strong>Rio</strong>
+    </div>
+    <select id="pracaAposta" class="select-praca-oculta" aria-hidden="true" tabindex="-1"></select>
 
     <select id="loteriaAposta">
       <option value="">Selecione a loteria</option>
