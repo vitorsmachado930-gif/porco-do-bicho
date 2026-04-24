@@ -26,7 +26,8 @@ const PREMIO_FICTICIO_MULTIPLICADOR = {
   centena: 600,
   dezena: 60
 };
-const TIPOS_PREMIACAO_DESTAQUE = ["grupo", "terno_grupo", "milhar"];
+const TIPOS_PREMIACAO_DESTAQUE_BASE = ["grupo", "terno_grupo", "milhar"];
+const TIPOS_PREMIACAO_DESTAQUE_EXTRA = ["dupla_grupo", "centena", "dezena"];
 const VALORES_APOSTA_DESTAQUE = [2, 3, 5, 10, 15, 20];
 
 const LIMITES_APOSTA_PADRAO = {
@@ -634,6 +635,17 @@ function loteriaAptaParaPremiacaoDestaque(dataISO, loteria) {
   return agora.getTime() >= limite.getTime();
 }
 
+function deveExibirPremiacoesDestaqueExtras(dataISO) {
+  return loteriaAptaParaPremiacaoDestaque(dataISO, "PT 14:20");
+}
+
+function tiposPremiacaoDestaqueAtivos(dataISO) {
+  if (deveExibirPremiacoesDestaqueExtras(dataISO)) {
+    return TIPOS_PREMIACAO_DESTAQUE_BASE.concat(TIPOS_PREMIACAO_DESTAQUE_EXTRA);
+  }
+  return TIPOS_PREMIACAO_DESTAQUE_BASE.slice();
+}
+
 function obterReferenciasPremiacaoDestaque(dataISO) {
   const data = normalizarDataISO(dataISO);
   const filtroPraca = obterPracaFiltroAtual();
@@ -665,8 +677,9 @@ function gerarPremiacoesDestaqueDoDia(dataISO) {
   );
   const referencias = obterReferenciasPremiacaoDestaque(data);
   if (referencias.length === 0) return [];
+  const tiposAtivos = tiposPremiacaoDestaqueAtivos(data);
 
-  return TIPOS_PREMIACAO_DESTAQUE.map((tipo, index) => {
+  return tiposAtivos.map((tipo, index) => {
     const valorAposta =
       VALORES_APOSTA_DESTAQUE[sortearInteiro(rand, VALORES_APOSTA_DESTAQUE.length)] || 2;
     const premio = Number(calcularPremiacaoFicticia(tipo, valorAposta.toFixed(2)));
