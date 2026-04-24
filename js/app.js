@@ -1715,6 +1715,12 @@ function atualizarStatusUsuario(texto, erro) {
   status.innerText = texto || "";
 }
 
+function atualizarVisibilidadeApostas() {
+  const cardApostas = document.getElementById("cardApostas");
+  if (!cardApostas) return;
+  cardApostas.style.display = usuarioAtual ? "block" : "none";
+}
+
 function definirModoUsuarioPublico(modo) {
   const modoFinal = modo === "cadastro" || modo === "recuperar" ? modo : "login";
   modoUsuarioPublico = modoFinal;
@@ -1790,6 +1796,8 @@ function atualizarVisibilidadeUsuario() {
   if (status) {
     status.style.display = usuarioAtual ? "none" : "block";
   }
+
+  atualizarVisibilidadeApostas();
 }
 
 function sairUsuarioCabecalho() {
