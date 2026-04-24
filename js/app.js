@@ -400,6 +400,47 @@ function textoCronometroPara(dataISO, loteria) {
   return `Aposta encerrada há ${formatarDuracao(Math.abs(restante))}.`;
 }
 
+function chaveResultado(item) {
+  if (!item) return "";
+  return `${item.data}|${item.praca}|${item.loteria}`;
+}
+
+function gerarResultadosPadraoDoDia(dataISO) {
+  const data = normalizarDataISO(dataISO);
+  if (!data) return [];
+
+  const itens = [];
+  PRACAS_ORDENADAS.forEach((praca) => {
+    loteriasDaPraca(praca).forEach((loteria, idx) => {
+      itens.push({
+        id: `padrao-${data}-${praca}-${idx}`,
+        praca,
+        data,
+        loteria,
+        resultados: [],
+        publicoPadrao: true
+      });
+    });
+  });
+
+  return itens;
+}
+
+function obterResultadosDisponiveis() {
+  const base = gerarResultadosPadraoDoDia(hojeISO());
+  const mapa = new Map();
+
+  base.forEach((item) => {
+    mapa.set(chaveResultado(item), item);
+  });
+
+  lista.forEach((item) => {
+    mapa.set(chaveResultado(item), item);
+  });
+
+  return Array.from(mapa.values());
+}
+
 function normalizarConfigMultiplicadores(raw) {
   const origem = raw && typeof raw === "object" ? raw : {};
   const novo = {};
@@ -551,14 +592,15 @@ function formatarPalpiteParaBilhete(item) {
 }
 
 function resultadoDaAposta(aposta) {
-  const resultado = lista.find(
+  const resultadosDisponiveis = obterResultadosDisponiveis();
+  const resultado = resultadosDisponiveis.find(
     (item) =>
       item.data === aposta.data &&
       item.praca === aposta.praca &&
       item.loteria === aposta.loteria
   );
 
-  if (!resultado) {
+  if (!resultado || !Array.isArray(resultado.resultados) || resultado.resultados.length === 0) {
     return {
       status: "PENDENTE",
       ganhou: false,
@@ -2278,7 +2320,8 @@ function mostrar() {
   if (!container) return;
 
   const filtroPraca = obterPracaFiltroAtual();
-  const doDia = lista
+  const resultadosDisponiveis = obterResultadosDisponiveis();
+  const doDia = resultadosDisponiveis
     .filter((item) => {
       if (item.data !== dataSelecionada) return false;
       if (filtroPraca === "TODAS") return true;
@@ -2304,20 +2347,24 @@ function mostrar() {
     let html = `<div class="resultado-card">
       <div class="resultado-titulo">${item.praca} | ${item.loteria} - ${formatarDataBR(item.data)}</div>`;
 
-    item.resultados.forEach((r, i) => {
-      const animal = r.animal || pegarAnimal(r.grupo);
+    if (!item.resultados || item.resultados.length === 0) {
+      html += `<p>Aguardando resultado desta loteria.</p>`;
+    } else {
+      item.resultados.forEach((r, i) => {
+        const animal = r.animal || pegarAnimal(r.grupo);
 
-      html += `
-        <div class="premio">
-          <span class="posicao">${i + 1}º</span>
-          <img src="img/animais/${animal}.png" alt="${animal}">
-          <strong>${r.numero}</strong>
-          <span class="grupo">${r.grupo || "-"} - ${capitalizar(animal)}</span>
-        </div>
-      `;
-    });
+        html += `
+          <div class="premio">
+            <span class="posicao">${i + 1}º</span>
+            <img src="img/animais/${animal}.png" alt="${animal}">
+            <strong>${r.numero}</strong>
+            <span class="grupo">${r.grupo || "-"} - ${capitalizar(animal)}</span>
+          </div>
+        `;
+      });
+    }
 
-    if (logado) {
+    if (logado && !item.publicoPadrao) {
       html += `<button class="acao-admin" onclick="excluirPorId(${item.id})">Excluir</button>`;
     }
 
