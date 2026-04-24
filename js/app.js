@@ -617,6 +617,23 @@ function montarPalpiteDestaque(tipo, rand) {
   return "";
 }
 
+function loteriaAptaParaPremiacaoDestaque(dataISO, loteria) {
+  const data = normalizarDataISO(dataISO);
+  if (!data) return false;
+
+  const hoje = hojeISO();
+  if (data < hoje) return true;
+  if (data > hoje) return false;
+
+  const horario = obterHorarioLoteria(loteria);
+  if (!horario) return true;
+
+  const agora = new Date();
+  const limite = new Date(`${data}T00:00:00`);
+  limite.setHours(horario.horas, horario.minutos, 0, 0);
+  return agora.getTime() >= limite.getTime();
+}
+
 function obterReferenciasPremiacaoDestaque(dataISO) {
   const data = normalizarDataISO(dataISO);
   const filtroPraca = obterPracaFiltroAtual();
@@ -624,6 +641,7 @@ function obterReferenciasPremiacaoDestaque(dataISO) {
   const referencias = obterResultadosDisponiveis()
     .filter((item) => {
       if (item.data !== data) return false;
+      if (!loteriaAptaParaPremiacaoDestaque(data, item.loteria)) return false;
       if (filtroPraca === "TODAS") return true;
       return item.praca === filtroPraca;
     })
@@ -633,6 +651,7 @@ function obterReferenciasPremiacaoDestaque(dataISO) {
 
   return gerarResultadosPadraoDoDia(data)
     .filter((item) => {
+      if (!loteriaAptaParaPremiacaoDestaque(data, item.loteria)) return false;
       if (filtroPraca === "TODAS") return true;
       return item.praca === filtroPraca;
     })
@@ -645,6 +664,7 @@ function gerarPremiacoesDestaqueDoDia(dataISO) {
     `${data}|${obterPracaFiltroAtual()}|premiacoes-destaque`
   );
   const referencias = obterReferenciasPremiacaoDestaque(data);
+  if (referencias.length === 0) return [];
 
   return TIPOS_PREMIACAO_DESTAQUE.map((tipo, index) => {
     const valorAposta =
@@ -687,6 +707,16 @@ function mostrarPremiacoesDestaque() {
 
   const cards = gerarPremiacoesDestaqueDoDia(data);
   listaEl.innerHTML = "";
+
+  if (cards.length === 0) {
+    const aviso = document.createElement("p");
+    aviso.className = "premiacao-destaque-vazio";
+    aviso.innerText = data === hojeISO()
+      ? "Premiações serão exibidas após o primeiro horário encerrado do dia."
+      : "Sem horários elegíveis para exibir premiações nesta data.";
+    listaEl.appendChild(aviso);
+    return;
+  }
 
   cards.forEach((item) => {
     const card = document.createElement("div");

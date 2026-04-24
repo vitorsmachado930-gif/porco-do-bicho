@@ -380,6 +380,13 @@ body.admin-logado .acao-admin {
   color: #9fb3c8;
 }
 
+.premiacao-destaque-vazio {
+  margin: 0;
+  color: #9fb3c8;
+  font-size: 14px;
+  text-align: center;
+}
+
 .card-apostas > button {
   width: 220px;
   max-width: 100%;
