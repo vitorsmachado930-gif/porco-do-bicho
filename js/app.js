@@ -678,16 +678,12 @@ function criarLinhaPremiacaoDestaque(label, valor) {
 }
 
 function mostrarPremiacoesDestaque() {
-  const resumo = document.getElementById("resumoPremiacoesDestaque");
   const listaEl = document.getElementById("listaPremiacoesDestaque");
   const dataEl = document.getElementById("dataPremiacoesDestaque");
   if (!listaEl) return;
 
   const data = normalizarDataISO(dataSelecionada) || hojeISO();
   if (dataEl) dataEl.innerText = formatarDataBR(data);
-  if (resumo) {
-    resumo.innerText = `Bilhetes fictícios de ${formatarDataBR(data)}.`;
-  }
 
   const cards = gerarPremiacoesDestaqueDoDia(data);
   listaEl.innerHTML = "";

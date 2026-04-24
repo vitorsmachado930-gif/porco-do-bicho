@@ -326,13 +326,6 @@ body.admin-logado .acao-admin {
   padding: 8px 10px;
 }
 
-.resumo-premiacoes-destaque {
-  margin: 0 0 10px 0;
-  color: #9fb3c8;
-  font-size: 13px;
-  text-align: left;
-}
-
 .titulo-premiacoes-destaque {
   display: flex;
   align-items: center;
