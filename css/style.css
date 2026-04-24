@@ -326,6 +326,36 @@ body.admin-logado .acao-admin {
   padding: 8px 10px;
 }
 
+.lista-premiacoes-destaque {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.premiacao-destaque-item {
+  background: linear-gradient(160deg, #0f1a24 0%, #162534 100%);
+  border: 1px solid #00c85355;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.premiacao-destaque-tipo {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #9fd5ff;
+}
+
+.premiacao-destaque-valor {
+  margin-top: 8px;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ffd600;
+  color: #1b1b1b;
+  font-weight: 700;
+}
+
 .card-apostas > button {
   width: 220px;
   max-width: 100%;
@@ -494,6 +524,16 @@ body.admin-logado .acao-admin {
 
   .navegacao-resultados {
     justify-content: center;
+  }
+
+  .lista-premiacoes-destaque {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .premiacao-destaque-item {
+    text-align: left;
   }
 
   .resultado-card {
