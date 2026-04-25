@@ -98,6 +98,7 @@ let modoUsuarioPublico = "login";
 let painelUsuarioAberto = false;
 let slotGrupoAtivo = 1;
 let editorPalpiteGrupoAberto = true;
+let toastRapidoTimer = null;
 let sincronizacaoResultadosAtiva = false;
 let aplicandoResultadosRemotos = false;
 let sincronizacaoResultadosTimer = null;
@@ -374,14 +375,14 @@ function lerLimitesApostaDoFormulario() {
 
 function salvarLimitesAposta() {
   if (!logado) {
-    alert("Faça login antes de salvar limites.");
+    mostrarConfirmacaoApostaRapida("Faça login antes de salvar limites.", "erro");
     return;
   }
 
   const leitura = lerLimitesApostaDoFormulario();
   if (!leitura.ok) {
     atualizarStatusLimitesAposta(leitura.mensagem, true);
-    alert(leitura.mensagem);
+    mostrarConfirmacaoApostaRapida(leitura.mensagem, "erro");
     return;
   }
 
@@ -389,13 +390,14 @@ function salvarLimitesAposta() {
   salvarLimitesApostaStorage();
   atualizarInfoLimitesAposta();
   atualizarStatusLimitesAposta("Limites de aposta atualizados.", false);
+  mostrarConfirmacaoApostaRapida("Limites de aposta atualizados.");
   atualizarPreviewPremiacaoAposta();
   mostrar();
 }
 
 function restaurarLimitesPadrao() {
   if (!logado) {
-    alert("Faça login antes de restaurar limites.");
+    mostrarConfirmacaoApostaRapida("Faça login antes de restaurar limites.", "erro");
     return;
   }
 
@@ -404,6 +406,7 @@ function restaurarLimitesPadrao() {
   preencherCamposLimitesAposta();
   atualizarInfoLimitesAposta();
   atualizarStatusLimitesAposta("Limites padrão restaurados.", false);
+  mostrarConfirmacaoApostaRapida("Limites padrão restaurados.");
   atualizarPreviewPremiacaoAposta();
   mostrar();
 }
@@ -578,14 +581,14 @@ function lerMultiplicadoresDoFormulario() {
 
 function salvarMultiplicadores() {
   if (!logado) {
-    alert("Faça login antes de salvar multiplicadores.");
+    mostrarConfirmacaoApostaRapida("Faça login antes de salvar multiplicadores.", "erro");
     return;
   }
 
   const leitura = lerMultiplicadoresDoFormulario();
   if (!leitura.ok) {
     atualizarStatusMultiplicadores(leitura.mensagem, true);
-    alert(leitura.mensagem);
+    mostrarConfirmacaoApostaRapida(leitura.mensagem, "erro");
     return;
   }
 
@@ -595,12 +598,13 @@ function salvarMultiplicadores() {
   salvarApostas();
   atualizarPreviewPremiacaoAposta();
   atualizarStatusMultiplicadores("Multiplicadores atualizados.", false);
+  mostrarConfirmacaoApostaRapida("Multiplicadores atualizados.");
   mostrar();
 }
 
 function restaurarMultiplicadoresPadrao() {
   if (!logado) {
-    alert("Faça login antes de restaurar multiplicadores.");
+    mostrarConfirmacaoApostaRapida("Faça login antes de restaurar multiplicadores.", "erro");
     return;
   }
 
@@ -611,6 +615,7 @@ function restaurarMultiplicadoresPadrao() {
   salvarApostas();
   atualizarPreviewPremiacaoAposta();
   atualizarStatusMultiplicadores("Multiplicadores padrão restaurados.", false);
+  mostrarConfirmacaoApostaRapida("Multiplicadores padrão restaurados.");
   mostrar();
 }
 
@@ -2693,7 +2698,7 @@ function depositarSaldoUsuario() {
   const usuarioSincronizado = sincronizarUsuarioAtualComLista();
   if (!usuarioSincronizado) {
     atualizarStatusUsuario("Faça login de usuário para depositar.", true);
-    alert("Faça login de usuário para depositar.");
+    mostrarConfirmacaoApostaRapida("Faça login de usuário para depositar.", "erro");
     return;
   }
 
@@ -2703,14 +2708,14 @@ function depositarSaldoUsuario() {
   const valor = normalizarValorMoeda(input.value);
   if (!valor) {
     atualizarStatusDepositoUsuario("Informe um valor de depósito.", true);
-    alert("Informe um valor de depósito.");
+    mostrarConfirmacaoApostaRapida("Informe um valor de depósito.", "erro");
     return;
   }
 
   const valorNum = Number(valor);
   if (!Number.isFinite(valorNum) || valorNum <= 0) {
     atualizarStatusDepositoUsuario("Informe um valor válido para depósito.", true);
-    alert("Informe um valor válido para depósito.");
+    mostrarConfirmacaoApostaRapida("Informe um valor válido para depósito.", "erro");
     return;
   }
 
@@ -2724,6 +2729,7 @@ function depositarSaldoUsuario() {
     `Depósito fictício confirmado: +${formatarMoedaBR(valorNum)}.`,
     false
   );
+  mostrarConfirmacaoApostaRapida("Depósito confirmado com sucesso.");
   input.value = "R$ 0,00";
   mostrarPainelAdmin();
 }
@@ -2993,6 +2999,32 @@ function atualizarStatusDepositoUsuario(texto, erro) {
   status.innerText = texto || "";
 }
 
+function mostrarConfirmacaoApostaRapida(texto, tipo) {
+  const mensagem = String(texto || "").trim() || "Aposta salva!";
+  let toast = document.getElementById("toastConfirmacaoAposta");
+  const tipoFinal = tipo === "erro" ? "erro" : "sucesso";
+
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "toastConfirmacaoAposta";
+    toast.className = "toast-aposta-confirmacao";
+    document.body.appendChild(toast);
+  }
+
+  toast.innerText = mensagem;
+  toast.classList.remove("sucesso", "erro");
+  toast.classList.add(tipoFinal);
+  toast.classList.add("visivel");
+
+  if (toastRapidoTimer) {
+    clearTimeout(toastRapidoTimer);
+  }
+
+  toastRapidoTimer = window.setTimeout(() => {
+    toast.classList.remove("visivel");
+  }, 1000);
+}
+
 function sincronizarUsuarioAtualComLista() {
   if (!usuarioAtual) return null;
   const idx = usuarios.findIndex((item) => item.id === usuarioAtual.id);
@@ -3163,26 +3195,29 @@ function cadastrarUsuario() {
 
   if (nome.length < 2) {
     atualizarStatusUsuario("Informe um nome com pelo menos 2 caracteres.", true);
-    alert("Informe um nome com pelo menos 2 caracteres.");
+    mostrarConfirmacaoApostaRapida("Informe um nome com pelo menos 2 caracteres.", "erro");
     return;
   }
 
   if (!/^[a-z0-9._-]{3,24}$/.test(login)) {
     atualizarStatusUsuario("Login inválido. Use 3-24 caracteres (a-z, 0-9, . _ -).", true);
-    alert("Login inválido. Use 3-24 caracteres (a-z, 0-9, . _ -).");
+    mostrarConfirmacaoApostaRapida(
+      "Login inválido. Use 3-24 caracteres (a-z, 0-9, . _ -).",
+      "erro"
+    );
     return;
   }
 
   if (senha.length < 4) {
     atualizarStatusUsuario("A senha deve ter pelo menos 4 caracteres.", true);
-    alert("A senha deve ter pelo menos 4 caracteres.");
+    mostrarConfirmacaoApostaRapida("A senha deve ter pelo menos 4 caracteres.", "erro");
     return;
   }
 
   const existe = usuarios.some((u) => u.login === login);
   if (existe) {
     atualizarStatusUsuario("Este login já está em uso.", true);
-    alert("Este login já está em uso.");
+    mostrarConfirmacaoApostaRapida("Este login já está em uso.", "erro");
     return;
   }
 
@@ -3202,6 +3237,7 @@ function cadastrarUsuario() {
   definirModoUsuarioPublico("login");
   atualizarVisibilidadeUsuario();
   atualizarStatusUsuario(`Cadastro concluído. Conectado como ${nome} (@${login}).`, false);
+  mostrarConfirmacaoApostaRapida("Cadastro concluído com sucesso.");
   limparCamposUsuario();
   mostrar();
 }
@@ -3212,7 +3248,7 @@ function redefinirSenhaUsuario() {
 
   if (login === USUARIO_TESTE_FIXO.login) {
     atualizarStatusUsuario("A conta de teste usa senha fixa: 102030.", false);
-    alert("A conta de teste usa senha fixa: 102030.");
+    mostrarConfirmacaoApostaRapida("A conta de teste usa senha fixa: 102030.", "erro");
     const recuperarSenha = document.getElementById("recuperarSenha");
     if (recuperarSenha) recuperarSenha.value = "";
     return;
@@ -3220,14 +3256,14 @@ function redefinirSenhaUsuario() {
 
   if (!login || novaSenha.length < 4) {
     atualizarStatusUsuario("Informe login e nova senha (mínimo 4 caracteres).", true);
-    alert("Informe login e nova senha (mínimo 4 caracteres).");
+    mostrarConfirmacaoApostaRapida("Informe login e nova senha (mínimo 4 caracteres).", "erro");
     return;
   }
 
   const idx = usuarios.findIndex((u) => u.login === login);
   if (idx === -1) {
     atualizarStatusUsuario("Login não encontrado.", true);
-    alert("Login não encontrado.");
+    mostrarConfirmacaoApostaRapida("Login não encontrado.", "erro");
     return;
   }
 
@@ -3238,6 +3274,7 @@ function redefinirSenhaUsuario() {
   const loginUsuario = document.getElementById("loginUsuario");
   if (loginUsuario) loginUsuario.value = login;
   atualizarStatusUsuario("Senha atualizada. Faça login.", false);
+  mostrarConfirmacaoApostaRapida("Senha atualizada com sucesso.");
 
   const recuperarSenha = document.getElementById("recuperarSenha");
   if (recuperarSenha) recuperarSenha.value = "";
@@ -3249,14 +3286,14 @@ function entrarUsuario() {
 
   if (!login || !senha) {
     atualizarStatusUsuario("Informe login e senha.", true);
-    alert("Informe login e senha.");
+    mostrarConfirmacaoApostaRapida("Informe login e senha.", "erro");
     return;
   }
 
   const encontrado = usuarios.find((u) => u.login === login && u.senha === senha);
   if (!encontrado) {
     atualizarStatusUsuario("Login ou senha inválidos.", true);
-    alert("Login ou senha inválidos.");
+    mostrarConfirmacaoApostaRapida("Login ou senha inválidos.", "erro");
     return;
   }
 
@@ -3266,6 +3303,7 @@ function entrarUsuario() {
   definirModoUsuarioPublico("login");
   atualizarVisibilidadeUsuario();
   atualizarStatusUsuario(`Conectado como ${encontrado.nome} (@${encontrado.login}).`, false);
+  mostrarConfirmacaoApostaRapida(`Login realizado. Bem-vindo, ${encontrado.nome}!`);
   limparCamposUsuario();
   mostrar();
 }
@@ -3337,6 +3375,7 @@ function loginAdmin() {
     logado = true;
     atualizarVisibilidadeAdmin();
     status.innerText = "Liberado!";
+    mostrarConfirmacaoApostaRapida("Admin conectado com sucesso.");
     preencherCamposMultiplicadores();
     preencherCamposLimitesAposta();
     atualizarStatusMultiplicadores("Admin conectado.", false);
@@ -3356,6 +3395,7 @@ function loginAdmin() {
     mostrar();
   } else {
     status.innerText = "Senha incorreta!";
+    mostrarConfirmacaoApostaRapida("Senha do admin incorreta.", "erro");
   }
 }
 
@@ -3379,7 +3419,7 @@ function logoutAdmin() {
 
 function salvar() {
   if (!logado) {
-    alert("Faça login antes de salvar.");
+    mostrarConfirmacaoApostaRapida("Faça login antes de salvar.", "erro");
     return;
   }
 
@@ -3393,22 +3433,25 @@ function salvar() {
   );
 
   if (!praca || !PRACAS_ORDENADAS.includes(praca)) {
-    alert("Selecione a praça.");
+    mostrarConfirmacaoApostaRapida("Selecione a praça.", "erro");
     return;
   }
 
   if (!loteria) {
-    alert("Selecione a loteria.");
+    mostrarConfirmacaoApostaRapida("Selecione a loteria.", "erro");
     return;
   }
 
   if (!data) {
-    alert("Escolha uma data válida.");
+    mostrarConfirmacaoApostaRapida("Escolha uma data válida.", "erro");
     return;
   }
 
   if (!dataDentroDaJanela(data)) {
-    alert(`A data deve estar entre ${formatarDataBR(dataMinimaISO())} e ${formatarDataBR(hojeISO())}.`);
+    mostrarConfirmacaoApostaRapida(
+      `A data deve estar entre ${formatarDataBR(dataMinimaISO())} e ${formatarDataBR(hojeISO())}.`,
+      "erro"
+    );
     return;
   }
 
@@ -3421,7 +3464,7 @@ function salvar() {
     const auto = calcularBichoPorNumero(numero);
 
     if (numero.length !== 4 || !auto) {
-      alert("Preencha os 5 números com 4 dígitos.");
+      mostrarConfirmacaoApostaRapida("Preencha os 5 números com 4 dígitos.", "erro");
       return;
     }
 
@@ -3464,14 +3507,14 @@ function salvar() {
   atualizarResumoData();
   mostrar();
   limparCamposResultado();
-  alert("Resultado salvo!");
+  mostrarConfirmacaoApostaRapida("Resultado salvo com sucesso.");
 }
 
 function salvarAposta() {
   const usuarioSincronizado = sincronizarUsuarioAtualComLista();
   if (!usuarioSincronizado) {
     atualizarStatusUsuario("Faça login de usuário para apostar.", true);
-    alert("Faça login de usuário para apostar.");
+    mostrarConfirmacaoApostaRapida("Faça login de usuário para apostar.", "erro");
     return;
   }
 
@@ -3488,42 +3531,43 @@ function salvarAposta() {
   const valor = normalizarValorMoeda(document.getElementById("valorAposta").value);
 
   if (!praca || !PRACAS_ORDENADAS.includes(praca)) {
-    alert("Selecione a praça da aposta.");
+    mostrarConfirmacaoApostaRapida("Selecione a praça da aposta.", "erro");
     return;
   }
 
   if (!loteria) {
-    alert("Selecione a loteria da aposta.");
+    mostrarConfirmacaoApostaRapida("Selecione a loteria da aposta.", "erro");
     return;
   }
 
   if (!tipo) {
-    alert("Selecione o tipo de aposta.");
+    mostrarConfirmacaoApostaRapida("Selecione o tipo de aposta.", "erro");
     return;
   }
 
   if (!valor) {
-    alert("Informe o valor da aposta.");
+    mostrarConfirmacaoApostaRapida("Informe o valor da aposta.", "erro");
     return;
   }
 
   const valorNum = Number(valor);
   if (valorNum < limitesAposta.valorMinimo || valorNum > limitesAposta.valorMaximo) {
-    alert(
-      `O valor da aposta deve estar entre R$ ${formatarNumeroBR(limitesAposta.valorMinimo)} e R$ ${formatarNumeroBR(limitesAposta.valorMaximo)}.`
+    mostrarConfirmacaoApostaRapida(
+      `O valor da aposta deve estar entre R$ ${formatarNumeroBR(limitesAposta.valorMinimo)} e R$ ${formatarNumeroBR(limitesAposta.valorMaximo)}.`,
+      "erro"
     );
     return;
   }
 
   const restante = segundosAteFechamento(data, loteria);
   if (restante !== null && restante <= 0) {
-    alert("Esta loteria já encerrou para apostas nesta data.");
+    mostrarConfirmacaoApostaRapida("Esta loteria já encerrou para apostas nesta data.", "erro");
     return;
   }
 
   const validacao = validarPalpiteAposta(tipo, palpite);
   if (!validacao.ok) {
-    alert(validacao.mensagem);
+    mostrarConfirmacaoApostaRapida(validacao.mensagem, "erro");
     return;
   }
 
@@ -3533,7 +3577,7 @@ function salvarAposta() {
       `Saldo insuficiente. Saldo atual: ${formatarMoedaBR(saldoDisponivel)}. ` +
       `Faça um depósito para apostar ${formatarMoedaBR(valorNum)}.`;
     atualizarStatusDepositoUsuario(mensagemSaldo, true);
-    alert(mensagemSaldo);
+    mostrarConfirmacaoApostaRapida(mensagemSaldo, "erro");
     return;
   }
 
@@ -3574,7 +3618,7 @@ function salvarAposta() {
   atualizarResumoData();
   mostrar();
   limparCamposAposta();
-  alert("Aposta salva!");
+  mostrarConfirmacaoApostaRapida("Aposta salva!");
 }
 
 function limparCamposAposta() {
@@ -3788,7 +3832,7 @@ function excluirApostaPorId(id) {
   if (!alvo) return;
 
   if (!logado) {
-    alert("Somente o admin pode excluir apostas.");
+    mostrarConfirmacaoApostaRapida("Somente o admin pode excluir apostas.", "erro");
     return;
   }
 

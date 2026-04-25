@@ -5,6 +5,39 @@ body {
   color: white;
 }
 
+.toast-aposta-confirmacao {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%) translateY(8px);
+  background: #00c853;
+  color: #062510;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.toast-aposta-confirmacao.sucesso {
+  background: #00c853;
+  color: #062510;
+}
+
+.toast-aposta-confirmacao.erro {
+  background: #d32f2f;
+  color: #fff3f3;
+}
+
+.toast-aposta-confirmacao.visivel {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 a {
   color: inherit;
 }
@@ -1308,6 +1341,10 @@ body.admin-logado .acao-admin {
   .premiacao-confirmacao-logo,
   #destaquePremiacaoAposta.ativo {
     animation: none !important;
+  }
+
+  .toast-aposta-confirmacao {
+    transition: none !important;
   }
 }
 
