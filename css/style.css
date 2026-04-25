@@ -545,7 +545,7 @@ body.admin-logado .acao-admin {
 }
 
 .premio img {
-  width: 34px;
+  width: 38px;
 }
 
 .premio-bicho {
@@ -556,7 +556,7 @@ body.admin-logado .acao-admin {
 }
 
 .premio-numero {
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1;
 }
 
@@ -830,11 +830,11 @@ body.admin-logado .acao-admin {
   }
 
   .premio img {
-    width: 32px;
+    width: 36px;
   }
 
   .premio-numero {
-    font-size: 11px;
+    font-size: 13px;
   }
 
   .linha-data-aposta {
