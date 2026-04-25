@@ -1,11 +1,8 @@
 <?php
 declare(strict_types=1);
 
-header('Content-Type: application/json; charset=utf-8');
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Accept');
+require_once __DIR__ . DIRECTORY_SEPARATOR . 'security.php';
+apiEnviarCabecalhosSeguranca();
 
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
@@ -175,6 +172,29 @@ if ($method !== 'POST') {
     responder(405, [
         'ok' => false,
         'error' => 'Metodo nao permitido.'
+    ]);
+}
+
+if (!apiValidarOrigemEscrita()) {
+    responder(403, [
+        'ok' => false,
+        'error' => 'Origem nao permitida.'
+    ]);
+}
+
+if (!apiValidarRequisicaoAjax()) {
+    responder(403, [
+        'ok' => false,
+        'error' => 'Requisicao invalida.'
+    ]);
+}
+
+$rateLimit = apiAplicarRateLimit('resultados-post', 120, 300);
+if (!$rateLimit['ok']) {
+    header('Retry-After: ' . (string)($rateLimit['retryAfter'] ?? 60));
+    responder(429, [
+        'ok' => false,
+        'error' => 'Limite de requisicoes excedido. Tente novamente em instantes.'
     ]);
 }
 

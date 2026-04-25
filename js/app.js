@@ -1367,7 +1367,8 @@ async function buscarEstadoResultadosRemotos() {
     {
       method: "GET",
       headers: {
-        Accept: "application/json"
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest"
       },
       cache: "no-store"
     },
@@ -1402,7 +1403,8 @@ async function enviarEstadoResultadosRemotos(timestamp) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json"
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest"
       },
       body: JSON.stringify(payload),
       cache: "no-store"
@@ -1529,7 +1531,8 @@ async function buscarEstadoPainelRemoto() {
     {
       method: "GET",
       headers: {
-        Accept: "application/json"
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest"
       },
       cache: "no-store"
     },
@@ -1567,7 +1570,8 @@ async function enviarEstadoPainelRemoto(timestamp) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json"
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest"
       },
       body: JSON.stringify(payload),
       cache: "no-store"
