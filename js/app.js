@@ -2516,6 +2516,7 @@ function atualizarPreviewPremiacaoAposta() {
   const tipoInput = document.getElementById("tipoAposta");
   const valorInput = document.getElementById("valorAposta");
   const premioInput = document.getElementById("premiacaoAposta");
+  const destaque = document.getElementById("destaquePremiacaoAposta");
 
   if (!tipoInput || !valorInput || !premioInput) return;
 
@@ -2524,12 +2525,22 @@ function atualizarPreviewPremiacaoAposta() {
 
   if (!tipo || !valor) {
     premioInput.value = "";
+    premioInput.classList.remove("premiacao-aposta-ativa");
+    if (destaque) {
+      destaque.innerText = "";
+      destaque.classList.remove("ativo");
+    }
     return;
   }
 
   const mult = multiplicadorTipoAposta(tipo);
   const premio = calcularPremiacaoFicticia(tipo, valor);
   premioInput.value = `R$ ${premio} (${mult}x)`;
+  premioInput.classList.add("premiacao-aposta-ativa");
+  if (destaque) {
+    destaque.innerText = `Possível prêmio: ${formatarMoedaBR(premio)}`;
+    destaque.classList.add("ativo");
+  }
 }
 
 function aplicarMascaraValorAposta() {

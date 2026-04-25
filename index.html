@@ -261,7 +261,10 @@
 
     <input id="palpiteAposta" placeholder="Palpite numérico (ex: 1234)" inputmode="numeric">
     <input id="valorAposta" value="R$ 0,00" placeholder="Valor da aposta" inputmode="numeric">
-    <input id="premiacaoAposta" placeholder="Ganho potencial" readonly>
+    <div id="blocoPremiacaoAposta" class="bloco-premiacao-aposta">
+      <input id="premiacaoAposta" placeholder="Ganho potencial" readonly>
+      <p id="destaquePremiacaoAposta"></p>
+    </div>
     <p id="infoLimitesAposta"></p>
     <p id="cronometroAposta"></p>
     <button onclick="salvarAposta()">Salvar Aposta</button>
