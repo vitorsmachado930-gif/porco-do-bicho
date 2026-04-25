@@ -499,8 +499,8 @@ body.admin-logado .acao-admin {
 #resultados {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: calc((100% - 24px) / 3);
-  gap: 12px;
+  grid-auto-columns: calc((100% - 32px) / 5);
+  gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 2px 4px 10px 2px;
@@ -509,7 +509,7 @@ body.admin-logado .acao-admin {
 
 #resultados.resultados-unico {
   justify-content: center;
-  grid-auto-columns: min(100%, 360px);
+  grid-auto-columns: min(100%, 300px);
   overflow-x: hidden;
 }
 
@@ -520,43 +520,51 @@ body.admin-logado .acao-admin {
 .resultado-card {
   background: #0f1a24;
   border-radius: 12px;
-  padding: 10px;
+  padding: 7px;
   border: 1px solid #00c85333;
   scroll-snap-align: start;
-  text-align: left;
+  text-align: center;
 }
 
 .resultado-titulo {
   text-align: center;
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: #00e676;
 }
 
 .premio {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 6px;
   background: #121c26;
-  margin-bottom: 6px;
-  padding: 5px;
+  margin-bottom: 3px;
+  padding: 3px;
   border-radius: 8px;
 }
 
 .premio img {
-  width: 40px;
+  width: 34px;
+}
+
+.premio-bicho {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.premio-numero {
+  font-size: 11px;
+  line-height: 1;
 }
 
 .posicao {
-  font-size: 12px;
+  min-width: 22px;
+  text-align: center;
+  font-size: 11px;
   opacity: 0.7;
-}
-
-.grupo {
-  background: #00c853;
-  padding: 3px 6px;
-  border-radius: 6px;
-  font-size: 12px;
 }
 
 .rodape-site {
@@ -705,16 +713,17 @@ body.admin-logado .acao-admin {
 
 @media (max-width: 1024px) {
   #resultados {
-    grid-auto-columns: calc((100% - 12px) / 2);
+    grid-auto-columns: calc((100% - 18px) / 4);
+    gap: 6px;
   }
 }
 
 @media (max-width: 820px) {
   #resultados {
-    grid-auto-columns: min(60vw, 216px);
-    gap: 8px;
+    grid-auto-columns: min(54vw, 198px);
+    gap: 6px;
     padding: 2px 2px 8px 2px;
-    scroll-padding-inline: 6px;
+    scroll-padding-inline: 4px;
   }
 
   #resultados.tem-carrossel {
@@ -824,6 +833,10 @@ body.admin-logado .acao-admin {
     width: 32px;
   }
 
+  .premio-numero {
+    font-size: 11px;
+  }
+
   .linha-data-aposta {
     max-width: 520px;
     margin: 6px auto 8px auto;
@@ -878,8 +891,8 @@ body.admin-logado .acao-admin {
   }
 
   #resultados {
-    grid-auto-columns: min(56vw, 188px);
-    gap: 7px;
+    grid-auto-columns: min(52vw, 176px);
+    gap: 6px;
     padding: 2px 2px 8px 2px;
   }
 
@@ -894,11 +907,6 @@ body.admin-logado .acao-admin {
   .resultado-titulo {
     font-size: 13px;
     margin-bottom: 8px;
-  }
-
-  .grupo {
-    font-size: 10px;
-    padding: 2px 4px;
   }
 
   .rodape-coluna h4 {

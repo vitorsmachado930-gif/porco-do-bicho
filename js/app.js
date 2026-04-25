@@ -3184,7 +3184,7 @@ function mostrar() {
 
   doDia.forEach((item) => {
     let html = `<div class="resultado-card">
-      <div class="resultado-titulo">${item.praca} | ${item.loteria} - ${formatarDataBR(item.data)}</div>`;
+      <div class="resultado-titulo">${item.praca} | ${item.loteria}</div>`;
 
     if (!item.resultados || item.resultados.length === 0) {
       html += `<p>Aguardando resultado desta loteria.</p>`;
@@ -3195,8 +3195,10 @@ function mostrar() {
         html += `
           <div class="premio">
             <span class="posicao">${i + 1}º</span>
-            <img src="img/animais/${animal}.png" alt="${animal}">
-            <span class="grupo">${r.grupo || "-"}</span>
+            <div class="premio-bicho">
+              <img src="img/animais/${animal}.png" alt="${animal}">
+              <strong class="premio-numero">${r.numero}</strong>
+            </div>
           </div>
         `;
       });
