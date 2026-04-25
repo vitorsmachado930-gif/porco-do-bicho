@@ -17,6 +17,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to Hostinger via FTP
+        id: deploy_primary
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
           server: ${{ secrets.HOSTINGER_FTP_HOST }}
@@ -40,6 +42,8 @@ jobs:
       # Some Hostinger accounts serve addon domains from /domains/<domain>/public_html
       # instead of /public_html. We deploy there too to keep both targets in sync.
       - name: Deploy to Hostinger addon-domain directory
+        id: deploy_addon
+        if: always()
         continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
@@ -60,3 +64,15 @@ jobs:
             **/.DS_Store
             storage/resultados_sync.json
             storage/backups/**
+
+      - name: Validate at least one deploy target succeeded
+        if: always()
+        run: |
+          primary="${{ steps.deploy_primary.outcome }}"
+          addon="${{ steps.deploy_addon.outcome }}"
+          echo "Primary outcome: $primary"
+          echo "Addon outcome: $addon"
+          if [ "$primary" != "success" ] && [ "$addon" != "success" ]; then
+            echo "Both deploy targets failed."
+            exit 1
+          fi
