@@ -177,8 +177,119 @@ button {
   margin-top: 5px;
 }
 
-.palpite-grupo-container select {
+.palpite-grupo-selects {
+  display: none;
+}
+
+.palpite-grupo-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.palpite-grupo-slot {
   margin: 0;
+  padding: 6px 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #00c85344;
+  background: #0f1a24;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.palpite-grupo-slot img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  opacity: 0.38;
+}
+
+.palpite-grupo-slot.ativo {
+  border-color: #00e676;
+  box-shadow: 0 0 0 1px #00e67655;
+}
+
+.palpite-grupo-slot:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.palpite-grupo-slot-titulo {
+  font-size: 11px;
+  color: #9fb3c8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.palpite-grupo-slot-nome {
+  font-size: 12px;
+  color: #d6e4f2;
+  text-align: center;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.palpite-grupo-dica {
+  margin: 0;
+  font-size: 12px;
+  color: #9fb3c8;
+  text-align: center;
+}
+
+.palpite-grupo-grade {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.palpite-bicho-card {
+  margin: 0;
+  padding: 5px 3px 6px;
+  border-radius: 8px;
+  border: 1px solid #00c85333;
+  background: #13202d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.palpite-bicho-card img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.palpite-bicho-card-nome {
+  font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+  color: #d8e8f7;
+}
+
+.palpite-bicho-card-grupo {
+  font-size: 10px;
+  color: #9fb3c8;
+}
+
+.palpite-bicho-card.selecionado {
+  border-color: #ffd60099;
+  background: #1f2c18;
+}
+
+.palpite-bicho-card.selecionado-ativo {
+  border-color: #ffd600;
+  box-shadow: 0 0 0 1px #ffd60055;
+}
+
+.btn-palpite-grupo-limpar {
+  margin: 0;
+  max-width: 210px;
+  justify-self: center;
 }
 
 #listaApostas {
@@ -980,6 +1091,10 @@ body.admin-logado .acao-admin {
     margin: 5px auto 0 auto;
   }
 
+  .palpite-grupo-grade {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
   .usuario-acoes-publicas {
     max-width: 520px;
     margin: 8px auto 0 auto;
@@ -1121,6 +1236,18 @@ body.admin-logado .acao-admin {
 @media (max-width: 430px) {
   .usuario-acoes-publicas {
     grid-template-columns: 1fr;
+  }
+
+  .palpite-grupo-slots {
+    grid-template-columns: 1fr;
+  }
+
+  .palpite-grupo-slot {
+    min-height: 112px;
+  }
+
+  .palpite-grupo-grade {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .linha-deposito-aposta {

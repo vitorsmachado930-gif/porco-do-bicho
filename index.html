@@ -219,15 +219,37 @@
     </select>
 
     <div id="palpiteGrupoContainer" class="palpite-grupo-container" style="display:none;">
-      <select id="palpiteGrupo1">
-        <option value="">Selecione o bicho</option>
-      </select>
-      <select id="palpiteGrupo2">
-        <option value="">Selecione o 2º bicho</option>
-      </select>
-      <select id="palpiteGrupo3">
-        <option value="">Selecione o 3º bicho</option>
-      </select>
+      <div class="palpite-grupo-selects" aria-hidden="true">
+        <select id="palpiteGrupo1">
+          <option value="">Selecione o bicho</option>
+        </select>
+        <select id="palpiteGrupo2">
+          <option value="">Selecione o 2o bicho</option>
+        </select>
+        <select id="palpiteGrupo3">
+          <option value="">Selecione o 3o bicho</option>
+        </select>
+      </div>
+      <div class="palpite-grupo-slots">
+        <button type="button" class="palpite-grupo-slot" id="palpiteGrupoSlot1" data-slot="1">
+          <img alt="">
+          <span class="palpite-grupo-slot-titulo">1o bicho</span>
+          <strong class="palpite-grupo-slot-nome">Toque em um bicho</strong>
+        </button>
+        <button type="button" class="palpite-grupo-slot" id="palpiteGrupoSlot2" data-slot="2">
+          <img alt="">
+          <span class="palpite-grupo-slot-titulo">2o bicho</span>
+          <strong class="palpite-grupo-slot-nome">Toque em um bicho</strong>
+        </button>
+        <button type="button" class="palpite-grupo-slot" id="palpiteGrupoSlot3" data-slot="3">
+          <img alt="">
+          <span class="palpite-grupo-slot-titulo">3o bicho</span>
+          <strong class="palpite-grupo-slot-nome">Toque em um bicho</strong>
+        </button>
+      </div>
+      <p id="palpiteGrupoDica" class="palpite-grupo-dica"></p>
+      <div id="palpiteGrupoGrade" class="palpite-grupo-grade"></div>
+      <button type="button" class="btn-secondary btn-palpite-grupo-limpar" id="btnLimparPalpiteGrupo">Limpar selecao</button>
     </div>
 
     <input id="palpiteAposta" placeholder="Palpite numérico (ex: 1234)" inputmode="numeric">
