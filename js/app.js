@@ -3196,8 +3196,7 @@ function mostrar() {
           <div class="premio">
             <span class="posicao">${i + 1}º</span>
             <img src="img/animais/${animal}.png" alt="${animal}">
-            <strong>${r.numero}</strong>
-            <span class="grupo">${r.grupo || "-"} - ${capitalizar(animal)}</span>
+            <span class="grupo">${r.grupo || "-"}</span>
           </div>
         `;
       });
