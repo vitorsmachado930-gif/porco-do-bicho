@@ -868,7 +868,7 @@ function formatarPalpiteParaBilhete(item) {
   if (tipo === "grupo" || tipo === "dupla_grupo" || tipo === "terno_grupo") {
     const grupos = extrairGruposDoPalpite(palpite);
     if (grupos.length === 0) return palpite;
-    return grupos.map((g) => descricaoGrupoPorCodigo(g)).join(" | ");
+    return grupos.map((g) => descricaoGrupoPorCodigo(g)).join(" - ");
   }
 
   return palpite;
