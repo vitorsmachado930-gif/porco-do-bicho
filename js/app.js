@@ -2155,6 +2155,53 @@ function montarGradeBichosPalpiteGrupo() {
   }
 }
 
+function atualizarBotoesCarrosselPalpiteGrupo() {
+  const container = document.getElementById("palpiteGrupoGrade");
+  const btnPrev = document.getElementById("btnPalpiteGrupoPrev");
+  const btnNext = document.getElementById("btnPalpiteGrupoNext");
+  if (!container || !btnPrev || !btnNext) return;
+
+  const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+  const temOverflow = maxScroll > 2;
+
+  if (!temOverflow) {
+    btnPrev.disabled = true;
+    btnNext.disabled = true;
+    return;
+  }
+
+  btnPrev.disabled = container.scrollLeft <= 1;
+  btnNext.disabled = container.scrollLeft >= maxScroll - 1;
+}
+
+function rolarCarrosselPalpiteGrupo(sentido) {
+  const container = document.getElementById("palpiteGrupoGrade");
+  if (!container) return;
+
+  const deslocamento = Math.max(130, container.clientWidth * 0.78) * sentido;
+  container.scrollBy({
+    left: deslocamento,
+    behavior: "smooth"
+  });
+
+  window.setTimeout(atualizarBotoesCarrosselPalpiteGrupo, 260);
+}
+
+function centralizarCardCarrosselPalpiteGrupo(grupoTxt) {
+  const container = document.getElementById("palpiteGrupoGrade");
+  if (!container || !grupoTxt) return;
+  const alvo = container.querySelector(`button[data-grupo="${grupoTxt}"]`);
+  if (!alvo) return;
+
+  const destino = alvo.offsetLeft - (container.clientWidth - alvo.offsetWidth) / 2;
+  const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+  const left = Math.min(Math.max(0, destino), maxScroll);
+  container.scrollTo({
+    left,
+    behavior: "smooth"
+  });
+}
+
 function renderizarSelecaoPalpiteGrupoPorImagem() {
   const container = document.getElementById("palpiteGrupoContainer");
   const dica = document.getElementById("palpiteGrupoDica");
@@ -2164,6 +2211,7 @@ function renderizarSelecaoPalpiteGrupoPorImagem() {
   const quantidade = quantidadeGruposNoFormularioAposta();
   if (quantidade <= 0) {
     dica.innerText = "";
+    atualizarBotoesCarrosselPalpiteGrupo();
     return;
   }
 
@@ -2227,6 +2275,8 @@ function renderizarSelecaoPalpiteGrupoPorImagem() {
     card.classList.toggle("selecionado", gruposSelecionados.includes(grupo));
     card.classList.toggle("selecionado-ativo", Boolean(grupoAtivo) && grupo === grupoAtivo);
   });
+
+  atualizarBotoesCarrosselPalpiteGrupo();
 }
 
 function selecionarBichoDaGradePalpiteGrupo(grupoTxt) {
@@ -2252,6 +2302,10 @@ function selecionarBichoDaGradePalpiteGrupo(grupoTxt) {
 
   sincronizarPalpiteApostaGrupoParaInput();
   renderizarSelecaoPalpiteGrupoPorImagem();
+  const grupoAtivo = valorSelecionadoPalpiteGrupo(slotGrupoAtivo);
+  if (grupoAtivo) {
+    centralizarCardCarrosselPalpiteGrupo(grupoAtivo);
+  }
 }
 
 function limparSelecaoPalpiteGrupoPorImagem() {
@@ -2274,8 +2328,22 @@ function configurarPalpiteGrupoComImagens() {
       if (slot.disabled) return;
       slotGrupoAtivo = i;
       renderizarSelecaoPalpiteGrupoPorImagem();
+      const grupoAtivo = valorSelecionadoPalpiteGrupo(slotGrupoAtivo);
+      if (grupoAtivo) {
+        centralizarCardCarrosselPalpiteGrupo(grupoAtivo);
+      }
     });
   }
+
+  const container = document.getElementById("palpiteGrupoGrade");
+  const btnPrev = document.getElementById("btnPalpiteGrupoPrev");
+  const btnNext = document.getElementById("btnPalpiteGrupoNext");
+  if (container) {
+    container.addEventListener("scroll", atualizarBotoesCarrosselPalpiteGrupo);
+    window.addEventListener("resize", atualizarBotoesCarrosselPalpiteGrupo);
+  }
+  if (btnPrev) btnPrev.addEventListener("click", () => rolarCarrosselPalpiteGrupo(-1));
+  if (btnNext) btnNext.addEventListener("click", () => rolarCarrosselPalpiteGrupo(1));
 
   const btnLimpar = document.getElementById("btnLimparPalpiteGrupo");
   if (btnLimpar) {
@@ -2368,6 +2436,10 @@ function atualizarModoCampoPalpiteAposta() {
     slotGrupoAtivo = primeiroSlotVazioPalpiteGrupo(quantidade);
     sincronizarPalpiteApostaGrupoParaInput();
     renderizarSelecaoPalpiteGrupoPorImagem();
+    const grupoAtivo = valorSelecionadoPalpiteGrupo(slotGrupoAtivo);
+    if (grupoAtivo) {
+      centralizarCardCarrosselPalpiteGrupo(grupoAtivo);
+    }
     return;
   }
 

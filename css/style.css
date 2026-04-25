@@ -240,13 +240,30 @@ button {
   text-align: center;
 }
 
-.palpite-grupo-grade {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 5px;
+.palpite-grupo-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-palpite-grupo-nav {
+  margin: 0;
+  padding: 7px 8px;
+}
+
+.palpite-grupo-carrossel {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
 }
 
 .palpite-bicho-card {
+  flex: 0 0 86px;
   margin: 0;
   padding: 5px 3px 6px;
   border-radius: 8px;
@@ -256,6 +273,7 @@ button {
   flex-direction: column;
   align-items: center;
   gap: 1px;
+  scroll-snap-align: center;
 }
 
 .palpite-bicho-card img {
@@ -1091,8 +1109,8 @@ body.admin-logado .acao-admin {
     margin: 5px auto 0 auto;
   }
 
-  .palpite-grupo-grade {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+  .palpite-grupo-carrossel {
+    scroll-padding-inline: 20px;
   }
 
   .usuario-acoes-publicas {
@@ -1246,8 +1264,26 @@ body.admin-logado .acao-admin {
     min-height: 112px;
   }
 
-  .palpite-grupo-grade {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .palpite-grupo-nav {
+    gap: 5px;
+  }
+
+  .btn-palpite-grupo-nav {
+    padding: 7px 6px;
+    font-size: 12px;
+  }
+
+  .palpite-bicho-card {
+    flex-basis: 82px;
+  }
+
+  .palpite-bicho-card img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .palpite-grupo-carrossel {
+    scroll-padding-inline: 8px;
   }
 
   .linha-deposito-aposta {
