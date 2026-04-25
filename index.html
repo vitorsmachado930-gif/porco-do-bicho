@@ -135,6 +135,21 @@
     <button onclick="salvarLimitesAposta()">Salvar Limites</button>
     <button class="btn-secondary" onclick="restaurarLimitesPadrao()">Restaurar Limites Padrão</button>
     <p id="limitesApostaStatus"></p>
+
+    <h3>Painel de Cadastros e Apostas</h3>
+    <p id="resumoPainelAdmin" class="resumo-painel-admin">Carregando...</p>
+
+    <div class="painel-admin-listas">
+      <div class="painel-admin-bloco">
+        <h4>Usuários Cadastrados</h4>
+        <div id="listaUsuariosAdmin" class="lista-admin-scroll"></div>
+      </div>
+
+      <div class="painel-admin-bloco">
+        <h4>Apostas da Data Selecionada</h4>
+        <div id="listaApostasAdmin" class="lista-admin-scroll"></div>
+      </div>
+    </div>
   </div>
 
   <div class="card">

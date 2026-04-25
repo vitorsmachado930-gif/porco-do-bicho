@@ -254,6 +254,51 @@ button:disabled {
   font-size: 13px;
 }
 
+.resumo-painel-admin {
+  margin: 8px 0 10px;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+.painel-admin-listas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.painel-admin-bloco {
+  background: #0f1a24;
+  border: 1px solid #00c85333;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.painel-admin-bloco h4 {
+  margin: 0 0 8px;
+  color: #9fd5ff;
+  font-size: 14px;
+}
+
+.lista-admin-scroll {
+  max-height: 240px;
+  overflow: auto;
+  display: grid;
+  gap: 6px;
+}
+
+.item-admin-linha {
+  background: #13202d;
+  border: 1px solid #2a4155;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.item-admin-linha b {
+  color: #e8f3ff;
+}
+
 #infoLimitesAposta,
 #cronometroAposta {
   margin: 6px 0 0;
@@ -820,6 +865,10 @@ body.admin-logado .acao-admin {
 
   .rodape-texto p {
     font-size: 15px;
+  }
+
+  .painel-admin-listas {
+    grid-template-columns: 1fr;
   }
 }
 

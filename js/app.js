@@ -6,8 +6,11 @@ const USUARIOS_KEY = "usuarios_aposta";
 const USUARIO_SESSAO_KEY = "usuario_sessao_id";
 const LIMITES_APOSTA_KEY = "limites_aposta";
 const DADOS_UPDATED_AT_KEY = "dados_updated_at";
+const PAINEL_UPDATED_AT_KEY = "painel_updated_at";
 const RESULTADOS_SYNC_API_URL = "https://www.porcodobicho.com/api/resultados.php";
+const PAINEL_SYNC_API_URL = "https://www.porcodobicho.com/api/painel.php";
 const RESULTADOS_SYNC_INTERVALO_MS = 30000;
+const PAINEL_SYNC_INTERVALO_MS = 30000;
 const MAX_DIAS_HISTORICO = 7;
 const CLIQUES_PARA_EXIBIR_ADMIN = 5;
 const MINUTOS_ANTES_RESULTADO_PARA_FECHAR_APOSTA = 1;
@@ -88,6 +91,10 @@ let sincronizacaoResultadosAtiva = false;
 let aplicandoResultadosRemotos = false;
 let sincronizacaoResultadosTimer = null;
 let pushResultadosRemotosTimer = null;
+let sincronizacaoPainelAtiva = false;
+let aplicandoPainelRemoto = false;
+let sincronizacaoPainelTimer = null;
+let pushPainelRemotoTimer = null;
 
 function hojeISO() {
   return dataLocalParaISO(new Date());
@@ -1147,6 +1154,20 @@ function salvarAtualizacaoDadosLocal(timestamp) {
   return finalTs;
 }
 
+function carregarAtualizacaoPainelLocal() {
+  const bruto = Number(localStorage.getItem(PAINEL_UPDATED_AT_KEY));
+  if (!Number.isFinite(bruto) || bruto <= 0) return 0;
+  return Math.floor(bruto);
+}
+
+function salvarAtualizacaoPainelLocal(timestamp) {
+  const ts = Number(timestamp);
+  if (!Number.isFinite(ts) || ts <= 0) return 0;
+  const finalTs = Math.floor(ts);
+  localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(finalTs));
+  return finalTs;
+}
+
 function serializarResultadosParaHash(arr) {
   const sane = sanitizarLista(arr).map((item) => ({
     praca: item.praca,
@@ -1164,6 +1185,47 @@ function serializarResultadosParaHash(arr) {
     return compararPorHorario(a, b);
   });
   return JSON.stringify(sane);
+}
+
+function serializarPainelParaHash(listaUsuarios, listaApostas) {
+  const usuariosSane = sanitizarUsuarios(listaUsuarios).map((item) => ({
+    id: item.id,
+    nome: item.nome,
+    login: item.login,
+    senha: item.senha
+  }));
+
+  usuariosSane.sort((a, b) =>
+    String(a.login || "").localeCompare(String(b.login || ""), "pt-BR")
+  );
+
+  const apostasSane = sanitizarApostas(listaApostas).map((item) => ({
+    id: item.id,
+    data: item.data,
+    praca: item.praca,
+    loteria: item.loteria,
+    tipo: item.tipo,
+    palpite: item.palpite,
+    valor: item.valor,
+    premio: item.premio,
+    createdAt: item.createdAt,
+    usuarioId: item.usuarioId,
+    usuarioLogin: item.usuarioLogin
+  }));
+
+  apostasSane.sort((a, b) => {
+    if (a.data !== b.data) {
+      return String(a.data).localeCompare(String(b.data), "pt-BR");
+    }
+    const ordemHorario = compararPorHorario(a, b);
+    if (ordemHorario !== 0) return ordemHorario;
+    return String(a.createdAt || "").localeCompare(String(b.createdAt || ""), "pt-BR");
+  });
+
+  return JSON.stringify({
+    usuarios: usuariosSane,
+    apostas: apostasSane
+  });
 }
 
 function agendarPushResultadosRemotos(delayMs) {
@@ -1340,6 +1402,189 @@ async function inicializarSincronizacaoResultadosRemotos() {
   }
 }
 
+function agendarPushPainelRemoto(delayMs) {
+  if (!sincronizacaoPainelAtiva || aplicandoPainelRemoto) return;
+  const delay = Number.isFinite(delayMs) ? Math.max(100, delayMs) : 500;
+
+  if (pushPainelRemotoTimer) {
+    clearTimeout(pushPainelRemotoTimer);
+  }
+
+  pushPainelRemotoTimer = window.setTimeout(() => {
+    sincronizarPainelRemoto("push");
+  }, delay);
+}
+
+async function buscarEstadoPainelRemoto() {
+  const url = `${PAINEL_SYNC_API_URL}?t=${Date.now()}`;
+  const resp = await fetchComTimeout(
+    url,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      },
+      cache: "no-store"
+    },
+    7000
+  );
+
+  if (!resp.ok) {
+    throw new Error(`Falha na leitura remota do painel (${resp.status}).`);
+  }
+
+  const payload = await resp.json();
+  const origem = payload && typeof payload === "object" ? payload : {};
+  const usuariosRemotos = sanitizarUsuarios(origem.usuarios);
+  const apostasRemotas = sanitizarApostas(origem.apostas);
+  const updatedAt = Number(origem.updatedAt);
+
+  return {
+    usuarios: usuariosRemotos,
+    apostas: apostasRemotas,
+    updatedAt: Number.isFinite(updatedAt) && updatedAt > 0 ? Math.floor(updatedAt) : 0
+  };
+}
+
+async function enviarEstadoPainelRemoto(timestamp) {
+  const ts = Number.isFinite(timestamp) && timestamp > 0 ? Math.floor(timestamp) : Date.now();
+  const payload = {
+    updatedAt: ts,
+    usuarios: sanitizarUsuarios(usuarios),
+    apostas: sanitizarApostas(apostas)
+  };
+
+  const resp = await fetchComTimeout(
+    PAINEL_SYNC_API_URL,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store"
+    },
+    10000
+  );
+
+  if (!resp.ok) {
+    throw new Error(`Falha no envio remoto do painel (${resp.status}).`);
+  }
+
+  return ts;
+}
+
+function aplicarEstadoPainelRemoto(estadoRemoto) {
+  const remoto = estadoRemoto && typeof estadoRemoto === "object" ? estadoRemoto : {};
+  const usuariosRemotos = sanitizarUsuarios(remoto.usuarios);
+  const apostasRemotas = sanitizarApostas(remoto.apostas);
+  const updatedAtRemoto = Number(remoto.updatedAt);
+  const updatedAtValido =
+    Number.isFinite(updatedAtRemoto) && updatedAtRemoto > 0 ? Math.floor(updatedAtRemoto) : 0;
+
+  aplicandoPainelRemoto = true;
+  usuarios = usuariosRemotos;
+  apostas = apostasRemotas;
+  salvarUsuarios({
+    atualizarTimestamp: false,
+    pularSyncRemoto: true
+  });
+  salvarApostas({
+    atualizarTimestamp: false,
+    pularSyncRemoto: true
+  });
+  aplicandoPainelRemoto = false;
+
+  usuarioAtual = carregarSessaoUsuario();
+  salvarSessaoUsuario();
+
+  if (updatedAtValido > 0) {
+    salvarAtualizacaoPainelLocal(updatedAtValido);
+  }
+}
+
+async function sincronizarPainelRemoto(modo) {
+  if (!sincronizacaoPainelAtiva) return;
+
+  try {
+    const estadoRemoto = await buscarEstadoPainelRemoto();
+    const atualizadoLocal = carregarAtualizacaoPainelLocal();
+    const atualizadoRemoto = estadoRemoto.updatedAt;
+
+    const hashLocal = serializarPainelParaHash(usuarios, apostas);
+    const hashRemoto = serializarPainelParaHash(
+      estadoRemoto.usuarios,
+      estadoRemoto.apostas
+    );
+
+    const remotoVazio =
+      estadoRemoto.usuarios.length === 0 && estadoRemoto.apostas.length === 0;
+    const localVazio = usuarios.length === 0 && apostas.length === 0;
+
+    if (atualizadoRemoto > atualizadoLocal) {
+      if (!localVazio && remotoVazio) {
+        const tsRecuperacao = Date.now();
+        const tsEnviado = await enviarEstadoPainelRemoto(tsRecuperacao);
+        salvarAtualizacaoPainelLocal(tsEnviado);
+        return;
+      }
+      aplicarEstadoPainelRemoto(estadoRemoto);
+      atualizarVisibilidadeUsuario();
+      mostrar();
+      return;
+    }
+
+    if (atualizadoLocal > atualizadoRemoto) {
+      const tsEnviado = await enviarEstadoPainelRemoto(atualizadoLocal);
+      salvarAtualizacaoPainelLocal(tsEnviado);
+      return;
+    }
+
+    if (hashLocal === hashRemoto) return;
+
+    if (modo === "bootstrap" && !localVazio && remotoVazio) {
+      const tsBootstrap = Date.now();
+      const tsEnviado = await enviarEstadoPainelRemoto(tsBootstrap);
+      salvarAtualizacaoPainelLocal(tsEnviado);
+      return;
+    }
+
+    if (modo === "push") {
+      const tsPush = Date.now();
+      const tsEnviado = await enviarEstadoPainelRemoto(tsPush);
+      salvarAtualizacaoPainelLocal(tsEnviado);
+      return;
+    }
+
+    aplicarEstadoPainelRemoto(estadoRemoto);
+    atualizarVisibilidadeUsuario();
+    mostrar();
+  } catch (_err) {
+    // Falha remota: o app segue funcionando com armazenamento local.
+  }
+}
+
+async function inicializarSincronizacaoPainelRemoto() {
+  if (!window.fetch) return;
+
+  try {
+    await buscarEstadoPainelRemoto();
+    sincronizacaoPainelAtiva = true;
+  } catch (_err) {
+    sincronizacaoPainelAtiva = false;
+    return;
+  }
+
+  await sincronizarPainelRemoto("bootstrap");
+
+  if (!sincronizacaoPainelTimer) {
+    sincronizacaoPainelTimer = window.setInterval(() => {
+      sincronizarPainelRemoto("pull");
+    }, PAINEL_SYNC_INTERVALO_MS);
+  }
+}
+
 function carregarDados() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -1381,9 +1626,21 @@ function carregarApostas() {
   }
 }
 
-function salvarApostas() {
+function salvarApostas(opcoes) {
+  const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
+  const atualizarTimestamp = cfg.atualizarTimestamp !== false;
+  const pularSyncRemoto = cfg.pularSyncRemoto === true;
+
   apostas = sanitizarApostas(apostas);
   localStorage.setItem(APOSTAS_KEY, JSON.stringify(apostas));
+
+  if (atualizarTimestamp) {
+    salvarAtualizacaoPainelLocal(Date.now());
+  }
+
+  if (!pularSyncRemoto && !aplicandoPainelRemoto) {
+    agendarPushPainelRemoto(500);
+  }
 }
 
 function carregarUsuarios() {
@@ -1398,9 +1655,21 @@ function carregarUsuarios() {
   }
 }
 
-function salvarUsuarios() {
+function salvarUsuarios(opcoes) {
+  const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
+  const atualizarTimestamp = cfg.atualizarTimestamp !== false;
+  const pularSyncRemoto = cfg.pularSyncRemoto === true;
+
   usuarios = sanitizarUsuarios(usuarios);
   localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuarios));
+
+  if (atualizarTimestamp) {
+    salvarAtualizacaoPainelLocal(Date.now());
+  }
+
+  if (!pularSyncRemoto && !aplicandoPainelRemoto) {
+    agendarPushPainelRemoto(500);
+  }
 }
 
 function carregarSessaoUsuario() {
@@ -2111,6 +2380,8 @@ function atualizarVisibilidadeAdmin() {
   if (btnSair) {
     btnSair.style.display = logado ? "block" : "none";
   }
+
+  mostrarPainelAdmin();
 }
 
 function alternarAcessoAdminOculto() {
@@ -2750,6 +3021,101 @@ function mostrarApostas() {
   atualizarCronometrosDaLista();
 }
 
+function formatarDataHoraCurtaBR(dataHora) {
+  const d = new Date(dataHora);
+  if (Number.isNaN(d.getTime())) return "--/--/-- --:--";
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function dataCadastroUsuario(usuario) {
+  const idNum = Number(usuario && usuario.id);
+  if (Number.isFinite(idNum) && idNum > 946684800000 && idNum < 4102444800000) {
+    return formatarDataHoraCurtaBR(idNum);
+  }
+  return "--/--/-- --:--";
+}
+
+function mostrarPainelAdmin() {
+  const resumo = document.getElementById("resumoPainelAdmin");
+  const listaUsuariosAdmin = document.getElementById("listaUsuariosAdmin");
+  const listaApostasAdmin = document.getElementById("listaApostasAdmin");
+  if (!resumo || !listaUsuariosAdmin || !listaApostasAdmin) return;
+
+  if (!logado) {
+    resumo.innerText = "Faça login no admin para visualizar os cadastros e as apostas.";
+    listaUsuariosAdmin.innerHTML = "";
+    listaApostasAdmin.innerHTML = "";
+    return;
+  }
+
+  const usuariosOrdenados = sanitizarUsuarios(usuarios).slice().sort((a, b) =>
+    String(a.login || "").localeCompare(String(b.login || ""), "pt-BR")
+  );
+  const apostasOrdenadas = sanitizarApostas(apostas).slice().sort((a, b) => {
+    if (a.data !== b.data) return String(b.data).localeCompare(String(a.data), "pt-BR");
+    return compararPorHorario(a, b);
+  });
+
+  const mapaApostasPorUsuario = new Map();
+  apostasOrdenadas.forEach((item) => {
+    const chave = String(item.usuarioLogin || "");
+    if (!chave) return;
+    mapaApostasPorUsuario.set(chave, (mapaApostasPorUsuario.get(chave) || 0) + 1);
+  });
+
+  const apostasDaData = apostasOrdenadas.filter((item) => item.data === dataSelecionada);
+
+  resumo.innerText =
+    `Cadastros: ${usuariosOrdenados.length} | ` +
+    `Apostas totais: ${apostasOrdenadas.length} | ` +
+    `Apostas em ${formatarDataBR(dataSelecionada)}: ${apostasDaData.length}`;
+
+  if (usuariosOrdenados.length === 0) {
+    listaUsuariosAdmin.innerHTML = '<div class="item-admin-linha">Nenhum usuário cadastrado.</div>';
+  } else {
+    listaUsuariosAdmin.innerHTML = usuariosOrdenados
+      .map((user) => {
+        const totalApostas = mapaApostasPorUsuario.get(String(user.login || "")) || 0;
+        return (
+          `<div class="item-admin-linha">` +
+          `<b>${user.nome}</b> (@${user.login})<br>` +
+          `Cadastro: ${dataCadastroUsuario(user)}<br>` +
+          `Apostas: <b>${totalApostas}</b>` +
+          `</div>`
+        );
+      })
+      .join("");
+  }
+
+  if (apostasDaData.length === 0) {
+    listaApostasAdmin.innerHTML =
+      `<div class="item-admin-linha">Nenhuma aposta em ${formatarDataBR(dataSelecionada)}.</div>`;
+  } else {
+    listaApostasAdmin.innerHTML = apostasDaData
+      .map((item) => {
+        const tipoLabel = TIPOS_APOSTA[item.tipo] || item.tipo;
+        const palpiteBilhete = formatarPalpiteParaBilhete(item);
+        return (
+          `<div class="item-admin-linha">` +
+          `<b>${item.praca} | ${item.loteria}</b><br>` +
+          `Usuário: <b>@${item.usuarioLogin || "-"}</b><br>` +
+          `${tipoLabel}: <b>${palpiteBilhete}</b><br>` +
+          `Valor: <b>${formatarMoedaBR(item.valor)}</b> | ` +
+          `Potencial: <b>${formatarMoedaBR(item.premio)}</b><br>` +
+          `Feita em: ${formatarDataHoraCurtaBR(item.createdAt)}` +
+          `</div>`
+        );
+      })
+      .join("");
+  }
+}
+
 function limparCamposResultado() {
   const loteria = document.getElementById("loteria");
   if (loteria) loteria.value = "";
@@ -2808,6 +3174,7 @@ function mostrar() {
     atualizarBotoesNavegacaoResultados();
     mostrarPremiacoesDestaque();
     mostrarApostas();
+    mostrarPainelAdmin();
     return;
   }
 
@@ -2847,6 +3214,7 @@ function mostrar() {
   atualizarBotoesNavegacaoResultados();
   mostrarPremiacoesDestaque();
   mostrarApostas();
+  mostrarPainelAdmin();
 }
 
 async function init() {
@@ -2893,6 +3261,7 @@ async function init() {
   atualizarEstadoNavegacao();
   atualizarResumoData();
   await inicializarSincronizacaoResultadosRemotos();
+  await inicializarSincronizacaoPainelRemoto();
   mostrar();
 }
 
