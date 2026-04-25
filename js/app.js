@@ -42,6 +42,13 @@ const LIMITES_APOSTA_PADRAO = {
   valorMaximo: 500
 };
 
+const USUARIO_TESTE_FIXO = Object.freeze({
+  id: 102030,
+  nome: "Teste",
+  login: "teste",
+  senha: "102030"
+});
+
 const CAMPOS_MULTIPLICADOR = [
   { tipo: "grupo", id: "multGrupo", label: "Grupo" },
   { tipo: "dupla_grupo", id: "multDuplaGrupo", label: "Dupla de Grupo" },
@@ -214,6 +221,15 @@ function normalizarLoginUsuario(login) {
     .replace(/\s+/g, "");
 }
 
+function criarUsuarioTesteFixo() {
+  return {
+    id: USUARIO_TESTE_FIXO.id,
+    nome: USUARIO_TESTE_FIXO.nome,
+    login: USUARIO_TESTE_FIXO.login,
+    senha: USUARIO_TESTE_FIXO.senha
+  };
+}
+
 function normalizarUsuarioItem(raw, index) {
   if (!raw || typeof raw !== "object") return null;
 
@@ -239,12 +255,14 @@ function normalizarUsuarioItem(raw, index) {
 }
 
 function sanitizarUsuarios(arr) {
-  const usados = new Set();
-  const sane = [];
+  const usuarioFixo = criarUsuarioTesteFixo();
+  const usados = new Set([usuarioFixo.login]);
+  const sane = [usuarioFixo];
 
   (Array.isArray(arr) ? arr : []).forEach((item, index) => {
     const normalizado = normalizarUsuarioItem(item, index);
     if (!normalizado) return;
+    if (normalizado.login === usuarioFixo.login) return;
     if (usados.has(normalizado.login)) return;
     usados.add(normalizado.login);
     sane.push(normalizado);
@@ -2531,6 +2549,7 @@ function abrirPainelLoginUsuario() {
   painelUsuarioAberto = true;
   definirModoUsuarioPublico("login");
   atualizarVisibilidadeUsuario();
+  preencherCredenciaisTesteNoFormulario();
   const loginUsuario = document.getElementById("loginUsuario");
   if (loginUsuario) loginUsuario.focus();
 }
@@ -2635,6 +2654,19 @@ function sairUsuarioCabecalho() {
   sairUsuario();
 }
 
+function preencherCredenciaisTesteNoFormulario() {
+  const loginUsuario = document.getElementById("loginUsuario");
+  const senhaUsuario = document.getElementById("senhaUsuario");
+
+  if (loginUsuario && !String(loginUsuario.value || "").trim()) {
+    loginUsuario.value = USUARIO_TESTE_FIXO.login;
+  }
+
+  if (senhaUsuario && !String(senhaUsuario.value || "").trim()) {
+    senhaUsuario.value = USUARIO_TESTE_FIXO.senha;
+  }
+}
+
 function limparCamposUsuario() {
   const cadastroNome = document.getElementById("cadastroNome");
   const cadastroLogin = document.getElementById("cadastroLogin");
@@ -2647,8 +2679,8 @@ function limparCamposUsuario() {
   if (cadastroNome) cadastroNome.value = "";
   if (cadastroLogin) cadastroLogin.value = "";
   if (cadastroSenha) cadastroSenha.value = "";
-  if (loginUsuario) loginUsuario.value = "";
-  if (senhaUsuario) senhaUsuario.value = "";
+  if (loginUsuario) loginUsuario.value = USUARIO_TESTE_FIXO.login;
+  if (senhaUsuario) senhaUsuario.value = USUARIO_TESTE_FIXO.senha;
   if (recuperarLogin) recuperarLogin.value = "";
   if (recuperarSenha) recuperarSenha.value = "";
 }
@@ -2705,6 +2737,14 @@ function cadastrarUsuario() {
 function redefinirSenhaUsuario() {
   const login = normalizarLoginUsuario(document.getElementById("recuperarLogin").value);
   const novaSenha = String(document.getElementById("recuperarSenha").value || "");
+
+  if (login === USUARIO_TESTE_FIXO.login) {
+    atualizarStatusUsuario("A conta de teste usa senha fixa: 102030.", false);
+    alert("A conta de teste usa senha fixa: 102030.");
+    const recuperarSenha = document.getElementById("recuperarSenha");
+    if (recuperarSenha) recuperarSenha.value = "";
+    return;
+  }
 
   if (!login || novaSenha.length < 4) {
     atualizarStatusUsuario("Informe login e nova senha (mínimo 4 caracteres).", true);
