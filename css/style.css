@@ -314,6 +314,23 @@ button:disabled {
   color: #00e676;
 }
 
+.cronometro-resultado {
+  margin: 6px 0 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9fb3c8;
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+
+.cronometro-resultado.cronometro-sorteio-aberto {
+  color: #00e676;
+}
+
+.cronometro-resultado.cronometro-sorteio-encerrado {
+  color: #ffd54f;
+}
+
 #listaApostas .acoes-aposta {
   margin-top: 8px;
 }
@@ -534,9 +551,9 @@ body.admin-logado .acao-admin {
 }
 
 .premio {
-  display: flex;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
   align-items: center;
-  justify-content: center;
   gap: 6px;
   background: #121c26;
   margin-bottom: 3px;
@@ -544,11 +561,18 @@ body.admin-logado .acao-admin {
   border-radius: 8px;
 }
 
+.premio::after {
+  content: "";
+  width: 24px;
+}
+
 .premio img {
   width: 48px;
 }
 
 .premio-bicho {
+  grid-column: 2;
+  justify-self: center;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -561,10 +585,12 @@ body.admin-logado .acao-admin {
 }
 
 .posicao {
-  min-width: 22px;
+  grid-column: 1;
+  min-width: 24px;
   text-align: center;
-  font-size: 11px;
-  opacity: 0.7;
+  font-size: 13px;
+  color: #00e676;
+  opacity: 1;
 }
 
 .rodape-site {
@@ -835,6 +861,10 @@ body.admin-logado .acao-admin {
 
   .premio-numero {
     font-size: 16px;
+  }
+
+  .cronometro-resultado {
+    font-size: 11px;
   }
 
   .linha-data-aposta {

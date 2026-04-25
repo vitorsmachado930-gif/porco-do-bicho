@@ -58,7 +58,7 @@ const SEQUENCIAS_POR_PRACA = {
     "PT 14:20",
     "PTV 16:20",
     "PTN 18:20",
-    "COR 21:20"
+    "COR 21:30"
   ],
   "Look Goiás": [
     "LGO 08:20",
@@ -398,10 +398,28 @@ function obterDataHoraFechamento(dataISO, loteria) {
   return fechamento;
 }
 
+function obterDataHoraSorteio(dataISO, loteria) {
+  const horario = obterHorarioLoteria(loteria);
+  if (!horario) return null;
+
+  const data = normalizarDataISO(dataISO);
+  if (!data) return null;
+
+  const sorteio = new Date(`${data}T00:00:00`);
+  sorteio.setHours(horario.horas, horario.minutos, 0, 0);
+  return sorteio;
+}
+
 function segundosAteFechamento(dataISO, loteria) {
   const fechamento = obterDataHoraFechamento(dataISO, loteria);
   if (!fechamento) return null;
   return Math.floor((fechamento.getTime() - Date.now()) / 1000);
+}
+
+function segundosAteSorteio(dataISO, loteria) {
+  const sorteio = obterDataHoraSorteio(dataISO, loteria);
+  if (!sorteio) return null;
+  return Math.floor((sorteio.getTime() - Date.now()) / 1000);
 }
 
 function formatarDuracao(segundos) {
@@ -430,7 +448,7 @@ function gerarResultadosPadraoDoDia(dataISO) {
 
   const itens = [];
   PRACAS_ORDENADAS.forEach((praca) => {
-    loteriasDaPraca(praca).forEach((loteria, idx) => {
+    loteriasDaPraca(praca, data).forEach((loteria, idx) => {
       itens.push({
         id: `padrao-${data}-${praca}-${idx}`,
         praca,
@@ -922,12 +940,6 @@ function normalizarApostaItem(raw, index) {
 
   const pracaRaw = String(raw.praca || "").trim();
   const praca = PRACAS_ORDENADAS.includes(pracaRaw) ? pracaRaw : "Rio";
-  const loteria = String(raw.loteria || "").trim();
-  const tipo = normalizarTipoAposta(raw.tipo);
-  const palpiteBruto = String(raw.palpite || "").trim();
-  const validacaoPalpite = validarPalpiteAposta(tipo, palpiteBruto);
-  if (!loteria || !tipo || !validacaoPalpite.ok) return null;
-
   const data =
     normalizarDataISO(raw.data) ||
     normalizarDataISO(raw.date) ||
@@ -935,6 +947,12 @@ function normalizarApostaItem(raw, index) {
     hojeISO();
 
   if (!dataDentroDaJanela(data)) return null;
+
+  const loteria = normalizarNomeLoteriaPorData(praca, raw.loteria, data);
+  const tipo = normalizarTipoAposta(raw.tipo);
+  const palpiteBruto = String(raw.palpite || "").trim();
+  const validacaoPalpite = validarPalpiteAposta(tipo, palpiteBruto);
+  if (!loteria || !tipo || !validacaoPalpite.ok) return null;
 
   const valor = normalizarValorMoeda(raw.valor) || "1.00";
   const premio = calcularPremiacaoFicticia(tipo, valor);
@@ -1005,9 +1023,46 @@ function extrairMinutosDoHorario(texto) {
   return h * 60 + m;
 }
 
-function loteriasDaPraca(praca) {
+function diaSemanaDaDataISO(dataISO) {
+  const data = normalizarDataISO(dataISO);
+  if (!data) return null;
+  const d = new Date(`${data}T00:00:00`);
+  const dia = d.getDay();
+  return Number.isInteger(dia) ? dia : null;
+}
+
+function normalizarNomeLoteriaPorData(praca, loteria, dataISO) {
+  const nome = String(loteria || "").trim();
+  if (!nome) return "";
+  if (praca !== "Rio") return nome;
+
+  if (nome === "COR 21:20") {
+    return "COR 21:30";
+  }
+
+  const diaSemana = diaSemanaDaDataISO(dataISO);
+  const isQuartaOuSabado = diaSemana === 3 || diaSemana === 6;
+
+  if (isQuartaOuSabado && nome === "PTN 18:20") {
+    return "FEDERAL 20:00";
+  }
+
+  return nome;
+}
+
+function loteriasDaPraca(praca, dataISO) {
   const listaPraca = SEQUENCIAS_POR_PRACA[praca];
-  return Array.isArray(listaPraca) ? listaPraca : [];
+  if (!Array.isArray(listaPraca)) return [];
+
+  if (praca !== "Rio") return listaPraca.slice();
+
+  const dataBase = normalizarDataISO(dataISO) || dataSelecionada || hojeISO();
+  const diaSemana = diaSemanaDaDataISO(dataBase);
+  const isQuartaOuSabado = diaSemana === 3 || diaSemana === 6;
+
+  if (!isQuartaOuSabado) return listaPraca.slice();
+
+  return listaPraca.map((loteria) => normalizarNomeLoteriaPorData(praca, loteria, dataBase));
 }
 
 function ordemPraca(praca) {
@@ -1015,9 +1070,9 @@ function ordemPraca(praca) {
   return idx === -1 ? 100000 : idx;
 }
 
-function ordemLoteria(praca, nome) {
+function ordemLoteria(praca, nome, dataISO) {
   const limpo = String(nome || "").trim();
-  const index = loteriasDaPraca(praca).findIndex((item) => item === limpo);
+  const index = loteriasDaPraca(praca, dataISO).findIndex((item) => item === limpo);
   if (index !== -1) return index;
   const minutos = extrairMinutosDoHorario(limpo);
   if (minutos !== Number.MAX_SAFE_INTEGER) return 100 + minutos;
@@ -1029,8 +1084,8 @@ function compararPorHorario(a, b) {
   const ordemPracaB = ordemPraca(b.praca);
   if (ordemPracaA !== ordemPracaB) return ordemPracaA - ordemPracaB;
 
-  const ordemA = ordemLoteria(a.praca, a.loteria);
-  const ordemB = ordemLoteria(b.praca, b.loteria);
+  const ordemA = ordemLoteria(a.praca, a.loteria, a.data);
+  const ordemB = ordemLoteria(b.praca, b.loteria, b.data);
   if (ordemA !== ordemB) return ordemA - ordemB;
   return String(a.loteria).localeCompare(String(b.loteria), "pt-BR");
 }
@@ -1108,10 +1163,6 @@ function normalizarItem(raw, index) {
 
   const pracaRaw = String(raw.praca || "").trim();
   const praca = PRACAS_ORDENADAS.includes(pracaRaw) ? pracaRaw : "Rio";
-  const loteria = String(raw.loteria || "").trim();
-  const resultados = normalizarResultados(raw);
-  if (!loteria || resultados.length === 0) return null;
-
   const data =
     normalizarDataISO(raw.data) ||
     normalizarDataISO(raw.date) ||
@@ -1119,6 +1170,10 @@ function normalizarItem(raw, index) {
     hojeISO();
 
   if (!dataDentroDaJanela(data)) return null;
+
+  const loteria = normalizarNomeLoteriaPorData(praca, raw.loteria, data);
+  const resultados = normalizarResultados(raw);
+  if (!loteria || resultados.length === 0) return null;
 
   const id =
     typeof raw.id === "number" && Number.isFinite(raw.id)
@@ -1731,7 +1786,10 @@ function popularLoterias() {
 
   const atual = selectLoteria.value;
   const praca = selectPraca.value;
-  const listaPraca = loteriasDaPraca(praca);
+  const dataResultado = normalizarDataISO(
+    document.getElementById("dataResultado")?.value || dataSelecionada || hojeISO()
+  );
+  const listaPraca = loteriasDaPraca(praca, dataResultado);
 
   selectLoteria.innerHTML = '<option value="">Selecione a loteria</option>';
 
@@ -1754,7 +1812,7 @@ function loteriaAbertaParaAposta(dataISO, loteria) {
 }
 
 function loteriasDisponiveisParaAposta(praca, dataISO) {
-  const listaPraca = loteriasDaPraca(praca);
+  const listaPraca = loteriasDaPraca(praca, dataISO);
   const data = normalizarDataISO(dataISO);
   if (!data) return listaPraca.slice();
   return listaPraca.filter((loteria) => loteriaAbertaParaAposta(data, loteria));
@@ -1859,6 +1917,13 @@ function configurarSeletores() {
   if (selectPracaAposta) {
     selectPracaAposta.addEventListener("change", () => {
       popularLoteriasAposta();
+    });
+  }
+
+  const dataResultado = document.getElementById("dataResultado");
+  if (dataResultado) {
+    dataResultado.addEventListener("change", () => {
+      popularLoterias();
     });
   }
 }
@@ -2265,6 +2330,32 @@ function atualizarCronometrosDaLista() {
   });
 }
 
+function textoCronometroResultadoPara(dataISO, loteria) {
+  const restante = segundosAteSorteio(dataISO, loteria);
+  if (restante === null) return "Horario do sorteio indisponivel.";
+  if (restante > 0) return `Proximo sorteio em ${formatarDuracao(restante)}.`;
+  return "Horario atingido. Aguardando divulgacao do resultado.";
+}
+
+function atualizarCronometrosResultados() {
+  const spans = document.querySelectorAll(".cronometro-resultado");
+  if (!spans || spans.length === 0) return;
+
+  spans.forEach((span) => {
+    const data = normalizarDataISO(span.dataset.dataResultado || "");
+    const loteria = String(span.dataset.loteriaResultado || "").trim();
+    if (!data || !loteria) return;
+
+    const restante = segundosAteSorteio(data, loteria);
+    span.innerText = textoCronometroResultadoPara(data, loteria);
+
+    span.classList.remove("cronometro-sorteio-aberto", "cronometro-sorteio-encerrado");
+    if (restante !== null) {
+      span.classList.add(restante > 0 ? "cronometro-sorteio-aberto" : "cronometro-sorteio-encerrado");
+    }
+  });
+}
+
 function configurarCronometroAposta() {
   const dataInput = document.getElementById("dataAposta");
   const loteriaInput = document.getElementById("loteriaAposta");
@@ -2280,12 +2371,14 @@ function configurarCronometroAposta() {
   atualizarDisponibilidadeLoteriasAposta(true);
   atualizarCronometroApostaFormulario();
   atualizarCronometrosDaLista();
+  atualizarCronometrosResultados();
 
   if (!cronometroApostaTimer) {
     cronometroApostaTimer = window.setInterval(() => {
       atualizarDisponibilidadeLoteriasAposta(false);
       atualizarCronometroApostaFormulario();
       atualizarCronometrosDaLista();
+      atualizarCronometrosResultados();
     }, 1000);
   }
 }
@@ -2735,6 +2828,7 @@ function loginAdmin() {
     }
     const dataResultado = document.getElementById("dataResultado");
     if (dataResultado) dataResultado.value = hojeISO();
+    popularLoterias();
     atualizarDisponibilidadeLoteriasAposta(true);
     mostrar();
   } else {
@@ -2767,9 +2861,13 @@ function salvar() {
   }
 
   const praca = document.getElementById("praca").value.trim();
-  const loteria = document.getElementById("loteria").value.trim();
   const dataInput = document.getElementById("dataResultado").value;
   const data = normalizarDataISO(dataInput);
+  const loteria = normalizarNomeLoteriaPorData(
+    praca,
+    document.getElementById("loteria").value,
+    data
+  );
 
   if (!praca || !PRACAS_ORDENADAS.includes(praca)) {
     alert("Selecione a praça.");
@@ -2855,7 +2953,11 @@ function salvarAposta() {
 
   const data = hojeISO();
   const praca = String(document.getElementById("pracaAposta").value || "").trim();
-  const loteria = String(document.getElementById("loteriaAposta").value || "").trim();
+  const loteria = normalizarNomeLoteriaPorData(
+    praca,
+    document.getElementById("loteriaAposta").value,
+    data
+  );
   const tipo = normalizarTipoAposta(document.getElementById("tipoAposta").value);
   sincronizarPalpiteApostaGrupoParaInput();
   const palpite = String(document.getElementById("palpiteAposta").value || "").trim();
@@ -3183,11 +3285,25 @@ function mostrar() {
   }
 
   doDia.forEach((item) => {
+    const loteriaTitulo =
+      String(item.loteria || "").toUpperCase().includes("FEDERAL")
+        ? "FEDERAL"
+        : `${item.praca} | ${item.loteria}`;
+
     let html = `<div class="resultado-card">
-      <div class="resultado-titulo">${item.praca} | ${item.loteria}</div>`;
+      <div class="resultado-titulo">${loteriaTitulo}</div>`;
 
     if (!item.resultados || item.resultados.length === 0) {
       html += `<p>Aguardando resultado desta loteria.</p>`;
+      const hoje = hojeISO();
+      if (item.data === hoje) {
+        const restante = segundosAteSorteio(item.data, item.loteria);
+        if (restante !== null) {
+          const classeCronometro =
+            restante > 0 ? "cronometro-sorteio-aberto" : "cronometro-sorteio-encerrado";
+          html += `<p class="cronometro-resultado ${classeCronometro}" data-data-resultado="${item.data}" data-loteria-resultado="${item.loteria}">${textoCronometroResultadoPara(item.data, item.loteria)}</p>`;
+        }
+      }
     } else {
       item.resultados.forEach((r, i) => {
         const animal = r.animal || pegarAnimal(r.grupo);
@@ -3213,6 +3329,7 @@ function mostrar() {
   });
 
   atualizarBotoesNavegacaoResultados();
+  atualizarCronometrosResultados();
   mostrarPremiacoesDestaque();
   mostrarApostas();
   mostrarPainelAdmin();
