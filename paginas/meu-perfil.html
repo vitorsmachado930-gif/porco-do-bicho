@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/perfil.css?v=20260425">
+  <link rel="stylesheet" href="../css/perfil.css?v=20260425-3">
 </head>
 <body>
   <header class="topo-pagina">
@@ -25,13 +25,18 @@
       <label for="perfilNome">Nome</label>
       <input id="perfilNome" type="text" placeholder="Seu nome completo" maxlength="80">
 
-      <label for="perfilTelefone">Telefone</label>
-      <input id="perfilTelefone" type="tel" placeholder="(00) 00000-0000" maxlength="24">
+      <label for="perfilTelefone">Telefone (DDD + número)</label>
+      <input id="perfilTelefone" type="tel" inputmode="tel" placeholder="(11) 98765-4321" maxlength="16">
+      <small class="perfil-dica-campo">Informe um telefone válido com DDD (ex: 11 98765-4321).</small>
 
       <label for="perfilChavePix">Chave Pix para recebimento</label>
       <input id="perfilChavePix" type="text" placeholder="CPF, e-mail, telefone ou chave aleatória" maxlength="120">
 
-      <button id="btnSalvarPerfil" type="button">Salvar dados</button>
+      <div class="perfil-acoes-edicao">
+        <button id="btnEditarPerfil" type="button" class="btn-secundario">Editar informações pessoais</button>
+        <button id="btnCancelarPerfil" type="button" class="btn-secundario" style="display:none;">Cancelar</button>
+        <button id="btnSalvarPerfil" type="button" style="display:none;">Salvar alterações</button>
+      </div>
       <p id="perfilStatus" class="perfil-status"></p>
     </article>
 
@@ -52,6 +57,6 @@
     Porco do Bicho • Área de perfil • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/perfil.js?v=20260425"></script>
+  <script src="../js/perfil.js?v=20260425-3"></script>
 </body>
 </html>

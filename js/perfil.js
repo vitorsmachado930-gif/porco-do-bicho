@@ -18,6 +18,7 @@ let usuarios = [];
 let apostas = [];
 let resultados = [];
 let usuarioAtual = null;
+let modoEdicaoPerfil = false;
 
 function lerJSONStorage(chave, fallback) {
   try {
@@ -39,6 +40,25 @@ function normalizarLoginUsuario(login) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "");
+}
+
+function slugBilheteParte(valor) {
+  return String(valor || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function gerarBilheteIdAposta(data, praca, loteria, usuarioId, usuarioLogin) {
+  const dataId = normalizarDataISO(data) || hojeISO();
+  const pracaId = slugBilheteParte(praca) || "RIO";
+  const loteriaId = slugBilheteParte(loteria) || "LOTERIA";
+  const donoId =
+    Number.isFinite(Number(usuarioId)) && Number(usuarioId) > 0
+      ? `U${Math.floor(Number(usuarioId))}`
+      : `L${slugBilheteParte(usuarioLogin) || "ANON"}`;
+  return `BILHETE-${donoId}-${dataId}-${pracaId}-${loteriaId}`;
 }
 
 function normalizarDataISO(valor) {
@@ -87,6 +107,66 @@ function extrairDigitos(valor) {
   return String(valor || "").replace(/\D/g, "");
 }
 
+function normalizarTelefoneBrasil(valor) {
+  let digitos = extrairDigitos(valor);
+  if (digitos.startsWith("55") && digitos.length > 11) {
+    digitos = digitos.slice(2);
+  }
+  if (digitos.length > 11) {
+    digitos = digitos.slice(0, 11);
+  }
+  return digitos;
+}
+
+function formatarTelefoneBrasil(valor) {
+  const digitos = normalizarTelefoneBrasil(valor);
+  if (!digitos) return "";
+
+  const ddd = digitos.slice(0, 2);
+  const numero = digitos.slice(2);
+
+  if (digitos.length <= 2) {
+    return `(${ddd}`;
+  }
+
+  if (numero.length <= 4) {
+    return `(${ddd}) ${numero}`;
+  }
+
+  if (numero.length <= 8) {
+    return `(${ddd}) ${numero.slice(0, 4)}-${numero.slice(4)}`;
+  }
+
+  return `(${ddd}) ${numero.slice(0, 5)}-${numero.slice(5, 9)}`;
+}
+
+function validarTelefoneBrasil(valor) {
+  const digitos = normalizarTelefoneBrasil(valor);
+  if (!digitos) {
+    return { ok: true, valor: "" };
+  }
+
+  if (digitos.length < 10 || digitos.length > 11) {
+    return {
+      ok: false,
+      mensagem: "Informe telefone com DDD e número válido (10 ou 11 dígitos)."
+    };
+  }
+
+  const ddd = Number(digitos.slice(0, 2));
+  if (!Number.isInteger(ddd) || ddd < 11 || ddd > 99) {
+    return {
+      ok: false,
+      mensagem: "DDD inválido. Informe um DDD entre 11 e 99."
+    };
+  }
+
+  return {
+    ok: true,
+    valor: formatarTelefoneBrasil(digitos)
+  };
+}
+
 function normalizarValorMoeda(valor) {
   const txt = String(valor || "").trim();
   if (!txt) return "0.00";
@@ -128,7 +208,7 @@ function sanitizarUsuarios(arr) {
       const login = normalizarLoginUsuario(raw.login);
       const senha = String(raw.senha || "");
       const saldo = Number(raw.saldo);
-      const telefone = String(raw.telefone || "").trim().slice(0, 24);
+      const telefone = formatarTelefoneBrasil(raw.telefone);
       const chavePix = String(raw.chavePix || "").trim().slice(0, 120);
       if (!Number.isFinite(id)) return null;
       if (nome.length < 2) return null;
@@ -163,13 +243,17 @@ function sanitizarApostas(arr) {
       const createdAt = String(raw.createdAt || "").trim();
       const usuarioId = Number(raw.usuarioId);
       const usuarioLogin = normalizarLoginUsuario(raw.usuarioLogin);
+      const bilheteIdRaw = String(raw.bilheteId || "").trim();
       if (!Number.isFinite(id)) return null;
       if (!data || !praca || !loteria || !tipo || !palpite) return null;
+      const bilheteId =
+        bilheteIdRaw || gerarBilheteIdAposta(data, praca, loteria, usuarioId, usuarioLogin);
       return {
         id,
         data,
         praca,
         loteria,
+        bilheteId,
         tipo,
         palpite,
         valor,
@@ -286,25 +370,73 @@ function atualizarResumoUsuario() {
     `Login: @${usuarioAtual.login} | Saldo atual: ${formatarMoedaBR(usuarioAtual.saldo)}`;
 }
 
+function obterCamposPerfil() {
+  return {
+    nome: document.getElementById("perfilNome"),
+    telefone: document.getElementById("perfilTelefone"),
+    chavePix: document.getElementById("perfilChavePix")
+  };
+}
+
+function atualizarControlesEdicaoPerfil() {
+  const btnEditar = document.getElementById("btnEditarPerfil");
+  const btnCancelar = document.getElementById("btnCancelarPerfil");
+  const btnSalvar = document.getElementById("btnSalvarPerfil");
+  const podeEditar = Boolean(usuarioAtual);
+  const emEdicao = Boolean(modoEdicaoPerfil && podeEditar);
+
+  if (btnEditar) {
+    btnEditar.style.display = emEdicao ? "none" : "inline-block";
+    btnEditar.disabled = !podeEditar;
+  }
+  if (btnCancelar) {
+    btnCancelar.style.display = emEdicao ? "inline-block" : "none";
+    btnCancelar.disabled = !emEdicao;
+  }
+  if (btnSalvar) {
+    btnSalvar.style.display = emEdicao ? "inline-block" : "none";
+    btnSalvar.disabled = !emEdicao;
+  }
+}
+
+function definirModoEdicaoPerfil(ativo, opcoes) {
+  const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
+  const focar = cfg.focar === true;
+  modoEdicaoPerfil = Boolean(ativo) && Boolean(usuarioAtual);
+
+  const campos = obterCamposPerfil();
+  const desabilitar = !modoEdicaoPerfil;
+  if (campos.nome) campos.nome.disabled = desabilitar;
+  if (campos.telefone) campos.telefone.disabled = desabilitar;
+  if (campos.chavePix) campos.chavePix.disabled = desabilitar;
+
+  atualizarControlesEdicaoPerfil();
+
+  if (modoEdicaoPerfil && focar && campos.nome) {
+    campos.nome.focus();
+    campos.nome.select();
+  }
+}
+
 function preencherCamposPerfil() {
-  const nome = document.getElementById("perfilNome");
-  const telefone = document.getElementById("perfilTelefone");
-  const chavePix = document.getElementById("perfilChavePix");
+  const campos = obterCamposPerfil();
+  const nome = campos.nome;
+  const telefone = campos.telefone;
+  const chavePix = campos.chavePix;
   if (!nome || !telefone || !chavePix) return;
 
   if (!usuarioAtual) {
     nome.value = "";
     telefone.value = "";
     chavePix.value = "";
-    nome.disabled = true;
-    telefone.disabled = true;
-    chavePix.disabled = true;
+    definirModoEdicaoPerfil(false);
     return;
   }
 
   nome.value = usuarioAtual.nome || "";
-  telefone.value = usuarioAtual.telefone || "";
+  telefone.value = formatarTelefoneBrasil(usuarioAtual.telefone || "");
   chavePix.value = usuarioAtual.chavePix || "";
+  definirModoEdicaoPerfil(false);
 }
 
 function atualizarStatusPerfil(texto, erro) {
@@ -326,11 +458,17 @@ function salvarDadosPerfil() {
   if (!nomeEl || !telefoneEl || !pixEl) return;
 
   const nome = String(nomeEl.value || "").trim();
-  const telefone = String(telefoneEl.value || "").trim().slice(0, 24);
+  const validacaoTelefone = validarTelefoneBrasil(telefoneEl.value || "");
+  const telefone = validacaoTelefone.ok ? validacaoTelefone.valor : "";
   const chavePix = String(pixEl.value || "").trim().slice(0, 120);
 
   if (nome.length < 2) {
     atualizarStatusPerfil("Informe um nome válido com pelo menos 2 caracteres.", true);
+    return;
+  }
+
+  if (!validacaoTelefone.ok) {
+    atualizarStatusPerfil(validacaoTelefone.mensagem, true);
     return;
   }
 
@@ -350,7 +488,41 @@ function salvarDadosPerfil() {
   salvarJSONStorage(USUARIOS_KEY, usuarios);
   localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
   atualizarResumoUsuario();
+  definirModoEdicaoPerfil(false);
   atualizarStatusPerfil("Dados do perfil salvos com sucesso.", false);
+}
+
+function configurarMascaraTelefonePerfil() {
+  const telefoneEl = document.getElementById("perfilTelefone");
+  if (!telefoneEl) return;
+
+  telefoneEl.addEventListener("input", () => {
+    const cursorNoFim = telefoneEl.selectionStart === telefoneEl.value.length;
+    telefoneEl.value = formatarTelefoneBrasil(telefoneEl.value);
+    if (cursorNoFim) {
+      const pos = telefoneEl.value.length;
+      telefoneEl.setSelectionRange(pos, pos);
+    }
+  });
+
+  telefoneEl.addEventListener("blur", () => {
+    telefoneEl.value = formatarTelefoneBrasil(telefoneEl.value);
+  });
+}
+
+function abrirEdicaoPerfil() {
+  if (!usuarioAtual) {
+    atualizarStatusPerfil("Faça login na Home para editar seus dados.", true);
+    return;
+  }
+  definirModoEdicaoPerfil(true, { focar: true });
+  atualizarStatusPerfil("Modo de edição ativado.", false);
+}
+
+function cancelarEdicaoPerfil() {
+  preencherCamposPerfil();
+  definirModoEdicaoPerfil(false);
+  atualizarStatusPerfil("Edição cancelada.", false);
 }
 
 function configurarFiltroDataApostas() {
@@ -376,21 +548,108 @@ function configurarFiltroDataApostas() {
   }
 }
 
-function montarCardAposta(item) {
-  const tipoLabel = TIPOS_APOSTA[item.tipo] || item.tipo;
-  const status = resultadoDaAposta(item);
-  const horario = formatarHorarioBR(item.createdAt);
-  const palpite = formatarPalpiteBilhete(item);
-  const valor = formatarMoedaBR(item.valor);
-  const premio = formatarMoedaBR(item.premio || item.valor);
+function agruparApostasPorBilhete(listaApostas) {
+  const mapa = new Map();
+
+  listaApostas.forEach((item) => {
+    const chave =
+      String(item.bilheteId || "").trim() ||
+      gerarBilheteIdAposta(item.data, item.praca, item.loteria, item.usuarioId, item.usuarioLogin);
+
+    if (!mapa.has(chave)) {
+      mapa.set(chave, {
+        bilheteId: chave,
+        data: item.data,
+        praca: item.praca,
+        loteria: item.loteria,
+        apostas: []
+      });
+    }
+
+    mapa.get(chave).apostas.push(item);
+  });
+
+  const grupos = Array.from(mapa.values());
+  grupos.forEach((grupo) => {
+    grupo.apostas.sort((a, b) =>
+      String(a.createdAt || "").localeCompare(String(b.createdAt || ""), "pt-BR")
+    );
+  });
+
+  grupos.sort((a, b) => {
+    const aData = String(a.apostas[0] && a.apostas[0].createdAt || "");
+    const bData = String(b.apostas[0] && b.apostas[0].createdAt || "");
+    return aData.localeCompare(bData, "pt-BR");
+  });
+
+  return grupos;
+}
+
+function resumoStatusBilhete(apostasBilhete) {
+  const resultados = apostasBilhete.map((item) => resultadoDaAposta(item));
+  const ganhos = resultados.filter((r) => r.status === "GANHOU").length;
+  const pendentes = resultados.filter((r) => r.status === "PENDENTE").length;
+
+  if (ganhos > 0) {
+    return {
+      status: "GANHOU",
+      classe: "status-ganhou",
+      detalhe: ganhos === 1 ? "1 aposta premiada neste bilhete." : `${ganhos} apostas premiadas neste bilhete.`
+    };
+  }
+
+  if (pendentes > 0) {
+    return {
+      status: "PENDENTE",
+      classe: "status-pendente",
+      detalhe: "Aguardando resultado das apostas deste bilhete."
+    };
+  }
+
+  return {
+    status: "PERDEU",
+    classe: "status-perdeu",
+    detalhe: "Nenhuma aposta premiada neste bilhete."
+  };
+}
+
+function montarCardBilhete(grupo) {
+  const apostasBilhete = Array.isArray(grupo.apostas) ? grupo.apostas : [];
+  const statusBilhete = resumoStatusBilhete(apostasBilhete);
+  const valorTotal = apostasBilhete.reduce(
+    (acc, item) => acc + Number(normalizarValorMoeda(item.valor)),
+    0
+  );
+  const premioTotal = apostasBilhete.reduce(
+    (acc, item) => acc + Number(normalizarValorMoeda(item.premio || item.valor)),
+    0
+  );
+  const horarioRef = formatarHorarioBR(apostasBilhete[0] && apostasBilhete[0].createdAt);
+
+  const linhasApostas = apostasBilhete
+    .map((item) => {
+      const tipoLabel = TIPOS_APOSTA[item.tipo] || item.tipo;
+      const palpite = formatarPalpiteBilhete(item);
+      const valor = formatarMoedaBR(item.valor);
+      const premio = formatarMoedaBR(item.premio || item.valor);
+      return (
+        `<div class="bilhete-linha-aposta">` +
+        `${escaparHTML(tipoLabel)}: <b>${escaparHTML(palpite)}</b> | ` +
+        `Valor: ${escaparHTML(valor)} | ` +
+        `Potencial: ${escaparHTML(premio)}` +
+        `</div>`
+      );
+    })
+    .join("");
 
   return (
     `<div class="aposta-item">` +
-    `<strong>${escaparHTML(item.praca)} | ${escaparHTML(item.loteria)}</strong><br>` +
-    `<div>Aposta feita às <b>${escaparHTML(horario)}</b></div>` +
-    `${escaparHTML(tipoLabel)}: <b>${escaparHTML(palpite)}</b> | Valor: ${escaparHTML(valor)}<br>` +
-    `Ganho potencial: <b>${escaparHTML(premio)}</b><br>` +
-    `Status: <span class="status-aposta ${status.classe}">${status.status}</span> | ${status.detalhe}` +
+    `<strong>${escaparHTML(grupo.praca)} | ${escaparHTML(grupo.loteria)}</strong><br>` +
+    `<div>Bilhete criado às <b>${escaparHTML(horarioRef)}</b> | ${apostasBilhete.length} aposta(s)</div>` +
+    linhasApostas +
+    `<div class="bilhete-resumo-total">Total apostado: <b>${escaparHTML(formatarMoedaBR(valorTotal))}</b></div>` +
+    `<div class="bilhete-resumo-total">Ganho potencial total: <b>${escaparHTML(formatarMoedaBR(premioTotal))}</b></div>` +
+    `Status: <span class="status-aposta ${statusBilhete.classe}">${statusBilhete.status}</span> | ${statusBilhete.detalhe}` +
     `</div>`
   );
 }
@@ -420,17 +679,19 @@ function mostrarApostasPerfil() {
     })
     .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || ""), "pt-BR"));
 
+  const bilhetes = agruparApostasPorBilhete(filtradas);
+
   resumo.innerText =
     `${formatarDataBR(dataSelecionada)}: ` +
-    (filtradas.length === 1 ? "1 bilhete encontrado." : `${filtradas.length} bilhetes encontrados.`);
+    `${bilhetes.length} bilhete(s) | ${filtradas.length} aposta(s).`;
 
   if (filtradas.length === 0) {
     lista.innerHTML = "<p>Nenhuma aposta encontrada para esta data.</p>";
     return;
   }
 
-  filtradas.forEach((item) => {
-    lista.innerHTML += montarCardAposta(item);
+  bilhetes.forEach((grupo) => {
+    lista.innerHTML += montarCardBilhete(grupo);
   });
 }
 
@@ -443,15 +704,28 @@ function irHojeApostasPerfil() {
 
 function initPerfil() {
   carregarEstado();
+  configurarMascaraTelefonePerfil();
   atualizarResumoUsuario();
   preencherCamposPerfil();
   configurarFiltroDataApostas();
   mostrarApostasPerfil();
 
+  const btnEditar = document.getElementById("btnEditarPerfil");
+  if (btnEditar) {
+    btnEditar.disabled = !usuarioAtual;
+    btnEditar.addEventListener("click", abrirEdicaoPerfil);
+  }
+
   const btnSalvar = document.getElementById("btnSalvarPerfil");
   if (btnSalvar) {
     btnSalvar.disabled = !usuarioAtual;
     btnSalvar.addEventListener("click", salvarDadosPerfil);
+  }
+
+  const btnCancelar = document.getElementById("btnCancelarPerfil");
+  if (btnCancelar) {
+    btnCancelar.disabled = !usuarioAtual;
+    btnCancelar.addEventListener("click", cancelarEdicaoPerfil);
   }
 
   const inputData = document.getElementById("perfilDataApostas");
@@ -463,6 +737,8 @@ function initPerfil() {
   if (btnHoje) {
     btnHoje.addEventListener("click", irHojeApostasPerfil);
   }
+
+  atualizarControlesEdicaoPerfil();
 }
 
 window.addEventListener("load", initPerfil);

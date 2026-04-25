@@ -37,6 +37,13 @@
   font-weight: 700;
 }
 
+.perfil-dica-campo {
+  display: block;
+  margin-top: 4px;
+  color: #8ea6bc;
+  font-size: 12px;
+}
+
 .card-perfil input {
   display: block;
   width: 100%;
@@ -46,6 +53,11 @@
   background: #0f1a24;
   color: #e8f3ff;
   box-sizing: border-box;
+}
+
+.card-perfil input:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
 }
 
 .card-perfil button {
@@ -63,6 +75,18 @@
 
 .card-perfil button:hover {
   filter: brightness(1.04);
+}
+
+.perfil-acoes-edicao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.perfil-acoes-edicao button {
+  margin-top: 0;
 }
 
 .card-perfil .btn-secundario {
@@ -123,6 +147,19 @@
   color: #d8e8f7;
 }
 
+.bilhete-linha-aposta {
+  margin-top: 4px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  background: #122230;
+  border: 1px solid #20394c;
+}
+
+.bilhete-resumo-total {
+  margin-top: 6px;
+  color: #b8d1e6;
+}
+
 .status-aposta {
   font-weight: 700;
 }
@@ -153,6 +190,14 @@
   }
 
   .perfil-apostas-filtro input {
+    width: 100%;
+  }
+
+  .perfil-acoes-edicao {
+    gap: 6px;
+  }
+
+  .perfil-acoes-edicao button {
     width: 100%;
   }
 }

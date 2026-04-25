@@ -109,6 +109,8 @@ let sincronizacaoPainelAtiva = false;
 let aplicandoPainelRemoto = false;
 let sincronizacaoPainelTimer = null;
 let pushPainelRemotoTimer = null;
+let apostasBilheteRascunho = [];
+let contextoBilheteRascunho = null;
 
 function hojeISO() {
   return dataLocalParaISO(new Date());
@@ -219,6 +221,25 @@ function normalizarValorMoeda(valor) {
 function normalizarTipoAposta(tipo) {
   const t = String(tipo || "").trim();
   return Object.prototype.hasOwnProperty.call(TIPOS_APOSTA, t) ? t : "";
+}
+
+function slugBilheteParte(valor) {
+  return String(valor || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function gerarBilheteIdAposta(data, praca, loteria, usuarioId, usuarioLogin) {
+  const dataId = normalizarDataISO(data) || hojeISO();
+  const pracaId = slugBilheteParte(praca) || "RIO";
+  const loteriaId = slugBilheteParte(loteria) || "LOTERIA";
+  const donoId =
+    Number.isFinite(Number(usuarioId)) && Number(usuarioId) > 0
+      ? `U${Math.floor(Number(usuarioId))}`
+      : `L${slugBilheteParte(usuarioLogin) || "ANON"}`;
+  return `BILHETE-${donoId}-${dataId}-${pracaId}-${loteriaId}`;
 }
 
 function normalizarLoginUsuario(login) {
@@ -1046,6 +1067,8 @@ function normalizarApostaItem(raw, index) {
       ? raw.usuarioId
       : null;
   const usuarioLogin = normalizarLoginUsuario(raw.usuarioLogin);
+  const bilheteIdRaw = String(raw.bilheteId || "").trim();
+  const bilheteId = bilheteIdRaw || gerarBilheteIdAposta(data, praca, loteria, usuarioId, usuarioLogin);
 
   return {
     id,
@@ -1058,7 +1081,8 @@ function normalizarApostaItem(raw, index) {
     premio,
     createdAt,
     usuarioId,
-    usuarioLogin
+    usuarioLogin,
+    bilheteId
   };
 }
 
@@ -1335,6 +1359,7 @@ function serializarPainelParaHash(listaUsuarios, listaApostas) {
     data: item.data,
     praca: item.praca,
     loteria: item.loteria,
+    bilheteId: item.bilheteId,
     tipo: item.tipo,
     palpite: item.palpite,
     valor: item.valor,
@@ -2799,6 +2824,7 @@ function configurarCamposAposta() {
   configurarMascaraValorAposta();
 
   atualizarPreviewPremiacaoAposta();
+  renderizarBilheteRascunhoAposta();
 }
 
 function atualizarCronometroApostaFormulario() {
@@ -3376,6 +3402,9 @@ function sairUsuario() {
   usuarioAtual = null;
   salvarSessaoUsuario();
   painelUsuarioAberto = false;
+  limparBilheteRascunho({
+    limparCampos: false
+  });
   atualizarVisibilidadeUsuario();
   atualizarStatusUsuario("Usuário desconectado.", false);
   limparCamposUsuario();
@@ -3477,6 +3506,9 @@ function logoutAdmin() {
   atualizarStatusLimitesAposta("");
 
   limparCamposResultado();
+  limparBilheteRascunho({
+    limparCampos: false
+  });
   limparCamposAposta();
   mostrar();
 }
@@ -3574,6 +3606,184 @@ function salvar() {
   mostrarConfirmacaoApostaRapida("Resultado salvo com sucesso.");
 }
 
+function contextoAtualFormularioAposta() {
+  const data = hojeISO();
+  const praca = String(document.getElementById("pracaAposta").value || "").trim();
+  const loteria = normalizarNomeLoteriaPorData(
+    praca,
+    document.getElementById("loteriaAposta").value,
+    data
+  );
+  return { data, praca, loteria };
+}
+
+function contextoIgualBilheteRascunho(contexto) {
+  if (!contextoBilheteRascunho) return false;
+  return (
+    String(contextoBilheteRascunho.data || "") === String(contexto.data || "") &&
+    String(contextoBilheteRascunho.praca || "") === String(contexto.praca || "") &&
+    String(contextoBilheteRascunho.loteria || "") === String(contexto.loteria || "")
+  );
+}
+
+function formularioApostaTemConteudoDigitado() {
+  const tipo = normalizarTipoAposta(document.getElementById("tipoAposta").value);
+  const palpite = String(document.getElementById("palpiteAposta").value || "").trim();
+  const valor = normalizarValorMoeda(document.getElementById("valorAposta").value);
+  return Boolean(tipo || palpite || Number(valor || 0) > 0);
+}
+
+function lerLinhaApostaDoFormulario() {
+  const contexto = contextoAtualFormularioAposta();
+  const tipo = normalizarTipoAposta(document.getElementById("tipoAposta").value);
+  sincronizarPalpiteApostaGrupoParaInput();
+  const palpite = String(document.getElementById("palpiteAposta").value || "").trim();
+  const valor = normalizarValorMoeda(document.getElementById("valorAposta").value);
+
+  if (!contexto.praca || !PRACAS_ORDENADAS.includes(contexto.praca)) {
+    return { ok: false, mensagem: "Selecione a praça da aposta." };
+  }
+  if (!contexto.loteria) {
+    return { ok: false, mensagem: "Selecione a loteria da aposta." };
+  }
+  if (!tipo) {
+    return { ok: false, mensagem: "Selecione o tipo de aposta." };
+  }
+  if (!valor) {
+    return { ok: false, mensagem: "Informe o valor da aposta." };
+  }
+
+  const valorNum = Number(valor);
+  if (valorNum < limitesAposta.valorMinimo || valorNum > limitesAposta.valorMaximo) {
+    return {
+      ok: false,
+      mensagem:
+        `O valor da aposta deve estar entre R$ ${formatarNumeroBR(limitesAposta.valorMinimo)} ` +
+        `e R$ ${formatarNumeroBR(limitesAposta.valorMaximo)}.`
+    };
+  }
+
+  const restante = segundosAteFechamento(contexto.data, contexto.loteria);
+  if (restante !== null && restante <= 0) {
+    return {
+      ok: false,
+      mensagem: "Esta loteria já encerrou para apostas nesta data."
+    };
+  }
+
+  const validacao = validarPalpiteAposta(tipo, palpite);
+  if (!validacao.ok) {
+    return { ok: false, mensagem: validacao.mensagem };
+  }
+
+  return {
+    ok: true,
+    contexto,
+    linha: {
+      tipo,
+      palpite: validacao.valor,
+      valor,
+      premio: calcularPremiacaoFicticia(tipo, valor)
+    }
+  };
+}
+
+function renderizarBilheteRascunhoAposta() {
+  const bloco = document.getElementById("bilheteRascunhoAposta");
+  const resumo = document.getElementById("resumoBilheteRascunho");
+  const lista = document.getElementById("listaBilheteRascunho");
+  if (!bloco || !resumo || !lista) return;
+
+  if (apostasBilheteRascunho.length === 0) {
+    bloco.style.display = "none";
+    resumo.innerText = "";
+    lista.innerHTML = "";
+    return;
+  }
+
+  bloco.style.display = "block";
+  const totalApostas = apostasBilheteRascunho.length;
+  const valorTotal = apostasBilheteRascunho.reduce((acc, item) => acc + Number(item.valor || 0), 0);
+  const potencialTotal = apostasBilheteRascunho.reduce((acc, item) => acc + Number(item.premio || 0), 0);
+  const loteria = String(contextoBilheteRascunho.loteria || "--");
+  resumo.innerText =
+    `Bilhete ${loteria}: ${totalApostas} aposta(s) | ` +
+    `Total: ${formatarMoedaBR(valorTotal)} | Potencial: ${formatarMoedaBR(potencialTotal)}`;
+
+  lista.innerHTML = apostasBilheteRascunho
+    .map((item, index) => {
+      const tipo = TIPOS_APOSTA[item.tipo] || item.tipo;
+      const palpite = formatarPalpiteParaBilhete(item);
+      return (
+        `<div class="item-bilhete-rascunho">` +
+        `<div class="item-bilhete-rascunho-topo">` +
+        `<strong>${tipo}</strong>` +
+        `<button type="button" class="btn-danger btn-remover-rascunho" onclick="removerApostaBilheteRascunho(${index})">Remover</button>` +
+        `</div>` +
+        `<div>Palpite: <b>${palpite}</b></div>` +
+        `<div>Valor: ${formatarMoedaBR(item.valor)} | Potencial: ${formatarMoedaBR(item.premio)}</div>` +
+        `</div>`
+      );
+    })
+    .join("");
+}
+
+function limparBilheteRascunho(opcoes) {
+  const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
+  apostasBilheteRascunho = [];
+  contextoBilheteRascunho = null;
+  renderizarBilheteRascunhoAposta();
+  if (cfg.limparCampos !== false) {
+    limparCamposAposta({
+      manterLoteria: true
+    });
+  }
+}
+
+function removerApostaBilheteRascunho(index) {
+  const idx = Number(index);
+  if (!Number.isInteger(idx) || idx < 0 || idx >= apostasBilheteRascunho.length) return;
+  apostasBilheteRascunho.splice(idx, 1);
+  if (apostasBilheteRascunho.length === 0) {
+    contextoBilheteRascunho = null;
+  }
+  renderizarBilheteRascunhoAposta();
+}
+
+function adicionarApostaAoBilhete() {
+  const usuarioSincronizado = sincronizarUsuarioAtualComLista();
+  if (!usuarioSincronizado) {
+    atualizarStatusUsuario("Faça login de usuário para apostar.", true);
+    mostrarConfirmacaoApostaRapida("Faça login de usuário para apostar.", "erro");
+    return;
+  }
+
+  const leitura = lerLinhaApostaDoFormulario();
+  if (!leitura.ok) {
+    mostrarConfirmacaoApostaRapida(leitura.mensagem, "erro");
+    return;
+  }
+
+  if (apostasBilheteRascunho.length > 0 && !contextoIgualBilheteRascunho(leitura.contexto)) {
+    mostrarConfirmacaoApostaRapida(
+      "Finalize ou limpe o bilhete atual antes de trocar de loteria.",
+      "erro"
+    );
+    return;
+  }
+
+  if (apostasBilheteRascunho.length === 0) {
+    contextoBilheteRascunho = leitura.contexto;
+  }
+
+  apostasBilheteRascunho.push(leitura.linha);
+  renderizarBilheteRascunhoAposta();
+  limparCamposAposta({
+    manterLoteria: true
+  });
+  mostrarConfirmacaoApostaRapida("Aposta adicionada ao bilhete.");
+}
+
 function salvarAposta() {
   const usuarioSincronizado = sincronizarUsuarioAtualComLista();
   if (!usuarioSincronizado) {
@@ -3582,88 +3792,93 @@ function salvarAposta() {
     return;
   }
 
-  const data = hojeISO();
-  const praca = String(document.getElementById("pracaAposta").value || "").trim();
-  const loteria = normalizarNomeLoteriaPorData(
-    praca,
-    document.getElementById("loteriaAposta").value,
-    data
+  const linhasParaSalvar = apostasBilheteRascunho.slice();
+  let contexto = contextoBilheteRascunho;
+
+  if (linhasParaSalvar.length === 0) {
+    const leitura = lerLinhaApostaDoFormulario();
+    if (!leitura.ok) {
+      mostrarConfirmacaoApostaRapida(leitura.mensagem, "erro");
+      return;
+    }
+    linhasParaSalvar.push(leitura.linha);
+    contexto = leitura.contexto;
+  } else if (formularioApostaTemConteudoDigitado()) {
+    const leituraAtual = lerLinhaApostaDoFormulario();
+    if (!leituraAtual.ok) {
+      mostrarConfirmacaoApostaRapida(
+        "Há uma aposta preenchida. Clique em 'Adicionar ao bilhete' ou limpe os campos.",
+        "erro"
+      );
+      return;
+    }
+    if (!contextoIgualBilheteRascunho(leituraAtual.contexto)) {
+      mostrarConfirmacaoApostaRapida(
+        "A aposta preenchida é de outra loteria. Ajuste para a mesma loteria do bilhete.",
+        "erro"
+      );
+      return;
+    }
+    linhasParaSalvar.push(leituraAtual.linha);
+  }
+
+  if (!contexto || !contexto.praca || !contexto.loteria || !contexto.data) {
+    mostrarConfirmacaoApostaRapida("Não foi possível definir os dados do bilhete.", "erro");
+    return;
+  }
+
+  const valorTotalBilhete = linhasParaSalvar.reduce(
+    (acc, linha) => acc + Number(linha.valor || 0),
+    0
   );
-  const tipo = normalizarTipoAposta(document.getElementById("tipoAposta").value);
-  sincronizarPalpiteApostaGrupoParaInput();
-  const palpite = String(document.getElementById("palpiteAposta").value || "").trim();
-  const valor = normalizarValorMoeda(document.getElementById("valorAposta").value);
-
-  if (!praca || !PRACAS_ORDENADAS.includes(praca)) {
-    mostrarConfirmacaoApostaRapida("Selecione a praça da aposta.", "erro");
-    return;
-  }
-
-  if (!loteria) {
-    mostrarConfirmacaoApostaRapida("Selecione a loteria da aposta.", "erro");
-    return;
-  }
-
-  if (!tipo) {
-    mostrarConfirmacaoApostaRapida("Selecione o tipo de aposta.", "erro");
-    return;
-  }
-
-  if (!valor) {
-    mostrarConfirmacaoApostaRapida("Informe o valor da aposta.", "erro");
-    return;
-  }
-
-  const valorNum = Number(valor);
-  if (valorNum < limitesAposta.valorMinimo || valorNum > limitesAposta.valorMaximo) {
-    mostrarConfirmacaoApostaRapida(
-      `O valor da aposta deve estar entre R$ ${formatarNumeroBR(limitesAposta.valorMinimo)} e R$ ${formatarNumeroBR(limitesAposta.valorMaximo)}.`,
-      "erro"
-    );
-    return;
-  }
-
-  const restante = segundosAteFechamento(data, loteria);
-  if (restante !== null && restante <= 0) {
-    mostrarConfirmacaoApostaRapida("Esta loteria já encerrou para apostas nesta data.", "erro");
-    return;
-  }
-
-  const validacao = validarPalpiteAposta(tipo, palpite);
-  if (!validacao.ok) {
-    mostrarConfirmacaoApostaRapida(validacao.mensagem, "erro");
-    return;
-  }
 
   const saldoDisponivel = normalizarSaldoUsuario(usuarioSincronizado.saldo);
-  if (valorNum > saldoDisponivel) {
+  if (valorTotalBilhete > saldoDisponivel) {
     const mensagemSaldo =
       `Saldo insuficiente. Saldo atual: ${formatarMoedaBR(saldoDisponivel)}. ` +
-      `Faça um depósito para apostar ${formatarMoedaBR(valorNum)}.`;
+      `Total do bilhete: ${formatarMoedaBR(valorTotalBilhete)}.`;
     atualizarStatusDepositoUsuario(mensagemSaldo, true);
     mostrarConfirmacaoApostaRapida(mensagemSaldo, "erro");
     return;
   }
 
-  const premio = calcularPremiacaoFicticia(tipo, valor);
-  const agora = Date.now();
+  const bilheteId = gerarBilheteIdAposta(
+    contexto.data,
+    contexto.praca,
+    contexto.loteria,
+    usuarioSincronizado.id,
+    usuarioSincronizado.login
+  );
+  const apostasNoBilheteAntes = apostas.filter(
+    (aposta) =>
+      String(aposta.bilheteId || "") === bilheteId &&
+      aposta.usuarioId === usuarioSincronizado.id
+  ).length;
 
-  const item = {
-    id: agora,
-    data,
-    praca,
-    loteria,
-    tipo,
-    palpite: validacao.valor,
-    valor,
-    premio,
-    createdAt: new Date(agora).toISOString(),
-    usuarioId: usuarioSincronizado.id,
-    usuarioLogin: usuarioSincronizado.login
-  };
+  const agoraBase = Date.now();
+  const itensNovos = linhasParaSalvar.map((linha, index) => {
+    const ts = agoraBase + index;
+    return {
+      id: ts,
+      data: contexto.data,
+      praca: contexto.praca,
+      loteria: contexto.loteria,
+      bilheteId,
+      tipo: linha.tipo,
+      palpite: linha.palpite,
+      valor: linha.valor,
+      premio: linha.premio,
+      createdAt: new Date(ts).toISOString(),
+      usuarioId: usuarioSincronizado.id,
+      usuarioLogin: usuarioSincronizado.login
+    };
+  });
 
-  apostas.unshift(item);
-  usuarioSincronizado.saldo = normalizarSaldoUsuario(saldoDisponivel - valorNum);
+  for (let i = itensNovos.length - 1; i >= 0; i--) {
+    apostas.unshift(itensNovos[i]);
+  }
+
+  usuarioSincronizado.saldo = normalizarSaldoUsuario(saldoDisponivel - valorTotalBilhete);
   salvarUsuarios({
     atualizarTimestamp: false,
     pularSyncRemoto: true
@@ -3671,21 +3886,30 @@ function salvarAposta() {
   salvarApostas();
   atualizarCarteiraUsuarioAposta();
   atualizarStatusDepositoUsuario(
-    `Aposta confirmada: -${formatarMoedaBR(valorNum)}. Saldo restante: ${formatarMoedaBR(
-      usuarioSincronizado.saldo
-    )}.`,
+    `Bilhete confirmado: -${formatarMoedaBR(valorTotalBilhete)}. ` +
+    `Saldo restante: ${formatarMoedaBR(usuarioSincronizado.saldo)}.`,
     false
   );
-  dataSelecionada = data;
+
+  dataSelecionada = contexto.data;
   aplicarLimitesDeData();
   atualizarEstadoNavegacao();
   atualizarResumoData();
   mostrar();
+  limparBilheteRascunho({
+    limparCampos: false
+  });
   limparCamposAposta();
-  mostrarConfirmacaoApostaRapida("Aposta salva!");
+
+  const totalBilhete = apostasNoBilheteAntes + linhasParaSalvar.length;
+  mostrarConfirmacaoApostaRapida(
+    `Bilhete ${contexto.loteria} salvo com ${linhasParaSalvar.length} aposta(s). Total no bilhete: ${totalBilhete}.`
+  );
 }
 
-function limparCamposAposta() {
+function limparCamposAposta(opcoes) {
+  const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
+  const manterLoteria = cfg.manterLoteria === true;
   const tipo = document.getElementById("tipoAposta");
   const palpite = document.getElementById("palpiteAposta");
   const valor = document.getElementById("valorAposta");
@@ -3697,7 +3921,7 @@ function limparCamposAposta() {
   if (tipo) tipo.value = "";
   if (palpite) palpite.value = "";
   if (valor) valor.value = "R$ 0,00";
-  if (loteriaAposta) loteriaAposta.value = "";
+  if (!manterLoteria && loteriaAposta) loteriaAposta.value = "";
   if (palpiteGrupo1) palpiteGrupo1.value = "";
   if (palpiteGrupo2) palpiteGrupo2.value = "";
   if (palpiteGrupo3) palpiteGrupo3.value = "";
@@ -4137,6 +4361,9 @@ window.restaurarMultiplicadoresPadrao = restaurarMultiplicadoresPadrao;
 window.salvarLimitesAposta = salvarLimitesAposta;
 window.restaurarLimitesPadrao = restaurarLimitesPadrao;
 window.salvarAposta = salvarAposta;
+window.adicionarApostaAoBilhete = adicionarApostaAoBilhete;
+window.limparBilheteRascunho = limparBilheteRascunho;
+window.removerApostaBilheteRascunho = removerApostaBilheteRascunho;
 window.depositarSaldoUsuario = depositarSaldoUsuario;
 window.mostrar = mostrar;
 window.excluirPorId = excluirPorId;
