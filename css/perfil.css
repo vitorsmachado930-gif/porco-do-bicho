@@ -1,0 +1,158 @@
+.topo-perfil {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.topo-perfil strong {
+  color: #d8e8f7;
+  font-size: 14px;
+}
+
+.card-perfil + .card-perfil {
+  margin-top: 16px;
+}
+
+.card-perfil h1 {
+  margin-bottom: 10px;
+}
+
+.card-perfil h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.perfil-resumo-usuario {
+  margin: 0 0 12px 0;
+  color: #9fb3c8;
+  font-size: 14px;
+}
+
+.card-perfil label {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: 13px;
+  color: #9fd5ff;
+  font-weight: 700;
+}
+
+.card-perfil input {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border-radius: 7px;
+  border: 1px solid #2a4155;
+  background: #0f1a24;
+  color: #e8f3ff;
+  box-sizing: border-box;
+}
+
+.card-perfil button {
+  margin-top: 12px;
+  width: auto;
+  min-width: 150px;
+  padding: 10px 14px;
+  border-radius: 7px;
+  border: none;
+  background: #00c853;
+  color: #072812;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.card-perfil button:hover {
+  filter: brightness(1.04);
+}
+
+.card-perfil .btn-secundario {
+  min-width: 74px;
+  margin-top: 0;
+  background: #455a64;
+  color: #f1f6fb;
+}
+
+.perfil-status {
+  margin: 10px 0 0 0;
+  font-size: 13px;
+  color: #9fb3c8;
+}
+
+.perfil-apostas-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.perfil-apostas-filtro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.perfil-apostas-filtro input {
+  width: 170px;
+}
+
+.perfil-apostas-resumo {
+  margin: 8px 0 2px 0;
+  font-size: 13px;
+  color: #9fb3c8;
+}
+
+.perfil-lista-apostas {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.perfil-lista-apostas > p {
+  margin: 0;
+  color: #9fb3c8;
+  text-align: center;
+}
+
+.aposta-item {
+  background: #0f1a24;
+  border: 1px solid #00c85333;
+  border-radius: 8px;
+  padding: 9px;
+  font-size: 14px;
+  color: #d8e8f7;
+}
+
+.status-aposta {
+  font-weight: 700;
+}
+
+.status-pendente {
+  color: #fbc02d;
+}
+
+.status-ganhou {
+  color: #00e676;
+}
+
+.status-perdeu {
+  color: #ff6b6b;
+}
+
+@media (max-width: 640px) {
+  .topo-perfil strong {
+    font-size: 12px;
+  }
+
+  .card-perfil h2 {
+    font-size: 20px;
+  }
+
+  .perfil-apostas-filtro {
+    width: 100%;
+  }
+
+  .perfil-apostas-filtro input {
+    width: 100%;
+  }
+}

@@ -76,12 +76,61 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   padding: 10px 20px;
   background: #102030;
   border-bottom: 1px solid #00c85333;
   margin: 0;
   box-sizing: border-box;
+}
+
+.btn-cabecalho-home {
+  width: auto;
+  margin-top: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.btn-cabecalho-perfil {
+  width: auto;
+  margin-top: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.cabecalho-usuario-nome {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  color: #d8e8f7;
+}
+
+.cabecalho-usuario-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cabecalho-saldo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #b9d7ef;
+  white-space: nowrap;
+}
+
+.cabecalho-saldo strong {
+  color: #00e676;
 }
 
 .btn-cabecalho-sair {
@@ -356,9 +405,37 @@ button {
 }
 
 #listaApostas {
-  margin-top: 12px;
+  margin-top: 8px;
   display: grid;
   gap: 8px;
+}
+
+#listaApostas > p {
+  margin: 0;
+  font-size: 13px;
+  color: #9fb3c8;
+  text-align: center;
+}
+
+#listaApostasHistorico {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+#listaApostasHistorico > p {
+  margin: 0;
+  font-size: 13px;
+  color: #9fb3c8;
+  text-align: center;
+}
+
+#listaApostasHistorico.apostas-unico {
+  justify-items: center;
+}
+
+#listaApostasHistorico.apostas-unico .aposta-item {
+  width: min(100%, 360px);
 }
 
 #listaApostas.apostas-unico {
@@ -375,6 +452,81 @@ button {
   border-radius: 8px;
   padding: 8px;
   font-size: 14px;
+}
+
+.minhas-apostas-bloco {
+  margin-top: 14px;
+  padding: 10px 10px 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #00c8533d;
+  background: #0c1721;
+}
+
+.minhas-apostas-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.minhas-apostas-topo h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #e8fff1;
+}
+
+#minhasApostasData {
+  font-size: 12px;
+  color: #9fb3c8;
+  font-weight: 700;
+}
+
+.minhas-apostas-resumo {
+  margin: 6px 0 2px 0;
+  font-size: 12px;
+  color: #9fb3c8;
+  text-align: left;
+}
+
+.historico-apostas-bloco {
+  margin-top: 12px;
+  padding: 10px 10px 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #2b4254;
+  background: #0a1520;
+}
+
+.historico-apostas-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.historico-apostas-topo h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #d9ebff;
+}
+
+.historico-apostas-filtros {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.historico-apostas-filtros input {
+  width: 150px;
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.btn-historico-hoje {
+  margin: 0;
+  width: auto;
+  min-width: 72px;
+  padding: 8px 12px;
 }
 
 .status-aposta {
@@ -1240,6 +1392,32 @@ body.admin-logado .acao-admin {
   .cabecalho-usuario {
     width: min(100%, 560px);
     margin: 0 auto;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+  }
+
+  .cabecalho-usuario-nome {
+    order: 3;
+    flex-basis: 100%;
+    text-align: left;
+    font-size: 11px;
+  }
+
+  .cabecalho-usuario-acoes {
+    order: 2;
+    margin-left: auto;
+    gap: 4px;
+  }
+
+  .cabecalho-saldo {
+    font-size: 10px;
+  }
+
+  .btn-cabecalho-home,
+  .btn-cabecalho-perfil,
+  .btn-cabecalho-sair {
+    padding: 5px 8px;
+    font-size: 10px;
   }
 
   .container {
@@ -1355,6 +1533,35 @@ body.admin-logado .acao-admin {
   .linha-deposito-aposta {
     max-width: 520px;
     margin: 0 auto 2px auto;
+  }
+
+  .minhas-apostas-bloco {
+    max-width: 520px;
+    margin: 12px auto 0 auto;
+    padding: 9px 8px 7px 8px;
+  }
+
+  .minhas-apostas-topo h4 {
+    font-size: 14px;
+  }
+
+  .historico-apostas-bloco {
+    max-width: 520px;
+    margin: 10px auto 0 auto;
+    padding: 9px 8px 7px 8px;
+  }
+
+  .historico-apostas-topo h4 {
+    font-size: 14px;
+  }
+
+  .historico-apostas-filtros {
+    width: 100%;
+  }
+
+  .historico-apostas-filtros input {
+    width: 100%;
+    max-width: 380px;
   }
 
   .linha-praca-fixa {

@@ -48,7 +48,9 @@ const USUARIO_TESTE_FIXO = Object.freeze({
   nome: "Teste",
   login: "teste",
   senha: "102030",
-  saldo: SALDO_USUARIO_INICIAL
+  saldo: SALDO_USUARIO_INICIAL,
+  telefone: "",
+  chavePix: ""
 });
 
 const CAMPOS_MULTIPLICADOR = [
@@ -232,13 +234,29 @@ function normalizarSaldoUsuario(valor) {
   return Number(n.toFixed(2));
 }
 
-function criarUsuarioTesteFixo(saldo) {
+function normalizarTelefoneUsuario(valor) {
+  const telefone = String(valor || "").trim();
+  if (!telefone) return "";
+  return telefone.slice(0, 24);
+}
+
+function normalizarChavePixUsuario(valor) {
+  const chavePix = String(valor || "").trim();
+  if (!chavePix) return "";
+  return chavePix.slice(0, 120);
+}
+
+function criarUsuarioTesteFixo(rawExistente) {
+  const raw = rawExistente && typeof rawExistente === "object" ? rawExistente : {};
+  const nomeCustom = String(raw.nome || "").trim();
   return {
     id: USUARIO_TESTE_FIXO.id,
-    nome: USUARIO_TESTE_FIXO.nome,
+    nome: nomeCustom.length >= 2 ? nomeCustom : USUARIO_TESTE_FIXO.nome,
     login: USUARIO_TESTE_FIXO.login,
     senha: USUARIO_TESTE_FIXO.senha,
-    saldo: normalizarSaldoUsuario(saldo)
+    saldo: normalizarSaldoUsuario(raw.saldo),
+    telefone: normalizarTelefoneUsuario(raw.telefone),
+    chavePix: normalizarChavePixUsuario(raw.chavePix)
   };
 }
 
@@ -249,6 +267,8 @@ function normalizarUsuarioItem(raw, index) {
   const login = normalizarLoginUsuario(raw.login);
   const senha = String(raw.senha || "");
   const saldo = normalizarSaldoUsuario(raw.saldo);
+  const telefone = normalizarTelefoneUsuario(raw.telefone);
+  const chavePix = normalizarChavePixUsuario(raw.chavePix);
 
   if (nome.length < 2) return null;
   if (!/^[a-z0-9._-]{3,24}$/.test(login)) return null;
@@ -264,7 +284,9 @@ function normalizarUsuarioItem(raw, index) {
     nome,
     login,
     senha,
-    saldo
+    saldo,
+    telefone,
+    chavePix
   };
 }
 
@@ -273,7 +295,7 @@ function sanitizarUsuarios(arr) {
   const usuarioTesteExistente = base.find(
     (item) => normalizarLoginUsuario(item && item.login) === USUARIO_TESTE_FIXO.login
   );
-  const usuarioFixo = criarUsuarioTesteFixo(usuarioTesteExistente && usuarioTesteExistente.saldo);
+  const usuarioFixo = criarUsuarioTesteFixo(usuarioTesteExistente);
   const usados = new Set([usuarioFixo.login]);
   const sane = [usuarioFixo];
 
@@ -1299,7 +1321,9 @@ function serializarPainelParaHash(listaUsuarios, listaApostas) {
     nome: item.nome,
     login: item.login,
     senha: item.senha,
-    saldo: normalizarSaldoUsuario(item.saldo)
+    saldo: normalizarSaldoUsuario(item.saldo),
+    telefone: normalizarTelefoneUsuario(item.telefone),
+    chavePix: normalizarChavePixUsuario(item.chavePix)
   }));
 
   usuariosSane.sort((a, b) =>
@@ -1980,6 +2004,14 @@ function configurarSeletores() {
   if (dataResultado) {
     dataResultado.addEventListener("change", () => {
       popularLoterias();
+    });
+  }
+
+  const dataHistoricoApostas = document.getElementById("dataHistoricoApostas");
+  if (dataHistoricoApostas) {
+    dataHistoricoApostas.addEventListener("change", () => {
+      obterDataHistoricoApostasSelecionada();
+      mostrarHistoricoApostasUsuario();
     });
   }
 }
@@ -2906,6 +2938,7 @@ function aplicarLimitesDeData() {
   const dataResultado = document.getElementById("dataResultado");
   const dataAposta = document.getElementById("dataAposta");
   const filtroData = document.getElementById("filtroData");
+  const dataHistoricoApostas = document.getElementById("dataHistoricoApostas");
 
   if (dataResultado) {
     dataResultado.min = min;
@@ -2927,6 +2960,16 @@ function aplicarLimitesDeData() {
     filtroData.min = min;
     filtroData.max = max;
     filtroData.value = dataSelecionada;
+  }
+
+  if (dataHistoricoApostas) {
+    dataHistoricoApostas.min = min;
+    dataHistoricoApostas.max = max;
+    let dataHistorico = normalizarDataISO(dataHistoricoApostas.value);
+    if (!dataHistorico) dataHistorico = dataSelecionada;
+    if (dataHistorico < min) dataHistorico = min;
+    if (dataHistorico > max) dataHistorico = max;
+    dataHistoricoApostas.value = dataHistorico;
   }
 
   atualizarDisponibilidadeLoteriasAposta(true);
@@ -3043,9 +3086,24 @@ function sincronizarUsuarioAtualComLista() {
 
 function atualizarCarteiraUsuarioAposta() {
   const saldoEl = document.getElementById("saldoUsuarioAposta");
+  const saldoCabecalhoEl = document.getElementById("saldoUsuarioCabecalho");
   const usuarioSincronizado = sincronizarUsuarioAtualComLista();
   const saldoAtual = normalizarSaldoUsuario(usuarioSincronizado && usuarioSincronizado.saldo);
   if (saldoEl) saldoEl.innerText = formatarMoedaBR(saldoAtual);
+  if (saldoCabecalhoEl) saldoCabecalhoEl.innerText = formatarMoedaBR(saldoAtual);
+}
+
+function irHomeCabecalho() {
+  irHoje();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function abrirMeuPerfil() {
+  if (!usuarioAtual) {
+    mostrarConfirmacaoApostaRapida("Faça login para acessar seu perfil.", "erro");
+    return;
+  }
+  window.location.href = "paginas/meu-perfil.html";
 }
 
 function abrirPainelLoginUsuario() {
@@ -3230,7 +3288,9 @@ function cadastrarUsuario() {
     nome,
     login,
     senha,
-    saldo: SALDO_USUARIO_INICIAL
+    saldo: SALDO_USUARIO_INICIAL,
+    telefone: "",
+    chavePix: ""
   };
 
   usuarios.unshift(novoUsuario);
@@ -3646,33 +3706,140 @@ function limparCamposAposta() {
   atualizarCronometroApostaFormulario();
 }
 
-function mostrarApostas() {
-  const container = document.getElementById("listaApostas");
+function montarHtmlBilheteAposta(item, incluirAcoesAdmin) {
+  const valorNum = Number(item.valor || 0);
+  const potencialNum = Number(calcularPremiacaoFicticia(item.tipo, item.valor));
+  const valorTxt = formatarMoedaBR(valorNum);
+  const premioTxt = formatarMoedaBR(potencialNum);
+  const horarioAposta = formatarHorarioBR(item.createdAt);
+  const tipoLabel = TIPOS_APOSTA[item.tipo] || item.tipo;
+  const palpiteBilhete = formatarPalpiteParaBilhete(item);
+  const conf = resultadoDaAposta(item);
+  const linhaResultado = `Status: <span class="status-aposta ${conf.classeStatus}">${conf.status}</span> | ${conf.detalhe}`;
+  const acoes = incluirAcoesAdmin
+    ? `<div class="acoes-aposta acao-admin"><button class="btn-danger btn-inline" onclick="excluirApostaPorId(${item.id})">Excluir aposta</button></div>`
+    : "";
+
+  return `
+    <div class="aposta-item">
+      <strong>${item.praca} | ${item.loteria}</strong><br>
+      <div class="linha-horario-aposta">Aposta feita às <b>${horarioAposta}</b></div>
+      ${tipoLabel}: <b>${palpiteBilhete}</b> | Valor: ${valorTxt}<br>
+      Ganho potencial: <span class="valor-potencial-destaque">${premioTxt}</span><br>
+      ${linhaResultado}
+      ${acoes}
+    </div>
+  `;
+}
+
+function obterDataHistoricoApostasSelecionada() {
+  const input = document.getElementById("dataHistoricoApostas");
+  const min = dataMinimaISO();
+  const max = hojeISO();
+  const fallback = normalizarDataISO(dataSelecionada) || max;
+  let data = normalizarDataISO(input && input.value ? input.value : "");
+
+  if (!data) data = fallback;
+  if (data < min) data = min;
+  if (data > max) data = max;
+
+  if (input) input.value = data;
+  return data;
+}
+
+function mostrarHistoricoApostasUsuario() {
+  const container = document.getElementById("listaApostasHistorico");
+  const resumo = document.getElementById("historicoApostasResumo");
   if (!container) return;
 
-  const filtroPraca = obterPracaFiltroAtual();
+  const dataConsulta = obterDataHistoricoApostasSelecionada();
+  container.innerHTML = "";
+  container.classList.remove("apostas-unico");
+
+  if (!usuarioAtual) {
+    if (resumo) {
+      resumo.innerText = "Escolha uma data para consultar seus bilhetes anteriores.";
+    }
+    container.innerHTML = "<p>Faça login de usuário para consultar o histórico.</p>";
+    return;
+  }
+
+  const usuarioIdAtual = usuarioAtual.id;
+  const historico = apostas
+    .filter((item) => item.usuarioId === usuarioIdAtual && item.data === dataConsulta)
+    .sort(compararPorHorario);
+
+  if (resumo) {
+    const qtd = historico.length;
+    resumo.innerText =
+      `${formatarDataBR(dataConsulta)}: ` +
+      (qtd === 1 ? "1 bilhete encontrado." : `${qtd} bilhetes encontrados.`);
+  }
+
+  if (historico.length === 0) {
+    container.innerHTML = "<p>Nenhuma aposta encontrada para a data selecionada.</p>";
+    return;
+  }
+
+  if (historico.length === 1) {
+    container.classList.add("apostas-unico");
+  }
+
+  historico.forEach((item) => {
+    container.innerHTML += montarHtmlBilheteAposta(item, logado);
+  });
+}
+
+function irHojeHistoricoApostas() {
+  const input = document.getElementById("dataHistoricoApostas");
+  const hoje = hojeISO();
+  if (input) input.value = hoje;
+  mostrarHistoricoApostasUsuario();
+}
+
+function mostrarApostas() {
+  const container = document.getElementById("listaApostas");
+  if (!container) {
+    mostrarHistoricoApostasUsuario();
+    return;
+  }
+
+  const campoData = document.getElementById("minhasApostasData");
+  const campoResumo = document.getElementById("minhasApostasResumo");
+  const dataDoDia = hojeISO();
   const usuarioIdAtual = usuarioAtual ? usuarioAtual.id : null;
+  if (campoData) {
+    campoData.innerText = formatarDataBR(dataDoDia);
+  }
+
   const doDia = apostas
     .filter((item) => {
-      if (item.data !== dataSelecionada) return false;
-      if (filtroPraca !== "TODAS" && item.praca !== filtroPraca) return false;
-      if (logado) return true;
+      if (item.data !== dataDoDia) return false;
       if (!usuarioIdAtual) return false;
       return item.usuarioId === usuarioIdAtual;
     })
     .sort(compararPorHorario);
 
+  if (campoResumo) {
+    if (!usuarioAtual) {
+      campoResumo.innerText = "Entre com seu usuário para acompanhar os bilhetes do dia.";
+    } else {
+      const qtd = doDia.length;
+      campoResumo.innerText =
+        qtd === 1 ? "1 bilhete registrado hoje." : `${qtd} bilhetes registrados hoje.`;
+    }
+  }
+
   container.innerHTML = "";
   container.classList.remove("apostas-unico");
 
   if (doDia.length === 0) {
-    if (!logado && !usuarioAtual) {
+    if (!usuarioAtual) {
       container.innerHTML = "<p>Faça login de usuário para registrar e ver suas apostas.</p>";
-    } else if (!logado && usuarioAtual) {
-      container.innerHTML = "<p>Você ainda não tem apostas nesta data.</p>";
     } else {
-      container.innerHTML = "<p>Nenhuma aposta cadastrada para esta data.</p>";
+      container.innerHTML = "<p>Você ainda não registrou apostas hoje.</p>";
     }
+    mostrarHistoricoApostasUsuario();
     return;
   }
 
@@ -3681,37 +3848,11 @@ function mostrarApostas() {
   }
 
   doDia.forEach((item) => {
-    const valorNum = Number(item.valor || 0);
-    const potencialNum = Number(calcularPremiacaoFicticia(item.tipo, item.valor));
-    const valorTxt = formatarMoedaBR(valorNum);
-    const premioTxt = formatarMoedaBR(potencialNum);
-    const horarioAposta = formatarHorarioBR(item.createdAt);
-    const tipoLabel = TIPOS_APOSTA[item.tipo] || item.tipo;
-    const palpiteBilhete = formatarPalpiteParaBilhete(item);
-    const conf = resultadoDaAposta(item);
-    let linhaResultado = `Status: <span class="status-aposta ${conf.classeStatus}">${conf.status}</span> | ${conf.detalhe}`;
-    const podeExcluir = logado;
-    const acoes = podeExcluir
-      ? `<div class="acoes-aposta acao-admin"><button class="btn-danger btn-inline" onclick="excluirApostaPorId(${item.id})">Excluir aposta</button></div>`
-      : "";
-    const dono = logado && item.usuarioLogin
-      ? `Apostador: <b>@${item.usuarioLogin}</b><br>`
-      : "";
-
-    container.innerHTML += `
-      <div class="aposta-item">
-        <strong>${item.praca} | ${item.loteria}</strong><br>
-        <div class="linha-horario-aposta">Aposta feita às <b>${horarioAposta}</b></div>
-        ${dono}
-        ${tipoLabel}: <b>${palpiteBilhete}</b> | Valor: ${valorTxt}<br>
-        Ganho potencial: <span class="valor-potencial-destaque">${premioTxt}</span><br>
-        ${linhaResultado}
-        ${acoes}
-      </div>
-    `;
+    container.innerHTML += montarHtmlBilheteAposta(item, logado);
   });
 
   atualizarCronometrosDaLista();
+  mostrarHistoricoApostasUsuario();
 }
 
 function formatarDataHoraCurtaBR(dataHora) {
@@ -4005,6 +4146,9 @@ window.selecionarPracaFiltro = selecionarPracaFiltro;
 window.voltarDia = voltarDia;
 window.avancarDia = avancarDia;
 window.irHoje = irHoje;
+window.irHojeHistoricoApostas = irHojeHistoricoApostas;
+window.irHomeCabecalho = irHomeCabecalho;
+window.abrirMeuPerfil = abrirMeuPerfil;
 
 window.addEventListener("load", () => {
   init();

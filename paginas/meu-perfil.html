@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Perfil | Porco do Bicho</title>
+  <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
+  <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
+  <link rel="stylesheet" href="../css/paginas.css?v=20260425">
+  <link rel="stylesheet" href="../css/perfil.css?v=20260425">
+</head>
+<body>
+  <header class="topo-pagina">
+    <div class="topo-pagina-conteudo topo-perfil">
+      <a href="../index.html">← Voltar para Home</a>
+      <strong>Meu Perfil</strong>
+    </div>
+  </header>
+
+  <main class="conteudo-pagina">
+    <article class="card-pagina card-perfil">
+      <h1>Informações Pessoais</h1>
+      <p id="perfilResumoUsuario" class="perfil-resumo-usuario"></p>
+
+      <label for="perfilNome">Nome</label>
+      <input id="perfilNome" type="text" placeholder="Seu nome completo" maxlength="80">
+
+      <label for="perfilTelefone">Telefone</label>
+      <input id="perfilTelefone" type="tel" placeholder="(00) 00000-0000" maxlength="24">
+
+      <label for="perfilChavePix">Chave Pix para recebimento</label>
+      <input id="perfilChavePix" type="text" placeholder="CPF, e-mail, telefone ou chave aleatória" maxlength="120">
+
+      <button id="btnSalvarPerfil" type="button">Salvar dados</button>
+      <p id="perfilStatus" class="perfil-status"></p>
+    </article>
+
+    <article class="card-pagina card-perfil">
+      <div class="perfil-apostas-topo">
+        <h2>Minhas Apostas</h2>
+        <div class="perfil-apostas-filtro">
+          <input id="perfilDataApostas" type="date" aria-label="Data das apostas">
+          <button id="btnPerfilHoje" type="button" class="btn-secundario">Hoje</button>
+        </div>
+      </div>
+      <p id="perfilApostasResumo" class="perfil-apostas-resumo"></p>
+      <div id="perfilListaApostas" class="perfil-lista-apostas"></div>
+    </article>
+  </main>
+
+  <footer class="rodape-pagina">
+    Porco do Bicho • Área de perfil • Atualizado em 25/04/2026.
+  </footer>
+
+  <script src="../js/perfil.js?v=20260425"></script>
+</body>
+</html>

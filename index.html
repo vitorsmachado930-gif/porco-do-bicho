@@ -7,14 +7,19 @@
 <link rel="icon" type="image/png" href="img/mascote/icone.png?v=20260425">
 <link rel="apple-touch-icon" href="img/mascote/icone.png?v=20260425">
 
-<link rel="stylesheet" href="css/style.css?v=20260425-2">
+<link rel="stylesheet" href="css/style.css?v=20260425-3">
 </head>
 
 <body>
 
 <div id="cabecalhoUsuario" class="cabecalho-usuario" style="display:none;">
-  <span id="cabecalhoUsuarioNome"></span>
-  <button class="btn-danger btn-cabecalho-sair" onclick="sairUsuarioCabecalho()">Sair</button>
+  <button class="btn-secondary btn-cabecalho-home" onclick="irHomeCabecalho()">Home</button>
+  <span id="cabecalhoUsuarioNome" class="cabecalho-usuario-nome"></span>
+  <div class="cabecalho-usuario-acoes">
+    <button class="btn-secondary btn-cabecalho-perfil" onclick="abrirMeuPerfil()">Meu Perfil</button>
+    <span class="cabecalho-saldo">Saldo: <strong id="saldoUsuarioCabecalho">R$ 0,00</strong></span>
+    <button class="btn-danger btn-cabecalho-sair" onclick="sairUsuarioCabecalho()">Sair</button>
+  </div>
 </div>
 
 <div class="container container-usuario-topo" id="blocoUsuarioTopo">
@@ -268,7 +273,26 @@
     <p id="cronometroAposta"></p>
     <button onclick="salvarAposta()">Salvar Aposta</button>
 
-    <div id="listaApostas"></div>
+    <div class="minhas-apostas-bloco">
+      <div class="minhas-apostas-topo">
+        <h4>Minhas Apostas</h4>
+        <span id="minhasApostasData">--/--/--</span>
+      </div>
+      <p id="minhasApostasResumo" class="minhas-apostas-resumo"></p>
+      <div id="listaApostas"></div>
+    </div>
+
+    <div class="historico-apostas-bloco">
+      <div class="historico-apostas-topo">
+        <h4>Histórico de Apostas</h4>
+        <div class="historico-apostas-filtros">
+          <input id="dataHistoricoApostas" type="date" aria-label="Data do histórico de apostas">
+          <button type="button" class="btn-secondary btn-historico-hoje" onclick="irHojeHistoricoApostas()">Hoje</button>
+        </div>
+      </div>
+      <p id="historicoApostasResumo" class="minhas-apostas-resumo"></p>
+      <div id="listaApostasHistorico"></div>
+    </div>
   </div>
 
 </div>
@@ -343,6 +367,6 @@
   </div>
 </footer>
 
-<script src="js/app.js?v=20260425-2"></script>
+<script src="js/app.js?v=20260425-3"></script>
 </body>
 </html>
