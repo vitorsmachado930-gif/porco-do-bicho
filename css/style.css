@@ -422,12 +422,84 @@ body.admin-logado .acao-admin {
   border-radius: 10px;
   padding: 10px;
   font-size: 14px;
+  position: relative;
+  overflow: hidden;
+  animation: premiacao-card-entrada 0.55s ease both;
+  animation-delay: var(--premiacao-delay, 0s);
+}
+
+.premiacao-destaque-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 214, 0, 0.16) 48%, transparent 100%);
+  transform: translateX(-140%);
+  animation: premiacao-card-brilho 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--premiacao-delay, 0s) + 0.35s);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.premiacao-confirmacao {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+  z-index: 3;
+}
+
+.premiacao-confirmacao-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid #ffd600;
+  background: #081018;
+  box-shadow: 0 0 0 2px #00c85333, 0 0 12px #ffd60055;
+  animation: premiacao-logo-flutuar 1.8s ease-in-out infinite;
 }
 
 .premiacao-destaque-tipo {
+  position: relative;
+  z-index: 2;
   font-weight: 700;
   margin-bottom: 6px;
   color: #9fd5ff;
+}
+
+.premiacao-destaque-item > div:not(.premiacao-confirmacao) {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes premiacao-card-entrada {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes premiacao-card-brilho {
+  0%,
+  74% {
+    transform: translateX(-140%);
+  }
+  100% {
+    transform: translateX(140%);
+  }
+}
+
+@keyframes premiacao-logo-flutuar {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
 }
 
 .premiacao-destaque-valor {
@@ -894,6 +966,11 @@ body.admin-logado .acao-admin {
     text-align: left;
   }
 
+  .premiacao-confirmacao-logo {
+    width: 24px;
+    height: 24px;
+  }
+
   .resultado-card {
     text-align: center;
     padding: 7px;
@@ -969,6 +1046,14 @@ body.admin-logado .acao-admin {
 
   .painel-admin-listas {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premiacao-destaque-item,
+  .premiacao-destaque-item::before,
+  .premiacao-confirmacao-logo {
+    animation: none !important;
   }
 }
 

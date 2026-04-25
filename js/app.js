@@ -764,9 +764,20 @@ function mostrarPremiacoesDestaque() {
     return;
   }
 
-  cards.forEach((item) => {
+  cards.forEach((item, index) => {
     const card = document.createElement("div");
     card.className = "premiacao-destaque-item";
+    card.style.setProperty("--premiacao-delay", `${index * 0.08}s`);
+
+    const confirmacao = document.createElement("div");
+    confirmacao.className = "premiacao-confirmacao";
+
+    const logo = document.createElement("img");
+    logo.className = "premiacao-confirmacao-logo";
+    logo.src = "img/mascote/icone.png?v=20260425";
+    logo.alt = "Confirmacao de premiacao";
+    confirmacao.appendChild(logo);
+    card.appendChild(confirmacao);
 
     const tipo = document.createElement("div");
     tipo.className = "premiacao-destaque-tipo";
