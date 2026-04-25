@@ -3677,7 +3677,6 @@ function mostrarApostas() {
   }
 
   doDia.forEach((item) => {
-    const mult = multiplicadorTipoAposta(item.tipo);
     const valorNum = Number(item.valor || 0);
     const potencialNum = Number(calcularPremiacaoFicticia(item.tipo, item.valor));
     const valorTxt = formatarMoedaBR(valorNum);
@@ -3701,7 +3700,7 @@ function mostrarApostas() {
         <div class="linha-horario-aposta">Aposta feita às <b>${horarioAposta}</b></div>
         ${dono}
         ${tipoLabel}: <b>${palpiteBilhete}</b> | Valor: ${valorTxt}<br>
-        Ganho potencial: <span class="valor-potencial-destaque">${premioTxt}</span> (${mult}x)<br>
+        Ganho potencial: <span class="valor-potencial-destaque">${premioTxt}</span><br>
         ${linhaResultado}
         ${acoes}
       </div>
