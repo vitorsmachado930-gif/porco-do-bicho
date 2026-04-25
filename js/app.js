@@ -2515,32 +2515,25 @@ function atualizarModoCampoPalpiteAposta() {
 function atualizarPreviewPremiacaoAposta() {
   const tipoInput = document.getElementById("tipoAposta");
   const valorInput = document.getElementById("valorAposta");
-  const premioInput = document.getElementById("premiacaoAposta");
+  const bloco = document.getElementById("blocoPremiacaoAposta");
   const destaque = document.getElementById("destaquePremiacaoAposta");
 
-  if (!tipoInput || !valorInput || !premioInput) return;
+  if (!tipoInput || !valorInput || !bloco || !destaque) return;
 
   const tipo = normalizarTipoAposta(tipoInput.value);
   const valor = normalizarValorMoeda(valorInput.value);
 
   if (!tipo || !valor) {
-    premioInput.value = "";
-    premioInput.classList.remove("premiacao-aposta-ativa");
-    if (destaque) {
-      destaque.innerText = "";
-      destaque.classList.remove("ativo");
-    }
+    destaque.innerText = "";
+    destaque.classList.remove("ativo");
+    bloco.classList.remove("ativa");
     return;
   }
 
-  const mult = multiplicadorTipoAposta(tipo);
   const premio = calcularPremiacaoFicticia(tipo, valor);
-  premioInput.value = `R$ ${premio} (${mult}x)`;
-  premioInput.classList.add("premiacao-aposta-ativa");
-  if (destaque) {
-    destaque.innerText = `Possível prêmio: ${formatarMoedaBR(premio)}`;
-    destaque.classList.add("ativo");
-  }
+  destaque.innerText = `Possível Prêmio: ${formatarMoedaBR(premio)}`;
+  destaque.classList.add("ativo");
+  bloco.classList.add("ativa");
 }
 
 function aplicarMascaraValorAposta() {
@@ -3588,7 +3581,6 @@ function limparCamposAposta() {
   const tipo = document.getElementById("tipoAposta");
   const palpite = document.getElementById("palpiteAposta");
   const valor = document.getElementById("valorAposta");
-  const premio = document.getElementById("premiacaoAposta");
   const loteriaAposta = document.getElementById("loteriaAposta");
   const palpiteGrupo1 = document.getElementById("palpiteGrupo1");
   const palpiteGrupo2 = document.getElementById("palpiteGrupo2");
@@ -3597,7 +3589,6 @@ function limparCamposAposta() {
   if (tipo) tipo.value = "";
   if (palpite) palpite.value = "";
   if (valor) valor.value = "R$ 0,00";
-  if (premio) premio.value = "";
   if (loteriaAposta) loteriaAposta.value = "";
   if (palpiteGrupo1) palpiteGrupo1.value = "";
   if (palpiteGrupo2) palpiteGrupo2.value = "";
