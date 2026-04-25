@@ -797,6 +797,55 @@ body.admin-logado .acao-admin {
   text-align: center;
 }
 
+@keyframes aviso-bingo-pulso {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 rgba(0, 200, 83, 0);
+  }
+  50% {
+    transform: translateY(-1px);
+    box-shadow: 0 0 18px rgba(0, 230, 118, 0.2);
+  }
+}
+
+.aviso-bingo-breve {
+  width: min(100%, 920px);
+  margin: 16px auto 8px auto;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #00e67688;
+  background: linear-gradient(120deg, #112233 0%, #0f1a24 45%, #153d22 100%);
+  text-align: center;
+  animation: aviso-bingo-pulso 1.8s ease-in-out infinite;
+}
+
+.aviso-bingo-breve p {
+  margin: 0;
+  color: #e8fff1;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.banner-premiacoes-destaque {
+  width: min(100%, 920px);
+  margin-top: 12px;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #00c85344;
+  background: #0f1a24;
+}
+
+.banner-premiacoes-destaque img {
+  width: 100%;
+  display: block;
+  height: auto;
+}
+
 .card-apostas > button {
   width: 220px;
   max-width: 100%;
@@ -1169,6 +1218,22 @@ body.admin-logado .acao-admin {
   }
 
   .banner-topo-img {
+    border-radius: 6px;
+  }
+
+  .aviso-bingo-breve {
+    width: min(100%, 460px);
+    margin-top: 12px;
+    padding: 9px 10px;
+    border-radius: 8px;
+  }
+
+  .aviso-bingo-breve p {
+    font-size: 15px;
+  }
+
+  .banner-premiacoes-destaque {
+    width: min(100%, 460px);
     border-radius: 6px;
   }
 
