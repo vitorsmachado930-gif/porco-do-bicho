@@ -183,6 +183,15 @@
 
   <div class="card card-apostas" id="cardApostas">
     <h3>Apostas</h3>
+    <div class="linha-carteira-aposta">
+      <span class="rotulo-carteira-aposta">Saldo disponível</span>
+      <strong id="saldoUsuarioAposta">R$ 0,00</strong>
+    </div>
+    <div class="linha-deposito-aposta">
+      <input id="valorDepositoUsuario" value="R$ 0,00" placeholder="Valor do depósito" inputmode="numeric">
+      <button type="button" onclick="depositarSaldoUsuario()">Depositar</button>
+    </div>
+    <p id="statusDepositoUsuario"></p>
     <div class="linha-data-aposta" title="Data automática da aposta (dia atual)">
       <span class="rotulo-data-aposta">Data da aposta</span>
       <strong id="dataApostaAtual">--/--/--</strong>

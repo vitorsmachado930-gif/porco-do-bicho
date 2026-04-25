@@ -254,6 +254,12 @@ button:disabled {
   font-size: 13px;
 }
 
+#statusDepositoUsuario {
+  margin: 6px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
 #limitesApostaStatus {
   margin: 8px 0 0;
   color: #9fb3c8;
@@ -310,6 +316,45 @@ button:disabled {
   margin: 6px 0 0;
   color: #9fb3c8;
   font-size: 13px;
+}
+
+.linha-carteira-aposta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0 8px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #00c85366;
+  background: #0f1a24;
+}
+
+.rotulo-carteira-aposta {
+  font-size: 13px;
+  color: #9fb3c8;
+}
+
+#saldoUsuarioAposta {
+  display: inline-block;
+  min-width: 96px;
+  text-align: center;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  color: #ffd600;
+}
+
+.linha-deposito-aposta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 2px;
+}
+
+.linha-deposito-aposta button {
+  margin: 0;
+  width: 100%;
 }
 
 #cronometroAposta.cronometro-encerrado {
@@ -1012,6 +1057,16 @@ body.admin-logado .acao-admin {
     margin: 6px auto 8px auto;
   }
 
+  .linha-carteira-aposta {
+    max-width: 520px;
+    margin: 6px auto 8px auto;
+  }
+
+  .linha-deposito-aposta {
+    max-width: 520px;
+    margin: 0 auto 2px auto;
+  }
+
   .linha-praca-fixa {
     max-width: 520px;
     margin: 6px auto 8px auto;
@@ -1065,6 +1120,10 @@ body.admin-logado .acao-admin {
 
 @media (max-width: 430px) {
   .usuario-acoes-publicas {
+    grid-template-columns: 1fr;
+  }
+
+  .linha-deposito-aposta {
     grid-template-columns: 1fr;
   }
 

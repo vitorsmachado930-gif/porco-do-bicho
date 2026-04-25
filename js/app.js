@@ -41,12 +41,14 @@ const LIMITES_APOSTA_PADRAO = {
   valorMinimo: 1,
   valorMaximo: 500
 };
+const SALDO_USUARIO_INICIAL = 0;
 
 const USUARIO_TESTE_FIXO = Object.freeze({
   id: 102030,
   nome: "Teste",
   login: "teste",
-  senha: "102030"
+  senha: "102030",
+  saldo: SALDO_USUARIO_INICIAL
 });
 
 const CAMPOS_MULTIPLICADOR = [
@@ -221,12 +223,19 @@ function normalizarLoginUsuario(login) {
     .replace(/\s+/g, "");
 }
 
-function criarUsuarioTesteFixo() {
+function normalizarSaldoUsuario(valor) {
+  const n = Number(valor);
+  if (!Number.isFinite(n) || n < 0) return SALDO_USUARIO_INICIAL;
+  return Number(n.toFixed(2));
+}
+
+function criarUsuarioTesteFixo(saldo) {
   return {
     id: USUARIO_TESTE_FIXO.id,
     nome: USUARIO_TESTE_FIXO.nome,
     login: USUARIO_TESTE_FIXO.login,
-    senha: USUARIO_TESTE_FIXO.senha
+    senha: USUARIO_TESTE_FIXO.senha,
+    saldo: normalizarSaldoUsuario(saldo)
   };
 }
 
@@ -236,6 +245,7 @@ function normalizarUsuarioItem(raw, index) {
   const nome = String(raw.nome || "").trim();
   const login = normalizarLoginUsuario(raw.login);
   const senha = String(raw.senha || "");
+  const saldo = normalizarSaldoUsuario(raw.saldo);
 
   if (nome.length < 2) return null;
   if (!/^[a-z0-9._-]{3,24}$/.test(login)) return null;
@@ -250,16 +260,21 @@ function normalizarUsuarioItem(raw, index) {
     id,
     nome,
     login,
-    senha
+    senha,
+    saldo
   };
 }
 
 function sanitizarUsuarios(arr) {
-  const usuarioFixo = criarUsuarioTesteFixo();
+  const base = Array.isArray(arr) ? arr : [];
+  const usuarioTesteExistente = base.find(
+    (item) => normalizarLoginUsuario(item && item.login) === USUARIO_TESTE_FIXO.login
+  );
+  const usuarioFixo = criarUsuarioTesteFixo(usuarioTesteExistente && usuarioTesteExistente.saldo);
   const usados = new Set([usuarioFixo.login]);
   const sane = [usuarioFixo];
 
-  (Array.isArray(arr) ? arr : []).forEach((item, index) => {
+  base.forEach((item, index) => {
     const normalizado = normalizarUsuarioItem(item, index);
     if (!normalizado) return;
     if (normalizado.login === usuarioFixo.login) return;
@@ -1276,7 +1291,8 @@ function serializarPainelParaHash(listaUsuarios, listaApostas) {
     id: item.id,
     nome: item.nome,
     login: item.login,
-    senha: item.senha
+    senha: item.senha,
+    saldo: normalizarSaldoUsuario(item.saldo)
   }));
 
   usuariosSane.sort((a, b) =>
@@ -2288,6 +2304,121 @@ function configurarMascaraValorAposta() {
   aplicarMascaraValorAposta();
 }
 
+function aplicarMascaraValorDepositoUsuario() {
+  const input = document.getElementById("valorDepositoUsuario");
+  if (!input) return;
+  const centavos = centavosDeTextoMoeda(input.value);
+  input.value = formatarCentavosComoMoedaBR(centavos);
+}
+
+function configurarMascaraValorDepositoUsuario() {
+  const input = document.getElementById("valorDepositoUsuario");
+  if (!input) return;
+
+  input.addEventListener("keydown", (event) => {
+    const tecla = String(event.key || "");
+    const teclaLower = tecla.toLowerCase();
+
+    const teclasControle = [
+      "Backspace",
+      "Delete",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Tab",
+      "Home",
+      "End",
+      "Escape",
+      "Enter"
+    ];
+
+    if (teclasControle.includes(tecla)) {
+      return;
+    }
+
+    if (event.ctrlKey || event.metaKey) {
+      const atalhosPermitidos = ["a", "c", "x", "v", "z", "y"];
+      if (atalhosPermitidos.includes(teclaLower)) {
+        return;
+      }
+    }
+
+    if (!/^\d$/.test(tecla)) {
+      event.preventDefault();
+    }
+  });
+
+  input.addEventListener("paste", (event) => {
+    const texto = String(event.clipboardData?.getData("text") || "").trim();
+
+    if (!/^\d+$/.test(texto)) {
+      event.preventDefault();
+      return;
+    }
+
+    event.preventDefault();
+    const centavos = Number(texto);
+    input.value = formatarCentavosComoMoedaBR(centavos);
+  });
+
+  input.addEventListener("drop", (event) => {
+    event.preventDefault();
+  });
+
+  input.addEventListener("input", () => {
+    aplicarMascaraValorDepositoUsuario();
+    atualizarStatusDepositoUsuario("", false);
+  });
+
+  input.addEventListener("focus", () => {
+    if (!String(input.value || "").trim()) {
+      input.value = "R$ 0,00";
+    }
+  });
+
+  aplicarMascaraValorDepositoUsuario();
+}
+
+function depositarSaldoUsuario() {
+  const usuarioSincronizado = sincronizarUsuarioAtualComLista();
+  if (!usuarioSincronizado) {
+    atualizarStatusUsuario("Faça login de usuário para depositar.", true);
+    alert("Faça login de usuário para depositar.");
+    return;
+  }
+
+  const input = document.getElementById("valorDepositoUsuario");
+  if (!input) return;
+
+  const valor = normalizarValorMoeda(input.value);
+  if (!valor) {
+    atualizarStatusDepositoUsuario("Informe um valor de depósito.", true);
+    alert("Informe um valor de depósito.");
+    return;
+  }
+
+  const valorNum = Number(valor);
+  if (!Number.isFinite(valorNum) || valorNum <= 0) {
+    atualizarStatusDepositoUsuario("Informe um valor válido para depósito.", true);
+    alert("Informe um valor válido para depósito.");
+    return;
+  }
+
+  const saldoAtual = normalizarSaldoUsuario(usuarioSincronizado.saldo);
+  const novoSaldo = normalizarSaldoUsuario(saldoAtual + valorNum);
+  usuarioSincronizado.saldo = novoSaldo;
+  salvarUsuarios();
+  salvarSessaoUsuario();
+  atualizarCarteiraUsuarioAposta();
+  atualizarStatusDepositoUsuario(
+    `Depósito fictício confirmado: +${formatarMoedaBR(valorNum)}.`,
+    false
+  );
+  input.value = "R$ 0,00";
+  mostrarPainelAdmin();
+}
+
 function configurarCamposAposta() {
   const tipoInput = document.getElementById("tipoAposta");
   const palpiteInput = document.getElementById("palpiteAposta");
@@ -2545,6 +2676,32 @@ function atualizarStatusUsuario(texto, erro) {
   status.innerText = texto || "";
 }
 
+function atualizarStatusDepositoUsuario(texto, erro) {
+  const status = document.getElementById("statusDepositoUsuario");
+  if (!status) return;
+  status.style.color = erro ? "#ff6b6b" : "#9fb3c8";
+  status.innerText = texto || "";
+}
+
+function sincronizarUsuarioAtualComLista() {
+  if (!usuarioAtual) return null;
+  const idx = usuarios.findIndex((item) => item.id === usuarioAtual.id);
+  if (idx === -1) {
+    usuarioAtual = null;
+    salvarSessaoUsuario();
+    return null;
+  }
+  usuarioAtual = usuarios[idx];
+  return usuarioAtual;
+}
+
+function atualizarCarteiraUsuarioAposta() {
+  const saldoEl = document.getElementById("saldoUsuarioAposta");
+  const usuarioSincronizado = sincronizarUsuarioAtualComLista();
+  const saldoAtual = normalizarSaldoUsuario(usuarioSincronizado && usuarioSincronizado.saldo);
+  if (saldoEl) saldoEl.innerText = formatarMoedaBR(saldoAtual);
+}
+
 function abrirPainelLoginUsuario() {
   painelUsuarioAberto = true;
   definirModoUsuarioPublico("login");
@@ -2558,6 +2715,10 @@ function atualizarVisibilidadeApostas() {
   const cardApostas = document.getElementById("cardApostas");
   if (!cardApostas) return;
   cardApostas.style.display = usuarioAtual ? "block" : "none";
+  if (!usuarioAtual) {
+    atualizarStatusDepositoUsuario("", false);
+  }
+  atualizarCarteiraUsuarioAposta();
 }
 
 function definirModoUsuarioPublico(modo) {
@@ -2719,7 +2880,8 @@ function cadastrarUsuario() {
     id: Date.now(),
     nome,
     login,
-    senha
+    senha,
+    saldo: SALDO_USUARIO_INICIAL
   };
 
   usuarios.unshift(novoUsuario);
@@ -2996,7 +3158,8 @@ function salvar() {
 }
 
 function salvarAposta() {
-  if (!usuarioAtual) {
+  const usuarioSincronizado = sincronizarUsuarioAtualComLista();
+  if (!usuarioSincronizado) {
     atualizarStatusUsuario("Faça login de usuário para apostar.", true);
     alert("Faça login de usuário para apostar.");
     return;
@@ -3054,6 +3217,16 @@ function salvarAposta() {
     return;
   }
 
+  const saldoDisponivel = normalizarSaldoUsuario(usuarioSincronizado.saldo);
+  if (valorNum > saldoDisponivel) {
+    const mensagemSaldo =
+      `Saldo insuficiente. Saldo atual: ${formatarMoedaBR(saldoDisponivel)}. ` +
+      `Faça um depósito para apostar ${formatarMoedaBR(valorNum)}.`;
+    atualizarStatusDepositoUsuario(mensagemSaldo, true);
+    alert(mensagemSaldo);
+    return;
+  }
+
   const premio = calcularPremiacaoFicticia(tipo, valor);
   const agora = Date.now();
 
@@ -3067,12 +3240,24 @@ function salvarAposta() {
     valor,
     premio,
     createdAt: new Date(agora).toISOString(),
-    usuarioId: usuarioAtual.id,
-    usuarioLogin: usuarioAtual.login
+    usuarioId: usuarioSincronizado.id,
+    usuarioLogin: usuarioSincronizado.login
   };
 
   apostas.unshift(item);
+  usuarioSincronizado.saldo = normalizarSaldoUsuario(saldoDisponivel - valorNum);
+  salvarUsuarios({
+    atualizarTimestamp: false,
+    pularSyncRemoto: true
+  });
   salvarApostas();
+  atualizarCarteiraUsuarioAposta();
+  atualizarStatusDepositoUsuario(
+    `Aposta confirmada: -${formatarMoedaBR(valorNum)}. Saldo restante: ${formatarMoedaBR(
+      usuarioSincronizado.saldo
+    )}.`,
+    false
+  );
   dataSelecionada = data;
   aplicarLimitesDeData();
   atualizarEstadoNavegacao();
@@ -3239,6 +3424,7 @@ function mostrarPainelAdmin() {
           `<div class="item-admin-linha">` +
           `<b>${user.nome}</b> (@${user.login})<br>` +
           `Cadastro: ${dataCadastroUsuario(user)}<br>` +
+          `Saldo: <b>${formatarMoedaBR(user.saldo)}</b><br>` +
           `Apostas: <b>${totalApostas}</b>` +
           `</div>`
         );
@@ -3413,6 +3599,7 @@ async function init() {
   configurarSeletores();
   configurarAutoBichoInputs();
   configurarCamposAposta();
+  configurarMascaraValorDepositoUsuario();
   configurarCronometroAposta();
   preencherCamposMultiplicadores();
   preencherCamposLimitesAposta();
@@ -3454,6 +3641,7 @@ window.restaurarMultiplicadoresPadrao = restaurarMultiplicadoresPadrao;
 window.salvarLimitesAposta = salvarLimitesAposta;
 window.restaurarLimitesPadrao = restaurarLimitesPadrao;
 window.salvarAposta = salvarAposta;
+window.depositarSaldoUsuario = depositarSaldoUsuario;
 window.mostrar = mostrar;
 window.excluirPorId = excluirPorId;
 window.excluirApostaPorId = excluirApostaPorId;
