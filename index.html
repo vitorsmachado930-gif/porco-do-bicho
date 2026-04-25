@@ -248,12 +248,15 @@
         </button>
       </div>
       <p id="palpiteGrupoDica" class="palpite-grupo-dica"></p>
-      <div class="palpite-grupo-nav">
-        <button type="button" class="btn-nav-horizontal btn-palpite-grupo-nav" id="btnPalpiteGrupoPrev">Anterior</button>
-        <button type="button" class="btn-nav-horizontal btn-palpite-grupo-nav" id="btnPalpiteGrupoNext">Próximo</button>
+      <button type="button" class="btn-secondary btn-palpite-grupo-editar" id="btnEditarPalpiteGrupo">Editar escolha</button>
+      <div id="palpiteGrupoEditor" class="palpite-grupo-editor">
+        <div class="palpite-grupo-nav">
+          <button type="button" class="btn-nav-horizontal btn-palpite-grupo-nav" id="btnPalpiteGrupoPrev">Anterior</button>
+          <button type="button" class="btn-nav-horizontal btn-palpite-grupo-nav" id="btnPalpiteGrupoNext">Proximo</button>
+        </div>
+        <div id="palpiteGrupoGrade" class="palpite-grupo-grade palpite-grupo-carrossel"></div>
+        <button type="button" class="btn-secondary btn-palpite-grupo-limpar" id="btnLimparPalpiteGrupo">Limpar selecao</button>
       </div>
-      <div id="palpiteGrupoGrade" class="palpite-grupo-grade palpite-grupo-carrossel"></div>
-      <button type="button" class="btn-secondary btn-palpite-grupo-limpar" id="btnLimparPalpiteGrupo">Limpar selecao</button>
     </div>
 
     <input id="palpiteAposta" placeholder="Palpite numérico (ex: 1234)" inputmode="numeric">

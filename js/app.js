@@ -97,6 +97,7 @@ let hashLoteriasApostaDisponiveis = "";
 let modoUsuarioPublico = "login";
 let painelUsuarioAberto = false;
 let slotGrupoAtivo = 1;
+let editorPalpiteGrupoAberto = true;
 let sincronizacaoResultadosAtiva = false;
 let aplicandoResultadosRemotos = false;
 let sincronizacaoResultadosTimer = null;
@@ -2131,6 +2132,14 @@ function primeiroSlotVazioPalpiteGrupo(quantidade) {
   return 1;
 }
 
+function quantidadeSelecionadaPalpiteGrupo(quantidade) {
+  let total = 0;
+  for (let i = 1; i <= quantidade; i++) {
+    if (valorSelecionadoPalpiteGrupo(i)) total += 1;
+  }
+  return total;
+}
+
 function montarGradeBichosPalpiteGrupo() {
   const grade = document.getElementById("palpiteGrupoGrade");
   if (!grade) return;
@@ -2206,11 +2215,15 @@ function renderizarSelecaoPalpiteGrupoPorImagem() {
   const container = document.getElementById("palpiteGrupoContainer");
   const dica = document.getElementById("palpiteGrupoDica");
   const grade = document.getElementById("palpiteGrupoGrade");
-  if (!container || !dica || !grade) return;
+  const editor = document.getElementById("palpiteGrupoEditor");
+  const btnEditar = document.getElementById("btnEditarPalpiteGrupo");
+  if (!container || !dica || !grade || !editor || !btnEditar) return;
 
   const quantidade = quantidadeGruposNoFormularioAposta();
   if (quantidade <= 0) {
     dica.innerText = "";
+    editor.style.display = "none";
+    btnEditar.style.display = "none";
     atualizarBotoesCarrosselPalpiteGrupo();
     return;
   }
@@ -2223,6 +2236,16 @@ function renderizarSelecaoPalpiteGrupoPorImagem() {
   for (let i = 1; i <= quantidade; i++) {
     gruposSelecionados.push(valorSelecionadoPalpiteGrupo(i));
   }
+  const qtdSelecionados = quantidadeSelecionadaPalpiteGrupo(quantidade);
+  const completo = qtdSelecionados === quantidade;
+
+  if (!completo) {
+    editorPalpiteGrupoAberto = true;
+  }
+
+  const exibirEditor = !completo || editorPalpiteGrupoAberto;
+  editor.style.display = exibirEditor ? "grid" : "none";
+  btnEditar.style.display = completo && !editorPalpiteGrupoAberto ? "block" : "none";
 
   for (let i = 1; i <= 3; i++) {
     const slot = document.getElementById("palpiteGrupoSlot" + i);
@@ -2261,7 +2284,6 @@ function renderizarSelecaoPalpiteGrupoPorImagem() {
     }
   }
 
-  const qtdSelecionados = gruposSelecionados.filter(Boolean).length;
   const faltam = Math.max(0, quantidade - qtdSelecionados);
   dica.innerText =
     faltam > 0
@@ -2300,6 +2322,9 @@ function selecionarBichoDaGradePalpiteGrupo(grupoTxt) {
     }
   }
 
+  const qtdSelecionados = quantidadeSelecionadaPalpiteGrupo(quantidade);
+  editorPalpiteGrupoAberto = qtdSelecionados < quantidade;
+
   sincronizarPalpiteApostaGrupoParaInput();
   renderizarSelecaoPalpiteGrupoPorImagem();
   const grupoAtivo = valorSelecionadoPalpiteGrupo(slotGrupoAtivo);
@@ -2314,6 +2339,7 @@ function limparSelecaoPalpiteGrupoPorImagem() {
     definirValorPalpiteGrupo(i, "");
   }
   slotGrupoAtivo = 1;
+  editorPalpiteGrupoAberto = true;
   sincronizarPalpiteApostaGrupoParaInput();
   renderizarSelecaoPalpiteGrupoPorImagem();
 }
@@ -2327,6 +2353,7 @@ function configurarPalpiteGrupoComImagens() {
     slot.addEventListener("click", () => {
       if (slot.disabled) return;
       slotGrupoAtivo = i;
+      editorPalpiteGrupoAberto = true;
       renderizarSelecaoPalpiteGrupoPorImagem();
       const grupoAtivo = valorSelecionadoPalpiteGrupo(slotGrupoAtivo);
       if (grupoAtivo) {
@@ -2348,6 +2375,18 @@ function configurarPalpiteGrupoComImagens() {
   const btnLimpar = document.getElementById("btnLimparPalpiteGrupo");
   if (btnLimpar) {
     btnLimpar.addEventListener("click", limparSelecaoPalpiteGrupoPorImagem);
+  }
+
+  const btnEditar = document.getElementById("btnEditarPalpiteGrupo");
+  if (btnEditar) {
+    btnEditar.addEventListener("click", () => {
+      editorPalpiteGrupoAberto = true;
+      renderizarSelecaoPalpiteGrupoPorImagem();
+      const grupoAtivo = valorSelecionadoPalpiteGrupo(slotGrupoAtivo);
+      if (grupoAtivo) {
+        centralizarCardCarrosselPalpiteGrupo(grupoAtivo);
+      }
+    });
   }
 
   renderizarSelecaoPalpiteGrupoPorImagem();
@@ -2408,6 +2447,7 @@ function atualizarModoCampoPalpiteAposta() {
     palpiteInput.dataset.modoGrupo = "0";
     palpiteInput.value = "";
     slotGrupoAtivo = 1;
+    editorPalpiteGrupoAberto = true;
 
     for (let i = 1; i <= 3; i++) {
       const select = document.getElementById("palpiteGrupo" + i);
@@ -2424,6 +2464,9 @@ function atualizarModoCampoPalpiteAposta() {
     palpiteInput.style.display = "none";
     palpiteInput.readOnly = true;
     palpiteInput.dataset.modoGrupo = "1";
+    if (!estavaEmGrupo) {
+      editorPalpiteGrupoAberto = true;
+    }
 
     for (let i = 1; i <= 3; i++) {
       const select = document.getElementById("palpiteGrupo" + i);
@@ -2431,6 +2474,11 @@ function atualizarModoCampoPalpiteAposta() {
       const ativo = i <= quantidade;
       select.disabled = !ativo;
       if (!ativo) select.value = "";
+    }
+
+    const qtdSelecionados = quantidadeSelecionadaPalpiteGrupo(quantidade);
+    if (qtdSelecionados < quantidade) {
+      editorPalpiteGrupoAberto = true;
     }
 
     slotGrupoAtivo = primeiroSlotVazioPalpiteGrupo(quantidade);
@@ -2459,6 +2507,7 @@ function atualizarModoCampoPalpiteAposta() {
   if (estavaEmGrupo) {
     palpiteInput.value = "";
   }
+  editorPalpiteGrupoAberto = true;
   normalizarPalpiteNumericoDigitado();
   renderizarSelecaoPalpiteGrupoPorImagem();
 }

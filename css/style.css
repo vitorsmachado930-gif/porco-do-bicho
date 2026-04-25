@@ -240,6 +240,18 @@ button {
   text-align: center;
 }
 
+.btn-palpite-grupo-editar {
+  display: none;
+  margin: 0;
+  max-width: 220px;
+  justify-self: center;
+}
+
+.palpite-grupo-editor {
+  display: grid;
+  gap: 6px;
+}
+
 .palpite-grupo-nav {
   display: flex;
   gap: 6px;
