@@ -3294,7 +3294,9 @@ function mostrar() {
       <div class="resultado-titulo">${loteriaTitulo}</div>`;
 
     if (!item.resultados || item.resultados.length === 0) {
-      html += `<p>Aguardando resultado desta loteria.</p>`;
+      html += `<div class="resultado-pendente-bloco">`;
+      html += `<p class="resultado-pendente">Aguardando resultado desta loteria.</p>`;
+      html += `<p class="resultado-chamada-aposta">Aposte Agora!</p>`;
       const hoje = hojeISO();
       if (item.data === hoje) {
         const restante = segundosAteSorteio(item.data, item.loteria);
@@ -3304,6 +3306,7 @@ function mostrar() {
           html += `<p class="cronometro-resultado ${classeCronometro}" data-data-resultado="${item.data}" data-loteria-resultado="${item.loteria}">${textoCronometroResultadoPara(item.data, item.loteria)}</p>`;
         }
       }
+      html += `</div>`;
     } else {
       item.resultados.forEach((r, i) => {
         const animal = r.animal || pegarAnimal(r.grupo);
