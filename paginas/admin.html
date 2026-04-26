@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/style.css?v=20260425-10">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/admin.css?v=20260425-8">
+  <link rel="stylesheet" href="../css/admin.css?v=20260425-9">
 </head>
 <body>
   <header class="topo-pagina">
@@ -73,27 +73,51 @@
 
       <div class="linha-multiplicador">
         <label for="multGrupo">Grupo</label>
-        <input id="multGrupo" type="number" min="0" step="0.01" placeholder="Ex: 18">
+        <input id="multGrupo" type="text" inputmode="decimal" placeholder="Ex: 18">
       </div>
       <div class="linha-multiplicador">
-        <label for="multDuplaGrupo">Dupla de Grupo</label>
-        <input id="multDuplaGrupo" type="number" min="0" step="0.01" placeholder="Ex: 90">
+        <label for="multDuplaGrupo">Dupla de Grupo Seco</label>
+        <input id="multDuplaGrupo" type="text" inputmode="decimal" placeholder="Ex: 90">
       </div>
       <div class="linha-multiplicador">
-        <label for="multTernoGrupo">Terno de Grupo</label>
-        <input id="multTernoGrupo" type="number" min="0" step="0.01" placeholder="Ex: 320">
+        <label for="multTernoGrupo">Terno de Grupo Seco</label>
+        <input id="multTernoGrupo" type="text" inputmode="decimal" placeholder="Ex: 320">
+      </div>
+      <div class="linha-multiplicador">
+        <label for="multDuplaGrupo1a5">Dupla de Grupo 1º ao 5º</label>
+        <input id="multDuplaGrupo1a5" type="text" inputmode="decimal" placeholder="Ex: 45">
+      </div>
+      <div class="linha-multiplicador">
+        <label for="multTernoGrupo1a5">Terno de Grupo 1º ao 5º</label>
+        <input id="multTernoGrupo1a5" type="text" inputmode="decimal" placeholder="Ex: 140">
+      </div>
+      <div class="linha-multiplicador">
+        <label for="multPasseSeco">Passe-Seco</label>
+        <input id="multPasseSeco" type="text" inputmode="decimal" placeholder="Ex: 120">
+      </div>
+      <div class="linha-multiplicador">
+        <label for="multPasseVaiVem">Passe Vai e Vem</label>
+        <input id="multPasseVaiVem" type="text" inputmode="decimal" placeholder="Ex: 70">
+      </div>
+      <div class="linha-multiplicador">
+        <label for="multDuqueDezena">Duque de Dezena</label>
+        <input id="multDuqueDezena" type="text" inputmode="decimal" placeholder="Ex: 180">
+      </div>
+      <div class="linha-multiplicador">
+        <label for="multTernoDezena">Terno de Dezena</label>
+        <input id="multTernoDezena" type="text" inputmode="decimal" placeholder="Ex: 700">
       </div>
       <div class="linha-multiplicador">
         <label for="multMilhar">Milhar</label>
-        <input id="multMilhar" type="number" min="0" step="0.01" placeholder="Ex: 4000">
+        <input id="multMilhar" type="text" inputmode="decimal" placeholder="Ex: 4000">
       </div>
       <div class="linha-multiplicador">
         <label for="multCentena">Centena</label>
-        <input id="multCentena" type="number" min="0" step="0.01" placeholder="Ex: 600">
+        <input id="multCentena" type="text" inputmode="decimal" placeholder="Ex: 600">
       </div>
       <div class="linha-multiplicador">
         <label for="multDezena">Dezena</label>
-        <input id="multDezena" type="number" min="0" step="0.01" placeholder="Ex: 60">
+        <input id="multDezena" type="text" inputmode="decimal" placeholder="Ex: 60">
       </div>
 
       <button onclick="salvarMultiplicadores()">Salvar Multiplicadores</button>
@@ -130,6 +154,6 @@
     Porco do Bicho • Painel Admin • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/app.js?v=20260425-9"></script>
+  <script src="../js/app.js?v=20260425-11"></script>
 </body>
 </html>

@@ -40,7 +40,7 @@
 }
 
 #painelAdmin input[id^="mult"] {
-  width: min(100%, 220px);
+  width: 112px;
   margin-left: auto;
   margin-right: auto;
   text-align: center;
@@ -55,11 +55,11 @@
 
 #painelAdmin .linha-multiplicador {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 140px;
+  grid-template-columns: minmax(0, 1fr) 112px;
   align-items: center;
-  gap: 5px;
-  margin: 3px 0;
-  width: min(100%, 460px);
+  gap: 4px;
+  margin: 2px 0;
+  width: min(100%, 360px);
   margin-left: auto;
   margin-right: auto;
 }
@@ -81,7 +81,7 @@
   }
 
   #painelAdmin input[id^="mult"] {
-    width: min(100%, 200px);
+    width: min(100%, 180px);
   }
 
   #painelAdmin input[id^="limite"] {
@@ -91,7 +91,7 @@
   #painelAdmin .linha-multiplicador {
     grid-template-columns: 1fr;
     gap: 2px;
-    width: min(100%, 240px);
+    width: min(100%, 200px);
   }
 
   #painelAdmin .linha-multiplicador label {

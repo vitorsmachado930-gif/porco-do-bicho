@@ -22,8 +22,14 @@ const PAGINA_ADMIN_SEPARADA = (() => {
 
 const TIPOS_APOSTA = {
   grupo: "Grupo",
-  dupla_grupo: "Dupla de Grupo",
-  terno_grupo: "Terno de Grupo",
+  dupla_grupo: "Dupla de Grupo Seco",
+  terno_grupo: "Terno de Grupo Seco",
+  duque_dezena: "Duque de Dezena",
+  terno_dezena: "Terno de Dezena",
+  passe_seco: "Passe-Seco",
+  passe_vai_vem: "Passe Vai e Vem",
+  dupla_grupo_1a5: "Dupla de Grupo 1º ao 5º",
+  terno_grupo_1a5: "Terno de Grupo 1º ao 5º",
   milhar: "Milhar",
   centena: "Centena",
   dezena: "Dezena"
@@ -33,6 +39,12 @@ const PREMIO_FICTICIO_MULTIPLICADOR = {
   grupo: 18,
   dupla_grupo: 90,
   terno_grupo: 320,
+  duque_dezena: 180,
+  terno_dezena: 700,
+  passe_seco: 120,
+  passe_vai_vem: 70,
+  dupla_grupo_1a5: 45,
+  terno_grupo_1a5: 140,
   milhar: 4000,
   centena: 600,
   dezena: 60
@@ -59,8 +71,14 @@ const USUARIO_TESTE_FIXO = Object.freeze({
 
 const CAMPOS_MULTIPLICADOR = [
   { tipo: "grupo", id: "multGrupo", label: "Grupo" },
-  { tipo: "dupla_grupo", id: "multDuplaGrupo", label: "Dupla de Grupo" },
-  { tipo: "terno_grupo", id: "multTernoGrupo", label: "Terno de Grupo" },
+  { tipo: "dupla_grupo", id: "multDuplaGrupo", label: "Dupla de Grupo Seco" },
+  { tipo: "terno_grupo", id: "multTernoGrupo", label: "Terno de Grupo Seco" },
+  { tipo: "duque_dezena", id: "multDuqueDezena", label: "Duque de Dezena" },
+  { tipo: "terno_dezena", id: "multTernoDezena", label: "Terno de Dezena" },
+  { tipo: "passe_seco", id: "multPasseSeco", label: "Passe-Seco" },
+  { tipo: "passe_vai_vem", id: "multPasseVaiVem", label: "Passe Vai e Vem" },
+  { tipo: "dupla_grupo_1a5", id: "multDuplaGrupo1a5", label: "Dupla de Grupo 1º ao 5º" },
+  { tipo: "terno_grupo_1a5", id: "multTernoGrupo1a5", label: "Terno de Grupo 1º ao 5º" },
   { tipo: "milhar", id: "multMilhar", label: "Milhar" },
   { tipo: "centena", id: "multCentena", label: "Centena" },
   { tipo: "dezena", id: "multDezena", label: "Dezena" }
@@ -344,6 +362,14 @@ function parseNumeroPositivo(valor) {
   return Number(n.toFixed(2));
 }
 
+function parseNumeroNaoNegativo(valor) {
+  const txt = String(valor ?? "").trim().replace(",", ".");
+  if (!txt) return null;
+  const n = Number(txt);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Number(n.toFixed(2));
+}
+
 function formatarNumeroBR(valor) {
   const n = Number(valor || 0);
   return n.toLocaleString("pt-BR", {
@@ -569,8 +595,8 @@ function normalizarConfigMultiplicadores(raw) {
   const novo = {};
 
   Object.keys(PREMIO_FICTICIO_MULTIPLICADOR).forEach((tipo) => {
-    const n = parseNumeroPositivo(origem[tipo]);
-    novo[tipo] = n || PREMIO_FICTICIO_MULTIPLICADOR[tipo];
+    const n = parseNumeroNaoNegativo(origem[tipo]);
+    novo[tipo] = n === null ? PREMIO_FICTICIO_MULTIPLICADOR[tipo] : n;
   });
 
   return novo;
@@ -614,8 +640,8 @@ function lerMultiplicadoresDoFormulario() {
   for (let i = 0; i < CAMPOS_MULTIPLICADOR.length; i++) {
     const campo = CAMPOS_MULTIPLICADOR[i];
     const input = document.getElementById(campo.id);
-    const valor = parseNumeroPositivo(input ? input.value : "");
-    if (!valor) {
+    const valor = parseNumeroNaoNegativo(input ? input.value : "");
+    if (valor === null) {
       return {
         ok: false,
         mensagem: `Informe um multiplicador válido para ${campo.label}.`
@@ -669,7 +695,11 @@ function restaurarMultiplicadoresPadrao() {
 
 function multiplicadorTipoAposta(tipo) {
   const t = normalizarTipoAposta(tipo);
-  return multiplicadoresAposta[t] || PREMIO_FICTICIO_MULTIPLICADOR[t] || 0;
+  const valorAtual = Number(multiplicadoresAposta[t]);
+  if (Number.isFinite(valorAtual) && valorAtual >= 0) return valorAtual;
+  const valorPadrao = Number(PREMIO_FICTICIO_MULTIPLICADOR[t]);
+  if (Number.isFinite(valorPadrao) && valorPadrao >= 0) return valorPadrao;
+  return 0;
 }
 
 function calcularPremiacaoFicticia(tipo, valor) {
@@ -913,10 +943,24 @@ function formatarPalpiteParaBilhete(item) {
   const tipo = normalizarTipoAposta(item.tipo);
   const palpite = String(item.palpite || "").trim();
 
-  if (tipo === "grupo" || tipo === "dupla_grupo" || tipo === "terno_grupo") {
+  if (
+    tipo === "grupo" ||
+    tipo === "dupla_grupo" ||
+    tipo === "terno_grupo" ||
+    tipo === "passe_seco" ||
+    tipo === "passe_vai_vem" ||
+    tipo === "dupla_grupo_1a5" ||
+    tipo === "terno_grupo_1a5"
+  ) {
     const grupos = extrairGruposDoPalpite(palpite);
     if (grupos.length === 0) return palpite;
     return grupos.map((g) => descricaoGrupoPorCodigo(g)).join(" - ");
+  }
+
+  if (tipo === "duque_dezena" || tipo === "terno_dezena") {
+    const dezenas = extrairGruposDoPalpite(palpite);
+    if (dezenas.length === 0) return palpite;
+    return dezenas.map((d) => String(d).padStart(2, "0")).join(" - ");
   }
 
   return palpite;
@@ -947,22 +991,51 @@ function resultadoDaAposta(aposta) {
   const numerosResultado = resultado.resultados
     .map((r) => extrairDigitos(r.numero).padStart(4, "0").slice(-4));
 
+  const tipo = normalizarTipoAposta(aposta.tipo);
   let ganhou = false;
   const palpite = String(aposta.palpite || "").trim();
+  const dezenasResultado = numerosResultado.map((n) => n.slice(-2));
+  const gruposPrimeiros2 = gruposResultado.slice(0, 2);
 
-  if (aposta.tipo === "grupo") {
+  if (tipo === "grupo") {
     ganhou = gruposResultado.includes(palpite);
-  } else if (aposta.tipo === "dupla_grupo") {
+  } else if (tipo === "dupla_grupo") {
     const alvo = extrairGruposDoPalpite(palpite);
     ganhou = alvo.length === 2 && alvo.every((g) => gruposResultado.includes(g));
-  } else if (aposta.tipo === "terno_grupo") {
+  } else if (tipo === "terno_grupo") {
     const alvo = extrairGruposDoPalpite(palpite);
     ganhou = alvo.length === 3 && alvo.every((g) => gruposResultado.includes(g));
-  } else if (aposta.tipo === "milhar") {
+  } else if (tipo === "duque_dezena") {
+    const alvo = extrairGruposDoPalpite(palpite);
+    ganhou = alvo.length === 2 && alvo.every((d) => dezenasResultado.includes(d));
+  } else if (tipo === "terno_dezena") {
+    const alvo = extrairGruposDoPalpite(palpite);
+    ganhou = alvo.length === 3 && alvo.every((d) => dezenasResultado.includes(d));
+  } else if (tipo === "passe_seco") {
+    const alvo = extrairGruposDoPalpite(palpite);
+    ganhou =
+      alvo.length === 2 &&
+      gruposPrimeiros2.length === 2 &&
+      alvo[0] === gruposPrimeiros2[0] &&
+      alvo[1] === gruposPrimeiros2[1];
+  } else if (tipo === "passe_vai_vem") {
+    const alvo = extrairGruposDoPalpite(palpite);
+    ganhou =
+      alvo.length === 2 &&
+      gruposPrimeiros2.length === 2 &&
+      ((alvo[0] === gruposPrimeiros2[0] && alvo[1] === gruposPrimeiros2[1]) ||
+        (alvo[0] === gruposPrimeiros2[1] && alvo[1] === gruposPrimeiros2[0]));
+  } else if (tipo === "dupla_grupo_1a5") {
+    const alvo = extrairGruposDoPalpite(palpite);
+    ganhou = alvo.length === 2 && alvo.every((g) => gruposResultado.includes(g));
+  } else if (tipo === "terno_grupo_1a5") {
+    const alvo = extrairGruposDoPalpite(palpite);
+    ganhou = alvo.length === 3 && alvo.every((g) => gruposResultado.includes(g));
+  } else if (tipo === "milhar") {
     ganhou = numerosResultado.includes(palpite);
-  } else if (aposta.tipo === "centena") {
+  } else if (tipo === "centena") {
     ganhou = numerosResultado.some((n) => n.slice(-3) === palpite);
-  } else if (aposta.tipo === "dezena") {
+  } else if (tipo === "dezena") {
     ganhou = numerosResultado.some((n) => n.slice(-2) === palpite);
   }
 
@@ -1000,6 +1073,33 @@ function parseGruposPalpite(valor, quantidade) {
   };
 }
 
+function parseDezenasPalpite(valor, quantidade) {
+  const bruto = String(valor || "").trim();
+  const apenasDigitos = extrairDigitos(bruto);
+  const temSeparador = /\D/.test(bruto);
+
+  if (!temSeparador && apenasDigitos.length !== quantidade * 2) {
+    return { ok: false, mensagem: `Informe ${quantidade} dezenas com 2 dígitos cada.` };
+  }
+
+  const encontrados = (bruto.match(/\d{1,2}/g) || [])
+    .map((n) => Number(n))
+    .filter((n) => Number.isInteger(n));
+
+  if (encontrados.length !== quantidade) {
+    return { ok: false, mensagem: `Informe ${quantidade} dezenas.` };
+  }
+
+  if (encontrados.some((d) => d < 0 || d > 99)) {
+    return { ok: false, mensagem: "Dezena deve ser de 00 a 99." };
+  }
+
+  return {
+    ok: true,
+    valor: encontrados.map((d) => String(d).padStart(2, "0")).join("-")
+  };
+}
+
 function validarPalpiteAposta(tipo, palpite) {
   const palpiteTxt = String(palpite || "").trim();
   const digitos = extrairDigitos(palpiteTxt);
@@ -1013,6 +1113,22 @@ function validarPalpiteAposta(tipo, palpite) {
   }
 
   if (tipo === "terno_grupo") {
+    return parseGruposPalpite(palpiteTxt, 3);
+  }
+
+  if (tipo === "duque_dezena") {
+    return parseDezenasPalpite(palpiteTxt, 2);
+  }
+
+  if (tipo === "terno_dezena") {
+    return parseDezenasPalpite(palpiteTxt, 3);
+  }
+
+  if (tipo === "passe_seco" || tipo === "passe_vai_vem" || tipo === "dupla_grupo_1a5") {
+    return parseGruposPalpite(palpiteTxt, 2);
+  }
+
+  if (tipo === "terno_grupo_1a5") {
     return parseGruposPalpite(palpiteTxt, 3);
   }
 
@@ -2204,10 +2320,16 @@ function quantidadeGruposPorTipoAposta(tipo) {
   if (tipo === "grupo") return 1;
   if (tipo === "dupla_grupo") return 2;
   if (tipo === "terno_grupo") return 3;
+  if (tipo === "passe_seco") return 2;
+  if (tipo === "passe_vai_vem") return 2;
+  if (tipo === "dupla_grupo_1a5") return 2;
+  if (tipo === "terno_grupo_1a5") return 3;
   return 0;
 }
 
 function limiteDigitosPalpitePorTipo(tipo) {
+  if (tipo === "duque_dezena") return 4;
+  if (tipo === "terno_dezena") return 6;
   if (tipo === "milhar") return 4;
   if (tipo === "centena") return 3;
   if (tipo === "dezena") return 2;
@@ -2215,6 +2337,8 @@ function limiteDigitosPalpitePorTipo(tipo) {
 }
 
 function placeholderPalpitePorTipo(tipo) {
+  if (tipo === "duque_dezena") return "Duque de Dezena (ex: 12-34)";
+  if (tipo === "terno_dezena") return "Terno de Dezena (ex: 12-34-56)";
   if (tipo === "milhar") return "Milhar (4 digitos)";
   if (tipo === "centena") return "Centena (3 digitos)";
   if (tipo === "dezena") return "Dezena (2 digitos)";
@@ -2570,7 +2694,18 @@ function normalizarPalpiteNumericoDigitado() {
   if (quantidadeGruposPorTipoAposta(tipo) > 0) return;
 
   const limite = limiteDigitosPalpitePorTipo(tipo);
-  palpiteInput.value = extrairDigitos(palpiteInput.value).slice(0, limite);
+  const digitos = extrairDigitos(palpiteInput.value).slice(0, limite);
+
+  if (tipo === "duque_dezena" || tipo === "terno_dezena") {
+    const partes = [];
+    for (let i = 0; i < digitos.length; i += 2) {
+      partes.push(digitos.slice(i, i + 2));
+    }
+    palpiteInput.value = partes.join("-");
+    return;
+  }
+
+  palpiteInput.value = digitos;
 }
 
 function atualizarModoCampoPalpiteAposta() {
