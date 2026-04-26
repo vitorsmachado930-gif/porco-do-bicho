@@ -1248,16 +1248,21 @@ function diaSemanaDaDataISO(dataISO) {
 }
 
 function normalizarNomeLoteriaPorData(praca, loteria, dataISO) {
-  const nome = String(loteria || "").trim();
+  let nome = String(loteria || "").trim();
   if (!nome) return "";
   if (praca !== "Rio") return nome;
 
   if (nome === "COR 21:20") {
-    return "COR 21:30";
+    nome = "COR 21:30";
   }
 
   const diaSemana = diaSemanaDaDataISO(dataISO);
+  const isDomingo = diaSemana === 0;
   const isQuartaOuSabado = diaSemana === 3 || diaSemana === 6;
+
+  if (isDomingo && (nome === "PTN 18:20" || nome === "COR 21:30")) {
+    return "";
+  }
 
   if (isQuartaOuSabado && nome === "PTN 18:20") {
     return "FEDERAL 20:00";
@@ -1274,11 +1279,15 @@ function loteriasDaPraca(praca, dataISO) {
 
   const dataBase = normalizarDataISO(dataISO) || dataSelecionada || hojeISO();
   const diaSemana = diaSemanaDaDataISO(dataBase);
+  const isDomingo = diaSemana === 0;
   const isQuartaOuSabado = diaSemana === 3 || diaSemana === 6;
+  const listaBase = isDomingo
+    ? listaPraca.filter((loteria) => loteria !== "PTN 18:20" && loteria !== "COR 21:30")
+    : listaPraca.slice();
 
-  if (!isQuartaOuSabado) return listaPraca.slice();
+  if (!isQuartaOuSabado) return listaBase;
 
-  return listaPraca.map((loteria) => normalizarNomeLoteriaPorData(praca, loteria, dataBase));
+  return listaBase.map((loteria) => normalizarNomeLoteriaPorData(praca, loteria, dataBase));
 }
 
 function ordemPraca(praca) {

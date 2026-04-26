@@ -1083,21 +1083,16 @@ body.admin-logado .acao-admin {
   margin-right: auto;
 }
 
-.linha-data-aposta {
+.topo-card-apostas {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   margin: 6px 0 8px 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #00c85355;
-  background: #0f1a24;
 }
 
-.rotulo-data-aposta {
-  font-size: 13px;
-  color: #9fb3c8;
+.topo-card-apostas h3 {
+  margin: 0;
 }
 
 .linha-praca-fixa {
@@ -1126,10 +1121,16 @@ body.admin-logado .acao-admin {
 }
 
 #dataApostaAtual {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 92px;
+  padding: 4px 10px;
   text-align: center;
-  font-size: 15px;
+  font-size: 14px;
+  border-radius: 999px;
+  border: 1px solid #00c85355;
+  background: #0f1a24;
   letter-spacing: 0.4px;
   color: #00e676;
 }
@@ -1611,7 +1612,7 @@ body.admin-logado .acao-admin {
     font-size: 11px;
   }
 
-  .linha-data-aposta {
+  .topo-card-apostas {
     max-width: 520px;
     margin: 6px auto 8px auto;
   }
