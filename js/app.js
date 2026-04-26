@@ -132,6 +132,7 @@ let sincronizacaoPainelTimer = null;
 let pushPainelRemotoTimer = null;
 let apostasBilheteRascunho = [];
 let contextoBilheteRascunho = null;
+let loteriasApostaSelecionadas = [];
 
 function hojeISO() {
   return dataLocalParaISO(new Date());
@@ -2084,7 +2085,6 @@ function atualizarEstadoSecaoApostas(encerrada, opcoes) {
   }
 
   const idsControles = [
-    "valorDepositoUsuario",
     "tipoAposta",
     "palpiteAposta",
     "valorAposta",
@@ -2103,7 +2103,7 @@ function atualizarEstadoSecaoApostas(encerrada, opcoes) {
   });
 
   const botoes = document.querySelectorAll(
-    "#cardApostas .linha-deposito-aposta button, " +
+    "#cardApostas .loteria-aposta-opcao, " +
     "#cardApostas .palpite-grupo-slots button, " +
     "#cardApostas .acoes-bilhete-aposta button, " +
     "#cardApostas > button[onclick=\"salvarAposta()\"]"
@@ -2136,6 +2136,89 @@ function hashDisponibilidadeLoteriasAposta(praca, dataISO) {
   return `${praca}|${normalizarDataISO(dataISO)}|${disponiveis.join("|")}`;
 }
 
+function sincronizarSelectLoteriaApostaOculto() {
+  const select = document.getElementById("loteriaAposta");
+  if (!select) return;
+  const principal = String(loteriasApostaSelecionadas[0] || "").trim();
+  const existe = Array.from(select.options).some((opt) => opt.value === principal);
+  select.value = existe ? principal : "";
+}
+
+function atualizarResumoLoteriasAposta(listaDisponivel, encerrada) {
+  const resumo = document.getElementById("loteriasApostaResumo");
+  if (!resumo) return;
+
+  if (encerrada) {
+    resumo.innerText = "Apostas encerradas para hoje.";
+    return;
+  }
+
+  if (!Array.isArray(listaDisponivel) || listaDisponivel.length === 0) {
+    resumo.innerText = "Sem horários disponíveis.";
+    return;
+  }
+
+  if (loteriasApostaSelecionadas.length === 0) {
+    resumo.innerText = "Selecione uma ou mais loterias.";
+    return;
+  }
+
+  const listaTxt = loteriasApostaSelecionadas.join(" | ");
+  const qtd = loteriasApostaSelecionadas.length;
+  resumo.innerText = `${qtd} loteria(s) selecionada(s): ${listaTxt}`;
+}
+
+function alternarLoteriaApostaSelecionada(loteria, listaDisponivel, encerrada) {
+  if (encerrada) return;
+  if (!Array.isArray(listaDisponivel) || !listaDisponivel.includes(loteria)) return;
+
+  const atual = loteriasApostaSelecionadas.slice();
+  const idx = atual.indexOf(loteria);
+  if (idx === -1) {
+    atual.push(loteria);
+  } else {
+    atual.splice(idx, 1);
+  }
+
+  loteriasApostaSelecionadas = atual;
+  renderizarLoteriasApostaSelecionaveis(listaDisponivel, encerrada);
+  sincronizarSelectLoteriaApostaOculto();
+  atualizarCronometroApostaFormulario();
+}
+
+function renderizarLoteriasApostaSelecionaveis(listaDisponivel, encerrada) {
+  const container = document.getElementById("loteriasApostaLista");
+  if (!container) return;
+
+  container.innerHTML = "";
+  const lista = Array.isArray(listaDisponivel) ? listaDisponivel : [];
+
+  if (lista.length === 0) {
+    const vazio = document.createElement("div");
+    vazio.className = "loteria-aposta-vazia";
+    vazio.innerText = encerrada ? "Apostas encerradas" : "Sem horários disponíveis";
+    container.appendChild(vazio);
+    atualizarResumoLoteriasAposta(lista, encerrada);
+    return;
+  }
+
+  lista.forEach((loteria) => {
+    const selecionada = loteriasApostaSelecionadas.includes(loteria);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "loteria-aposta-opcao";
+    if (selecionada) btn.classList.add("ativa");
+    btn.disabled = Boolean(encerrada);
+    btn.textContent = loteria;
+    btn.addEventListener("click", () => {
+      alternarLoteriaApostaSelecionada(loteria, lista, encerrada);
+    });
+    container.appendChild(btn);
+  });
+
+  atualizarResumoLoteriasAposta(lista, encerrada);
+}
+
 function atualizarDisponibilidadeLoteriasAposta(force) {
   const selectPraca = document.getElementById("pracaAposta");
   const dataInput = document.getElementById("dataAposta");
@@ -2153,8 +2236,6 @@ function popularLoteriasAposta() {
   const selectPraca = document.getElementById("pracaAposta");
   const selectLoteria = document.getElementById("loteriaAposta");
   if (!selectPraca || !selectLoteria) return;
-
-  const atual = selectLoteria.value;
   const praca = selectPraca.value;
   const dataAposta = normalizarDataISO(document.getElementById("dataAposta")?.value || "");
   const listaDisponivel = loteriasDisponiveisParaAposta(praca, dataAposta);
@@ -2179,10 +2260,11 @@ function popularLoteriasAposta() {
     selectLoteria.appendChild(opt);
   });
 
-  if (atual) {
-    const existe = Array.from(selectLoteria.options).some((opt) => opt.value === atual);
-    selectLoteria.value = existe ? atual : "";
-  }
+  loteriasApostaSelecionadas = loteriasApostaSelecionadas.filter((loteria) =>
+    listaDisponivel.includes(loteria)
+  );
+  sincronizarSelectLoteriaApostaOculto();
+  renderizarLoteriasApostaSelecionaveis(listaDisponivel, encerrada);
 
   atualizarEstadoSecaoApostas(encerrada, {
     loteriaDesabilitada: listaDisponivel.length === 0
@@ -3073,7 +3155,7 @@ function atualizarCronometroApostaFormulario() {
 
   const data = normalizarDataISO(dataInput.value);
   const praca = String(pracaInput.value || "").trim();
-  const loteria = String(loteriaInput.value || "").trim();
+  const loteria = String(loteriaInput.value || loteriasApostaSelecionadas[0] || "").trim();
 
   if (data && praca && apostasEncerradasNoDia(praca, data)) {
     el.innerText = "Apostas encerradas para hoje.";
@@ -3083,7 +3165,7 @@ function atualizarCronometroApostaFormulario() {
   }
 
   if (!data || !loteria) {
-    el.innerText = "Selecione a loteria para ver o cronômetro.";
+    el.innerText = "Selecione pelo menos 1 loteria para ver o cronômetro.";
     el.classList.remove("cronometro-aberto", "cronometro-encerrado");
     return;
   }
@@ -3874,20 +3956,19 @@ function salvar() {
 function contextoAtualFormularioAposta() {
   const data = hojeISO();
   const praca = String(document.getElementById("pracaAposta").value || "").trim();
-  const loteria = normalizarNomeLoteriaPorData(
-    praca,
-    document.getElementById("loteriaAposta").value,
-    data
-  );
-  return { data, praca, loteria };
+  const loterias = obterLoteriasApostaSelecionadas();
+  return { data, praca, loterias };
+}
+
+function obterLoteriasApostaSelecionadas() {
+  return loteriasApostaSelecionadas.slice();
 }
 
 function contextoIgualBilheteRascunho(contexto) {
   if (!contextoBilheteRascunho) return false;
   return (
     String(contextoBilheteRascunho.data || "") === String(contexto.data || "") &&
-    String(contextoBilheteRascunho.praca || "") === String(contexto.praca || "") &&
-    String(contextoBilheteRascunho.loteria || "") === String(contexto.loteria || "")
+    String(contextoBilheteRascunho.praca || "") === String(contexto.praca || "")
   );
 }
 
@@ -3908,8 +3989,8 @@ function lerLinhaApostaDoFormulario() {
   if (!contexto.praca || !PRACAS_ORDENADAS.includes(contexto.praca)) {
     return { ok: false, mensagem: "Selecione a praça da aposta." };
   }
-  if (!contexto.loteria) {
-    return { ok: false, mensagem: "Selecione a loteria da aposta." };
+  if (!Array.isArray(contexto.loterias) || contexto.loterias.length === 0) {
+    return { ok: false, mensagem: "Selecione pelo menos 1 loteria para apostar." };
   }
   if (!tipo) {
     return { ok: false, mensagem: "Selecione o tipo de aposta." };
@@ -3928,11 +4009,14 @@ function lerLinhaApostaDoFormulario() {
     };
   }
 
-  const restante = segundosAteFechamento(contexto.data, contexto.loteria);
-  if (restante !== null && restante <= 0) {
+  const loteriasEncerradas = contexto.loterias.filter((loteria) => {
+    const restante = segundosAteFechamento(contexto.data, loteria);
+    return restante !== null && restante <= 0;
+  });
+  if (loteriasEncerradas.length > 0) {
     return {
       ok: false,
-      mensagem: "Esta loteria já encerrou para apostas nesta data."
+      mensagem: "Uma ou mais loterias selecionadas já encerraram para apostas."
     };
   }
 
@@ -3943,13 +4027,17 @@ function lerLinhaApostaDoFormulario() {
 
   return {
     ok: true,
-    contexto,
-    linha: {
+    contexto: {
+      data: contexto.data,
+      praca: contexto.praca
+    },
+    linhas: contexto.loterias.map((loteria) => ({
+      loteria,
       tipo,
       palpite: validacao.valor,
       valor,
       premio: calcularPremiacaoFicticia(tipo, valor)
-    }
+    }))
   };
 }
 
@@ -3970,9 +4058,12 @@ function renderizarBilheteRascunhoAposta() {
   const totalApostas = apostasBilheteRascunho.length;
   const valorTotal = apostasBilheteRascunho.reduce((acc, item) => acc + Number(item.valor || 0), 0);
   const potencialTotal = apostasBilheteRascunho.reduce((acc, item) => acc + Number(item.premio || 0), 0);
-  const loteria = String(contextoBilheteRascunho.loteria || "--");
+  const loterias = Array.from(
+    new Set(apostasBilheteRascunho.map((item) => String(item.loteria || "").trim()).filter(Boolean))
+  );
+  const loteriasTxt = loterias.length > 0 ? loterias.join(" | ") : "--";
   resumo.innerText =
-    `Bilhete ${loteria}: ${totalApostas} aposta(s) | ` +
+    `Bilhete ${loteriasTxt}: ${totalApostas} aposta(s) | ` +
     `Total: ${formatarMoedaBR(valorTotal)} | Potencial: ${formatarMoedaBR(potencialTotal)}`;
 
   lista.innerHTML = apostasBilheteRascunho
@@ -3985,6 +4076,7 @@ function renderizarBilheteRascunhoAposta() {
         `<strong>${tipo}</strong>` +
         `<button type="button" class="btn-danger btn-remover-rascunho" onclick="removerApostaBilheteRascunho(${index})">Remover</button>` +
         `</div>` +
+        `<div>Loteria: <b>${item.loteria}</b></div>` +
         `<div>Palpite: <b>${palpite}</b></div>` +
         `<div>Valor: ${formatarMoedaBR(item.valor)} | Potencial: ${formatarMoedaBR(item.premio)}</div>` +
         `</div>`
@@ -4036,7 +4128,7 @@ function adicionarApostaAoBilhete() {
 
   if (apostasBilheteRascunho.length > 0 && !contextoIgualBilheteRascunho(leitura.contexto)) {
     mostrarConfirmacaoApostaRapida(
-      "Finalize ou limpe o bilhete atual antes de trocar de loteria.",
+      "Finalize ou limpe o bilhete atual antes de trocar o contexto da aposta.",
       "erro"
     );
     return;
@@ -4046,12 +4138,14 @@ function adicionarApostaAoBilhete() {
     contextoBilheteRascunho = leitura.contexto;
   }
 
-  apostasBilheteRascunho.push(leitura.linha);
+  apostasBilheteRascunho.push(...leitura.linhas);
   renderizarBilheteRascunhoAposta();
   limparCamposAposta({
     manterLoteria: true
   });
-  mostrarConfirmacaoApostaRapida("Aposta adicionada ao bilhete.");
+  mostrarConfirmacaoApostaRapida(
+    `${leitura.linhas.length} aposta(s) adicionada(s) ao bilhete.`
+  );
 }
 
 function salvarAposta() {
@@ -4076,7 +4170,7 @@ function salvarAposta() {
       mostrarConfirmacaoApostaRapida(leitura.mensagem, "erro");
       return;
     }
-    linhasParaSalvar.push(leitura.linha);
+    linhasParaSalvar.push(...leitura.linhas);
     contexto = leitura.contexto;
   } else if (formularioApostaTemConteudoDigitado()) {
     const leituraAtual = lerLinhaApostaDoFormulario();
@@ -4089,15 +4183,15 @@ function salvarAposta() {
     }
     if (!contextoIgualBilheteRascunho(leituraAtual.contexto)) {
       mostrarConfirmacaoApostaRapida(
-        "A aposta preenchida é de outra loteria. Ajuste para a mesma loteria do bilhete.",
+        "A aposta preenchida está em outro contexto. Ajuste para o mesmo contexto do bilhete.",
         "erro"
       );
       return;
     }
-    linhasParaSalvar.push(leituraAtual.linha);
+    linhasParaSalvar.push(...leituraAtual.linhas);
   }
 
-  if (!contexto || !contexto.praca || !contexto.loteria || !contexto.data) {
+  if (!contexto || !contexto.praca || !contexto.data) {
     mostrarConfirmacaoApostaRapida("Não foi possível definir os dados do bilhete.", "erro");
     return;
   }
@@ -4117,27 +4211,21 @@ function salvarAposta() {
     return;
   }
 
-  const bilheteId = gerarBilheteIdAposta(
-    contexto.data,
-    contexto.praca,
-    contexto.loteria,
-    usuarioSincronizado.id,
-    usuarioSincronizado.login
-  );
-  const apostasNoBilheteAntes = apostas.filter(
-    (aposta) =>
-      String(aposta.bilheteId || "") === bilheteId &&
-      aposta.usuarioId === usuarioSincronizado.id
-  ).length;
-
   const agoraBase = Date.now();
   const itensNovos = linhasParaSalvar.map((linha, index) => {
     const ts = agoraBase + index;
+    const bilheteId = gerarBilheteIdAposta(
+      contexto.data,
+      contexto.praca,
+      linha.loteria,
+      usuarioSincronizado.id,
+      usuarioSincronizado.login
+    );
     return {
       id: ts,
       data: contexto.data,
       praca: contexto.praca,
-      loteria: contexto.loteria,
+      loteria: linha.loteria,
       bilheteId,
       tipo: linha.tipo,
       palpite: linha.palpite,
@@ -4176,9 +4264,13 @@ function salvarAposta() {
   });
   limparCamposAposta();
 
-  const totalBilhete = apostasNoBilheteAntes + linhasParaSalvar.length;
+  const loteriasBilhete = Array.from(
+    new Set(linhasParaSalvar.map((linha) => String(linha.loteria || "").trim()).filter(Boolean))
+  );
+  const totalLoteriasBilhete = loteriasBilhete.length;
   mostrarConfirmacaoApostaRapida(
-    `Bilhete ${contexto.loteria} salvo com ${linhasParaSalvar.length} aposta(s). Total no bilhete: ${totalBilhete}.`
+    `Bilhete salvo com ${linhasParaSalvar.length} aposta(s) em ${totalLoteriasBilhete} loteria(s). ` +
+      `Total debitado: ${formatarMoedaBR(valorTotalBilhete)}.`
   );
 }
 
@@ -4189,6 +4281,8 @@ function limparCamposAposta(opcoes) {
   const palpite = document.getElementById("palpiteAposta");
   const valor = document.getElementById("valorAposta");
   const loteriaAposta = document.getElementById("loteriaAposta");
+  const pracaAposta = document.getElementById("pracaAposta");
+  const dataAposta = document.getElementById("dataAposta");
   const palpiteGrupo1 = document.getElementById("palpiteGrupo1");
   const palpiteGrupo2 = document.getElementById("palpiteGrupo2");
   const palpiteGrupo3 = document.getElementById("palpiteGrupo3");
@@ -4196,10 +4290,24 @@ function limparCamposAposta(opcoes) {
   if (tipo) tipo.value = "";
   if (palpite) palpite.value = "";
   if (valor) valor.value = "R$ 0,00";
-  if (!manterLoteria && loteriaAposta) loteriaAposta.value = "";
+  if (!manterLoteria) {
+    loteriasApostaSelecionadas = [];
+  }
+  if (loteriaAposta && !manterLoteria) loteriaAposta.value = "";
   if (palpiteGrupo1) palpiteGrupo1.value = "";
   if (palpiteGrupo2) palpiteGrupo2.value = "";
   if (palpiteGrupo3) palpiteGrupo3.value = "";
+
+  const praca = String(pracaAposta ? pracaAposta.value : "").trim();
+  const data = normalizarDataISO(dataAposta ? dataAposta.value : "");
+  const listaDisponivel = loteriasDisponiveisParaAposta(praca, data);
+  const encerrada = apostasEncerradasNoDia(praca, data);
+  loteriasApostaSelecionadas = loteriasApostaSelecionadas.filter((item) =>
+    listaDisponivel.includes(item)
+  );
+  sincronizarSelectLoteriaApostaOculto();
+  renderizarLoteriasApostaSelecionaveis(listaDisponivel, encerrada);
+
   atualizarModoCampoPalpiteAposta();
   atualizarPreviewPremiacaoAposta();
   atualizarCronometroApostaFormulario();

@@ -777,17 +777,81 @@ button:disabled {
   color: #ffd600;
 }
 
-.linha-deposito-aposta {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 132px;
-  gap: 8px;
-  align-items: center;
-  margin: 0 0 2px;
+.loterias-aposta-bloco {
+  width: min(100%, 360px);
+  margin: 6px auto 4px auto;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #00c85333;
+  background: #0f1a24;
 }
 
-.linha-deposito-aposta button {
+.loterias-aposta-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.rotulo-loterias-aposta {
+  font-size: 13px;
+  color: #9fb3c8;
+  font-weight: 700;
+}
+
+.loterias-aposta-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.loteria-aposta-opcao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  max-width: none;
   margin: 0;
-  width: 100%;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #2a4155;
+  background: #13202d;
+  color: #d6e4f2;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.loteria-aposta-opcao.ativa {
+  border-color: #00e676;
+  background: #00c853;
+  color: #062312;
+}
+
+.loteria-aposta-opcao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loteria-aposta-vazia {
+  font-size: 12px;
+  color: #9fb3c8;
+}
+
+.loterias-aposta-resumo {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #9fb3c8;
+  text-align: center;
+}
+
+#cardApostas #tipoAposta,
+#cardApostas #valorAposta {
+  width: min(100%, 320px);
+  margin: 4px auto;
+  text-align: center;
 }
 
 #cronometroAposta.cronometro-encerrado {
@@ -1622,9 +1686,9 @@ body.admin-logado .acao-admin {
     margin: 6px auto 8px auto;
   }
 
-  .linha-deposito-aposta {
-    max-width: 520px;
-    margin: 0 auto 2px auto;
+  .loterias-aposta-bloco {
+    max-width: 320px;
+    margin: 8px auto 4px auto;
   }
 
   .acoes-bilhete-aposta {
@@ -1755,10 +1819,6 @@ body.admin-logado .acao-admin {
 
   .palpite-grupo-carrossel {
     scroll-padding-inline: 8px;
-  }
-
-  .linha-deposito-aposta {
-    grid-template-columns: 1fr;
   }
 
   #resultados {

@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="img/mascote/icone.png?v=20260425">
 <link rel="apple-touch-icon" href="img/mascote/icone.png?v=20260425">
 
-<link rel="stylesheet" href="css/style.css?v=20260426-1">
+<link rel="stylesheet" href="css/style.css?v=20260426-3">
 </head>
 
 <body>
@@ -118,10 +118,6 @@
     </div>
     <select id="pracaAposta" class="select-praca-oculta" aria-hidden="true" tabindex="-1"></select>
 
-    <select id="loteriaAposta">
-      <option value="">Selecione a loteria</option>
-    </select>
-
     <select id="tipoAposta">
       <option value="">Selecione o tipo de aposta</option>
       <option value="grupo">Grupo</option>
@@ -136,6 +132,19 @@
       <option value="milhar">Milhar</option>
       <option value="centena">Centena</option>
       <option value="dezena">Dezena</option>
+    </select>
+
+    <input id="valorAposta" value="R$ 0,00" placeholder="Valor da aposta" inputmode="numeric">
+
+    <div class="loterias-aposta-bloco">
+      <div class="loterias-aposta-topo">
+        <span class="rotulo-loterias-aposta">Loterias da aposta</span>
+      </div>
+      <div id="loteriasApostaLista" class="loterias-aposta-lista"></div>
+      <p id="loteriasApostaResumo" class="loterias-aposta-resumo"></p>
+    </div>
+    <select id="loteriaAposta" class="select-praca-oculta" aria-hidden="true" tabindex="-1">
+      <option value="">Selecione a loteria</option>
     </select>
 
     <div id="palpiteGrupoContainer" class="palpite-grupo-container" style="display:none;">
@@ -180,7 +189,6 @@
     </div>
 
     <input id="palpiteAposta" placeholder="Palpite numérico (ex: 1234)" inputmode="numeric">
-    <input id="valorAposta" value="R$ 0,00" placeholder="Valor da aposta" inputmode="numeric">
     <div id="blocoPremiacaoAposta" class="bloco-premiacao-aposta">
       <p id="destaquePremiacaoAposta"></p>
     </div>
@@ -270,6 +278,6 @@
   </div>
 </footer>
 
-<script src="js/app.js?v=20260426-2"></script>
+<script src="js/app.js?v=20260426-3"></script>
 </body>
 </html>
