@@ -799,34 +799,21 @@ button:disabled {
 }
 
 .aviso-apostas-encerradas {
-  margin: 8px 0 0;
-  padding: 9px 10px;
-  border-radius: 8px;
+  width: min(100%, 920px);
+  margin: 16px auto 8px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
   border: 1px solid #ff6b6b88;
   background: #2a1318;
   color: #ff9ea9;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 800;
   text-align: center;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.2px;
   text-transform: uppercase;
-}
-
-.card-apostas.card-apostas-encerrada {
-  border: 1px solid #ff6b6b55;
-}
-
-.card-apostas.card-apostas-encerrada #loteriaAposta,
-.card-apostas.card-apostas-encerrada #tipoAposta,
-.card-apostas.card-apostas-encerrada #palpiteGrupoContainer,
-.card-apostas.card-apostas-encerrada #palpiteAposta,
-.card-apostas.card-apostas-encerrada #valorAposta,
-.card-apostas.card-apostas-encerrada .acoes-bilhete-aposta,
-.card-apostas.card-apostas-encerrada #bilheteRascunhoAposta,
-.card-apostas.card-apostas-encerrada #infoLimitesAposta,
-.card-apostas.card-apostas-encerrada #cronometroAposta,
-.card-apostas.card-apostas-encerrada > button[onclick="salvarAposta()"] {
-  display: none !important;
 }
 
 .cronometro-resultado {
@@ -1476,6 +1463,14 @@ body.admin-logado .acao-admin {
   }
 
   .aviso-bingo-breve p {
+    font-size: 15px;
+  }
+
+  .aviso-apostas-encerradas {
+    width: min(100%, 460px);
+    margin-top: 12px;
+    padding: 9px 10px;
+    border-radius: 8px;
     font-size: 15px;
   }
 

@@ -15,6 +15,10 @@ const MAX_DIAS_HISTORICO = 7;
 const CLIQUES_PARA_EXIBIR_ADMIN = 5;
 const MINUTOS_ANTES_RESULTADO_PARA_FECHAR_APOSTA = 1;
 const PRACA_FIXA = "Rio";
+const PAGINA_ADMIN_SEPARADA = (() => {
+  const path = String(window.location.pathname || "").toLowerCase();
+  return path.endsWith("/paginas/admin.html") || path.endsWith("/admin.html");
+})();
 
 const TIPOS_APOSTA = {
   grupo: "Grupo",
@@ -1938,15 +1942,10 @@ function atualizarEstadoSecaoApostas(encerrada, opcoes) {
   const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
   const encerradaFinal = Boolean(encerrada);
   const card = document.getElementById("cardApostas");
-  const aviso = document.getElementById("avisoApostasEncerradas");
   const loteriaInput = document.getElementById("loteriaAposta");
 
   if (card) {
     card.classList.toggle("card-apostas-encerrada", encerradaFinal);
-  }
-
-  if (aviso) {
-    aviso.style.display = encerradaFinal ? "block" : "none";
   }
 
   const idsControles = [
@@ -1994,6 +1993,7 @@ function atualizarEstadoSecaoApostas(encerrada, opcoes) {
   }
 
   secaoApostasEncerrada = encerradaFinal;
+  atualizarVisibilidadeApostas();
 }
 
 function hashDisponibilidadeLoteriasAposta(praca, dataISO) {
@@ -3119,6 +3119,11 @@ function atualizarVisibilidadeAdmin() {
 }
 
 function alternarAcessoAdminOculto() {
+  if (!PAGINA_ADMIN_SEPARADA) {
+    window.location.href = "paginas/admin.html";
+    return;
+  }
+
   acessoAdminVisivel = !acessoAdminVisivel;
   if (!acessoAdminVisivel && !logado) {
     const status = document.getElementById("adminStatus");
@@ -3243,8 +3248,17 @@ function abrirPainelLoginUsuario() {
 
 function atualizarVisibilidadeApostas() {
   const cardApostas = document.getElementById("cardApostas");
-  if (!cardApostas) return;
-  cardApostas.style.display = usuarioAtual ? "block" : "none";
+  const avisoApostasEncerradas = document.getElementById("avisoApostasEncerradas");
+  const logado = Boolean(usuarioAtual);
+
+  if (cardApostas) {
+    cardApostas.style.display = logado && !secaoApostasEncerrada ? "block" : "none";
+  }
+
+  if (avisoApostasEncerradas) {
+    avisoApostasEncerradas.style.display = logado && secaoApostasEncerrada ? "flex" : "none";
+  }
+
   if (!usuarioAtual) {
     atualizarStatusDepositoUsuario("", false);
   }
@@ -4436,6 +4450,9 @@ async function init() {
   atualizarInfoLimitesAposta();
   atualizarStatusMultiplicadores("", false);
   atualizarStatusLimitesAposta("", false);
+  if (PAGINA_ADMIN_SEPARADA) {
+    acessoAdminVisivel = true;
+  }
   painelUsuarioAberto = false;
   atualizarVisibilidadeUsuario();
   definirModoUsuarioPublico("login");

@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="img/mascote/icone.png?v=20260425">
 <link rel="apple-touch-icon" href="img/mascote/icone.png?v=20260425">
 
-<link rel="stylesheet" href="css/style.css?v=20260425-8">
+<link rel="stylesheet" href="css/style.css?v=20260425-10">
 </head>
 
 <body>
@@ -76,88 +76,6 @@
 </div>
 
 <div class="container">
-  <!-- LOGIN -->
-  <div class="card" id="acessoAdmin" style="display:none;">
-    <h3>🔐 Admin</h3>
-    <input id="senhaAdmin" type="password" placeholder="Senha">
-    <button onclick="loginAdmin()">Entrar</button>
-    <button id="btnSairAdmin" class="btn-danger" onclick="logoutAdmin()" style="display:none;">Sair</button>
-    <p id="adminStatus"></p>
-  </div>
-
-  <!-- PAINEL -->
-  <div class="card" id="painelAdmin" style="display:none;">
-
-    <h3>Cadastrar Resultado</h3>
-
-    <input id="dataResultado" type="date">
-
-    <div class="linha-praca-fixa">
-      <span class="rotulo-praca-fixa">Praça</span>
-      <strong>Rio</strong>
-    </div>
-    <select id="praca" class="select-praca-oculta" aria-hidden="true" tabindex="-1"></select>
-
-    <select id="loteria">
-      <option value="">Selecione a loteria</option>
-    </select>
-
-    <!-- NÚMEROS -->
-    <input id="n1" placeholder="1º número (4 dígitos)" inputmode="numeric">
-    <input id="g1" placeholder="Grupo/Bicho automático" readonly>
-
-    <input id="n2" placeholder="2º número (4 dígitos)" inputmode="numeric">
-    <input id="g2" placeholder="Grupo/Bicho automático" readonly>
-
-    <input id="n3" placeholder="3º número (4 dígitos)" inputmode="numeric">
-    <input id="g3" placeholder="Grupo/Bicho automático" readonly>
-
-    <input id="n4" placeholder="4º número (4 dígitos)" inputmode="numeric">
-    <input id="g4" placeholder="Grupo/Bicho automático" readonly>
-
-    <input id="n5" placeholder="5º número (4 dígitos)" inputmode="numeric">
-    <input id="g5" placeholder="Grupo/Bicho automático" readonly>
-
-    <button onclick="salvar()">Salvar</button>
-
-    <h3>Multiplicadores de Aposta</h3>
-
-    <input id="multGrupo" type="number" min="0" step="0.01" placeholder="Grupo (x)">
-    <input id="multDuplaGrupo" type="number" min="0" step="0.01" placeholder="Dupla de Grupo (x)">
-    <input id="multTernoGrupo" type="number" min="0" step="0.01" placeholder="Terno de Grupo (x)">
-    <input id="multMilhar" type="number" min="0" step="0.01" placeholder="Milhar (x)">
-    <input id="multCentena" type="number" min="0" step="0.01" placeholder="Centena (x)">
-    <input id="multDezena" type="number" min="0" step="0.01" placeholder="Dezena (x)">
-
-    <button onclick="salvarMultiplicadores()">Salvar Multiplicadores</button>
-    <button class="btn-secondary" onclick="restaurarMultiplicadoresPadrao()">Restaurar Padrão</button>
-    <p id="multiplicadoresStatus"></p>
-
-    <h3>Limites de Aposta</h3>
-
-    <input id="limiteMinimoAposta" type="number" min="0.01" step="0.01" placeholder="Valor mínimo (R$)">
-    <input id="limiteMaximoAposta" type="number" min="0.01" step="0.01" placeholder="Valor máximo (R$)">
-
-    <button onclick="salvarLimitesAposta()">Salvar Limites</button>
-    <button class="btn-secondary" onclick="restaurarLimitesPadrao()">Restaurar Limites Padrão</button>
-    <p id="limitesApostaStatus"></p>
-
-    <h3>Painel de Cadastros e Apostas</h3>
-    <p id="resumoPainelAdmin" class="resumo-painel-admin">Carregando...</p>
-
-    <div class="painel-admin-listas">
-      <div class="painel-admin-bloco">
-        <h4>Usuários Cadastrados</h4>
-        <div id="listaUsuariosAdmin" class="lista-admin-scroll"></div>
-      </div>
-
-      <div class="painel-admin-bloco">
-        <h4>Apostas da Data Selecionada</h4>
-        <div id="listaApostasAdmin" class="lista-admin-scroll"></div>
-      </div>
-    </div>
-  </div>
-
   <div class="card">
     <h3>Resultados</h3>
     <div class="filtro-data">
@@ -189,10 +107,6 @@
 
   <div class="card card-apostas" id="cardApostas">
     <h3>Apostas</h3>
-    <div class="linha-carteira-aposta">
-      <span class="rotulo-carteira-aposta">Saldo disponível</span>
-      <strong id="saldoUsuarioAposta">R$ 0,00</strong>
-    </div>
     <div class="linha-deposito-aposta">
       <input id="valorDepositoUsuario" value="R$ 0,00" placeholder="Valor do depósito" inputmode="numeric">
       <button type="button" onclick="depositarSaldoUsuario()">Depositar</button>
@@ -278,11 +192,11 @@
       <p id="resumoBilheteRascunho" class="resumo-bilhete-rascunho"></p>
       <div id="listaBilheteRascunho" class="lista-bilhete-rascunho"></div>
     </div>
-    <p id="avisoApostasEncerradas" class="aviso-apostas-encerradas" style="display:none;">Apostas Encerradas!</p>
     <p id="infoLimitesAposta"></p>
     <p id="cronometroAposta"></p>
     <button onclick="salvarAposta()">Salvar Bilhete</button>
   </div>
+  <div id="avisoApostasEncerradas" class="aviso-apostas-encerradas" style="display:none;">Apostas Encerradas!</div>
 
 </div>
 
@@ -356,6 +270,6 @@
   </div>
 </footer>
 
-<script src="js/app.js?v=20260425-7"></script>
+<script src="js/app.js?v=20260425-9"></script>
 </body>
 </html>

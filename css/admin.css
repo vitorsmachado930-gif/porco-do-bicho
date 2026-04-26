@@ -1,0 +1,26 @@
+.topo-admin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topo-admin strong {
+  color: #d8e8f7;
+  font-size: 14px;
+}
+
+.container-admin {
+  width: min(100%, 920px);
+}
+
+.container-admin .card {
+  margin-bottom: 16px;
+}
+
+@media (max-width: 640px) {
+  .topo-admin strong {
+    font-size: 12px;
+  }
+}
