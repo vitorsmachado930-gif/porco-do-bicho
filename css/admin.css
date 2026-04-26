@@ -19,8 +19,82 @@
   margin-bottom: 16px;
 }
 
+#painelAdmin .linha-numero-bicho {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 180px));
+  justify-content: center;
+  gap: 8px;
+  margin: 5px 0;
+}
+
+#painelAdmin .linha-numero-bicho input {
+  width: 100%;
+  margin: 0;
+  text-align: center;
+}
+
+#painelAdmin .linha-numero-bicho input[id^="n"] {
+  text-align: center;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+#painelAdmin input[id^="mult"] {
+  width: min(100%, 220px);
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+#painelAdmin input[id^="limite"] {
+  width: min(100%, 220px);
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+#painelAdmin .linha-multiplicador {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0;
+  width: min(100%, 460px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#painelAdmin .linha-multiplicador label {
+  font-size: 12px;
+  color: #9fd5ff;
+  font-weight: 700;
+  text-align: left;
+}
+
 @media (max-width: 640px) {
   .topo-admin strong {
     font-size: 12px;
+  }
+
+  #painelAdmin .linha-numero-bicho {
+    grid-template-columns: repeat(2, minmax(0, 140px));
+  }
+
+  #painelAdmin input[id^="mult"] {
+    width: min(100%, 200px);
+  }
+
+  #painelAdmin input[id^="limite"] {
+    width: min(100%, 200px);
+  }
+
+  #painelAdmin .linha-multiplicador {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    width: min(100%, 240px);
+  }
+
+  #painelAdmin .linha-multiplicador label {
+    text-align: center;
   }
 }
