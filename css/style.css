@@ -854,6 +854,12 @@ button:disabled {
   text-align: center;
 }
 
+#cardApostas .linha-praca-fixa {
+  width: min(100%, 320px);
+  margin: 6px auto 8px auto;
+  padding: 8px 10px;
+}
+
 #cronometroAposta.cronometro-encerrado {
   color: #ff6b6b;
 }
@@ -1151,8 +1157,9 @@ body.admin-logado .acao-admin {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin: 6px 0 8px 0;
+  width: min(100%, 320px);
+  gap: 6px;
+  margin: 6px auto 8px auto;
 }
 
 .topo-card-apostas h3 {
@@ -1188,8 +1195,8 @@ body.admin-logado .acao-admin {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 92px;
-  padding: 4px 10px;
+  min-width: 86px;
+  padding: 3px 9px;
   text-align: center;
   font-size: 14px;
   border-radius: 999px;
@@ -1677,7 +1684,7 @@ body.admin-logado .acao-admin {
   }
 
   .topo-card-apostas {
-    max-width: 520px;
+    max-width: 320px;
     margin: 6px auto 8px auto;
   }
 
@@ -1729,6 +1736,10 @@ body.admin-logado .acao-admin {
   .linha-praca-fixa {
     max-width: 520px;
     margin: 6px auto 8px auto;
+  }
+
+  #cardApostas .linha-praca-fixa {
+    max-width: 320px;
   }
 
   .rodape-conteudo {
