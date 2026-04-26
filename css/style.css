@@ -1222,6 +1222,10 @@ body.admin-logado .acao-admin {
 
 .premio img {
   width: 48px;
+  height: 48px;
+  display: block;
+  object-fit: contain;
+  object-position: center;
 }
 
 .premio-bicho {
@@ -1562,6 +1566,7 @@ body.admin-logado .acao-admin {
 
   .premio img {
     width: 46px;
+    height: 46px;
   }
 
   .premio-numero {
