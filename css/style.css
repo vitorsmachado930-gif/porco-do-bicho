@@ -798,6 +798,37 @@ button:disabled {
   color: #00e676;
 }
 
+.aviso-apostas-encerradas {
+  margin: 8px 0 0;
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid #ff6b6b88;
+  background: #2a1318;
+  color: #ff9ea9;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.card-apostas.card-apostas-encerrada {
+  border: 1px solid #ff6b6b55;
+}
+
+.card-apostas.card-apostas-encerrada #loteriaAposta,
+.card-apostas.card-apostas-encerrada #tipoAposta,
+.card-apostas.card-apostas-encerrada #palpiteGrupoContainer,
+.card-apostas.card-apostas-encerrada #palpiteAposta,
+.card-apostas.card-apostas-encerrada #valorAposta,
+.card-apostas.card-apostas-encerrada .acoes-bilhete-aposta,
+.card-apostas.card-apostas-encerrada #bilheteRascunhoAposta,
+.card-apostas.card-apostas-encerrada #infoLimitesAposta,
+.card-apostas.card-apostas-encerrada #cronometroAposta,
+.card-apostas.card-apostas-encerrada > button[onclick="salvarAposta()"] {
+  display: none !important;
+}
+
 .cronometro-resultado {
   margin: 6px 0 2px;
   font-size: 12px;

@@ -1,0 +1,110 @@
+.topo-deposito {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topo-deposito strong {
+  color: #d8e8f7;
+  font-size: 14px;
+}
+
+.card-deposito h1 {
+  margin-bottom: 10px;
+}
+
+.deposito-resumo-usuario {
+  margin: 0 0 12px 0;
+  color: #9fb3c8;
+  font-size: 14px;
+}
+
+.deposito-saldo-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #00c85366;
+  background: #0f1a24;
+}
+
+.deposito-saldo-box span {
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+.deposito-saldo-box strong {
+  color: #ffd600;
+  font-size: 18px;
+  letter-spacing: 0.2px;
+}
+
+.card-deposito label {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: 13px;
+  color: #9fd5ff;
+  font-weight: 700;
+}
+
+.card-deposito input {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border-radius: 7px;
+  border: 1px solid #2a4155;
+  background: #0f1a24;
+  color: #e8f3ff;
+  box-sizing: border-box;
+}
+
+.card-deposito input:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.deposito-dica {
+  display: block;
+  margin-top: 4px;
+  color: #8ea6bc;
+  font-size: 12px;
+}
+
+.card-deposito button {
+  margin-top: 12px;
+  width: auto;
+  min-width: 160px;
+  padding: 10px 14px;
+  border-radius: 7px;
+  border: none;
+  background: #00c853;
+  color: #072812;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.card-deposito button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.deposito-status {
+  margin: 10px 0 0 0;
+  font-size: 13px;
+  color: #9fb3c8;
+}
+
+@media (max-width: 640px) {
+  .topo-deposito strong {
+    font-size: 12px;
+  }
+
+  .card-deposito button {
+    width: 100%;
+  }
+}

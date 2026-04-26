@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Depositar Saldo | Porco do Bicho</title>
+  <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
+  <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
+  <link rel="stylesheet" href="../css/paginas.css?v=20260425">
+  <link rel="stylesheet" href="../css/deposito.css?v=20260425-1">
+</head>
+<body>
+  <header class="topo-pagina">
+    <div class="topo-pagina-conteudo topo-deposito">
+      <a href="../index.html">← Voltar para Home</a>
+      <a href="meu-perfil.html">Meu Perfil</a>
+      <strong>Depositar Saldo</strong>
+    </div>
+  </header>
+
+  <main class="conteudo-pagina">
+    <article class="card-pagina card-deposito">
+      <h1>Depositar Saldo</h1>
+      <p id="depositoResumoUsuario" class="deposito-resumo-usuario"></p>
+
+      <div class="deposito-saldo-box">
+        <span>Saldo atual</span>
+        <strong id="depositoSaldoAtual">R$ 0,00</strong>
+      </div>
+
+      <label for="valorDepositoNovo">Valor do depósito</label>
+      <input id="valorDepositoNovo" type="text" value="R$ 0,00" inputmode="numeric" placeholder="R$ 0,00">
+      <small class="deposito-dica">Depósito fictício para testes.</small>
+
+      <button id="btnDepositarSaldo" type="button" onclick="depositarSaldo()">Depositar saldo</button>
+      <p id="depositoStatus" class="deposito-status"></p>
+    </article>
+  </main>
+
+  <footer class="rodape-pagina">
+    Porco do Bicho • Área de depósito • Atualizado em 25/04/2026.
+  </footer>
+
+  <script src="../js/deposito.js?v=20260425-1"></script>
+</body>
+</html>

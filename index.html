@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="img/mascote/icone.png?v=20260425">
 <link rel="apple-touch-icon" href="img/mascote/icone.png?v=20260425">
 
-<link rel="stylesheet" href="css/style.css?v=20260425-6">
+<link rel="stylesheet" href="css/style.css?v=20260425-8">
 </head>
 
 <body>
@@ -17,6 +17,7 @@
   <span id="cabecalhoUsuarioNome" class="cabecalho-usuario-nome"></span>
   <div class="cabecalho-usuario-acoes">
     <button class="btn-secondary btn-cabecalho-perfil" onclick="abrirMeuPerfil()">Meu Perfil</button>
+    <button class="btn-secondary btn-cabecalho-perfil" onclick="abrirDeposito()">Depositar</button>
     <span class="cabecalho-saldo">Saldo: <strong id="saldoUsuarioCabecalho">R$ 0,00</strong></span>
     <button class="btn-danger btn-cabecalho-sair" onclick="sairUsuarioCabecalho()">Sair</button>
   </div>
@@ -277,6 +278,7 @@
       <p id="resumoBilheteRascunho" class="resumo-bilhete-rascunho"></p>
       <div id="listaBilheteRascunho" class="lista-bilhete-rascunho"></div>
     </div>
+    <p id="avisoApostasEncerradas" class="aviso-apostas-encerradas" style="display:none;">Apostas Encerradas!</p>
     <p id="infoLimitesAposta"></p>
     <p id="cronometroAposta"></p>
     <button onclick="salvarAposta()">Salvar Bilhete</button>
@@ -354,6 +356,6 @@
   </div>
 </footer>
 
-<script src="js/app.js?v=20260425-5"></script>
+<script src="js/app.js?v=20260425-7"></script>
 </body>
 </html>

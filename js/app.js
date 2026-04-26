@@ -96,6 +96,7 @@ let acessoAdminVisivel = false;
 let contadorCliquesAdmin = 0;
 let timerCliquesAdmin = null;
 let hashLoteriasApostaDisponiveis = "";
+let secaoApostasEncerrada = false;
 let modoUsuarioPublico = "login";
 let painelUsuarioAberto = false;
 let slotGrupoAtivo = 1;
@@ -1923,6 +1924,78 @@ function loteriasDisponiveisParaAposta(praca, dataISO) {
   return listaPraca.filter((loteria) => loteriaAbertaParaAposta(data, loteria));
 }
 
+function apostasEncerradasNoDia(praca, dataISO) {
+  const data = normalizarDataISO(dataISO);
+  if (!data || !praca) return false;
+  const listaPraca = loteriasDaPraca(praca, data);
+  if (!Array.isArray(listaPraca) || listaPraca.length === 0) return false;
+  const ultimaLoteria = listaPraca[listaPraca.length - 1];
+  const restante = segundosAteFechamento(data, ultimaLoteria);
+  return restante !== null && restante <= 0;
+}
+
+function atualizarEstadoSecaoApostas(encerrada, opcoes) {
+  const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
+  const encerradaFinal = Boolean(encerrada);
+  const card = document.getElementById("cardApostas");
+  const aviso = document.getElementById("avisoApostasEncerradas");
+  const loteriaInput = document.getElementById("loteriaAposta");
+
+  if (card) {
+    card.classList.toggle("card-apostas-encerrada", encerradaFinal);
+  }
+
+  if (aviso) {
+    aviso.style.display = encerradaFinal ? "block" : "none";
+  }
+
+  const idsControles = [
+    "valorDepositoUsuario",
+    "tipoAposta",
+    "palpiteAposta",
+    "valorAposta",
+    "palpiteGrupo1",
+    "palpiteGrupo2",
+    "palpiteGrupo3",
+    "btnEditarPalpiteGrupo",
+    "btnPalpiteGrupoPrev",
+    "btnPalpiteGrupoNext",
+    "btnLimparPalpiteGrupo"
+  ];
+
+  idsControles.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = encerradaFinal;
+  });
+
+  const botoes = document.querySelectorAll(
+    "#cardApostas .linha-deposito-aposta button, " +
+    "#cardApostas .palpite-grupo-slots button, " +
+    "#cardApostas .acoes-bilhete-aposta button, " +
+    "#cardApostas > button[onclick=\"salvarAposta()\"]"
+  );
+  botoes.forEach((btn) => {
+    btn.disabled = encerradaFinal;
+  });
+
+  if (loteriaInput) {
+    if (encerradaFinal) {
+      loteriaInput.disabled = true;
+    } else if (typeof cfg.loteriaDesabilitada === "boolean") {
+      loteriaInput.disabled = cfg.loteriaDesabilitada;
+    }
+  }
+
+  if (encerradaFinal && !secaoApostasEncerrada) {
+    limparBilheteRascunho({
+      limparCampos: false
+    });
+    limparCamposAposta();
+  }
+
+  secaoApostasEncerrada = encerradaFinal;
+}
+
 function hashDisponibilidadeLoteriasAposta(praca, dataISO) {
   const disponiveis = loteriasDisponiveisParaAposta(praca, dataISO);
   return `${praca}|${normalizarDataISO(dataISO)}|${disponiveis.join("|")}`;
@@ -1950,15 +2023,18 @@ function popularLoteriasAposta() {
   const praca = selectPraca.value;
   const dataAposta = normalizarDataISO(document.getElementById("dataAposta")?.value || "");
   const listaDisponivel = loteriasDisponiveisParaAposta(praca, dataAposta);
+  const encerrada = apostasEncerradasNoDia(praca, dataAposta);
   hashLoteriasApostaDisponiveis = hashDisponibilidadeLoteriasAposta(praca, dataAposta);
 
   selectLoteria.innerHTML = "";
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
-  placeholder.textContent = listaDisponivel.length === 0
-    ? "Sem horários disponíveis"
-    : "Selecione a loteria";
+  placeholder.textContent = encerrada
+    ? "Apostas encerradas"
+    : listaDisponivel.length === 0
+      ? "Sem horários disponíveis"
+      : "Selecione a loteria";
   selectLoteria.appendChild(placeholder);
 
   listaDisponivel.forEach((loteria) => {
@@ -1968,13 +2044,14 @@ function popularLoteriasAposta() {
     selectLoteria.appendChild(opt);
   });
 
-  selectLoteria.disabled = listaDisponivel.length === 0;
-
   if (atual) {
     const existe = Array.from(selectLoteria.options).some((opt) => opt.value === atual);
     selectLoteria.value = existe ? atual : "";
   }
 
+  atualizarEstadoSecaoApostas(encerrada, {
+    loteriaDesabilitada: listaDisponivel.length === 0
+  });
   atualizarCronometroApostaFormulario();
 }
 
@@ -2756,6 +2833,12 @@ function configurarMascaraValorDepositoUsuario() {
 }
 
 function depositarSaldoUsuario() {
+  if (secaoApostasEncerrada) {
+    atualizarStatusDepositoUsuario("Apostas encerradas para hoje.", true);
+    mostrarConfirmacaoApostaRapida("Apostas encerradas para hoje.", "erro");
+    return;
+  }
+
   const usuarioSincronizado = sincronizarUsuarioAtualComLista();
   if (!usuarioSincronizado) {
     atualizarStatusUsuario("Faça login de usuário para depositar.", true);
@@ -2831,10 +2914,19 @@ function atualizarCronometroApostaFormulario() {
   const el = document.getElementById("cronometroAposta");
   const dataInput = document.getElementById("dataAposta");
   const loteriaInput = document.getElementById("loteriaAposta");
-  if (!el || !dataInput || !loteriaInput) return;
+  const pracaInput = document.getElementById("pracaAposta");
+  if (!el || !dataInput || !loteriaInput || !pracaInput) return;
 
   const data = normalizarDataISO(dataInput.value);
+  const praca = String(pracaInput.value || "").trim();
   const loteria = String(loteriaInput.value || "").trim();
+
+  if (data && praca && apostasEncerradasNoDia(praca, data)) {
+    el.innerText = "Apostas encerradas para hoje.";
+    el.classList.remove("cronometro-aberto");
+    el.classList.add("cronometro-encerrado");
+    return;
+  }
 
   if (!data || !loteria) {
     el.innerText = "Selecione a loteria para ver o cronômetro.";
@@ -3130,6 +3222,14 @@ function abrirMeuPerfil() {
     return;
   }
   window.location.href = "paginas/meu-perfil.html";
+}
+
+function abrirDeposito() {
+  if (!usuarioAtual) {
+    mostrarConfirmacaoApostaRapida("Faça login para acessar a área de depósito.", "erro");
+    return;
+  }
+  window.location.href = "paginas/deposito.html";
 }
 
 function abrirPainelLoginUsuario() {
@@ -3751,6 +3851,11 @@ function removerApostaBilheteRascunho(index) {
 }
 
 function adicionarApostaAoBilhete() {
+  if (secaoApostasEncerrada) {
+    mostrarConfirmacaoApostaRapida("Apostas encerradas para hoje.", "erro");
+    return;
+  }
+
   const usuarioSincronizado = sincronizarUsuarioAtualComLista();
   if (!usuarioSincronizado) {
     atualizarStatusUsuario("Faça login de usuário para apostar.", true);
@@ -3785,6 +3890,11 @@ function adicionarApostaAoBilhete() {
 }
 
 function salvarAposta() {
+  if (secaoApostasEncerrada) {
+    mostrarConfirmacaoApostaRapida("Apostas encerradas para hoje.", "erro");
+    return;
+  }
+
   const usuarioSincronizado = sincronizarUsuarioAtualComLista();
   if (!usuarioSincronizado) {
     atualizarStatusUsuario("Faça login de usuário para apostar.", true);
@@ -4376,6 +4486,7 @@ window.irHoje = irHoje;
 window.irHojeHistoricoApostas = irHojeHistoricoApostas;
 window.irHomeCabecalho = irHomeCabecalho;
 window.abrirMeuPerfil = abrirMeuPerfil;
+window.abrirDeposito = abrirDeposito;
 
 window.addEventListener("load", () => {
   init();
