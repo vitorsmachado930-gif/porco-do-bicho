@@ -1,9 +1,10 @@
-const SENHA = "1234";
+const SENHA = "1965917";
 const STORAGE_KEY = "dados";
 const APOSTAS_KEY = "apostas";
 const MULTIPLICADORES_KEY = "multiplicadores_aposta";
 const USUARIOS_KEY = "usuarios_aposta";
 const USUARIO_SESSAO_KEY = "usuario_sessao_id";
+const ADMIN_SESSAO_KEY = "admin_sessao_ativa";
 const LIMITES_APOSTA_KEY = "limites_aposta";
 const DADOS_UPDATED_AT_KEY = "dados_updated_at";
 const PAINEL_UPDATED_AT_KEY = "painel_updated_at";
@@ -12,7 +13,6 @@ const PAINEL_SYNC_API_URL = "https://www.porcodobicho.com/api/painel.php";
 const RESULTADOS_SYNC_INTERVALO_MS = 30000;
 const PAINEL_SYNC_INTERVALO_MS = 30000;
 const MAX_DIAS_HISTORICO = 7;
-const CLIQUES_PARA_EXIBIR_ADMIN = 5;
 const MINUTOS_ANTES_RESULTADO_PARA_FECHAR_APOSTA = 1;
 const PRACA_FIXA = "Rio";
 const PAGINA_ADMIN_SEPARADA = (() => {
@@ -115,8 +115,6 @@ let usuarios = carregarUsuarios();
 let usuarioAtual = carregarSessaoUsuario();
 let cronometroApostaTimer = null;
 let acessoAdminVisivel = false;
-let contadorCliquesAdmin = 0;
-let timerCliquesAdmin = null;
 let hashLoteriasApostaDisponiveis = "";
 let secaoApostasEncerrada = false;
 let modoUsuarioPublico = "login";
@@ -1979,6 +1977,18 @@ function salvarSessaoUsuario() {
   localStorage.setItem(USUARIO_SESSAO_KEY, String(usuarioAtual.id));
 }
 
+function carregarSessaoAdmin() {
+  return localStorage.getItem(ADMIN_SESSAO_KEY) === "1";
+}
+
+function salvarSessaoAdmin() {
+  if (!logado) {
+    localStorage.removeItem(ADMIN_SESSAO_KEY);
+    return;
+  }
+  localStorage.setItem(ADMIN_SESSAO_KEY, "1");
+}
+
 function popularPracas() {
   const selectPraca = document.getElementById("praca");
   if (!selectPraca) return;
@@ -3239,7 +3249,10 @@ function atualizarVisibilidadeAdmin() {
   }
 
   if (acesso) {
-    acesso.style.display = acessoAdminVisivel || logado ? "block" : "none";
+    const exibirCardAcesso = PAGINA_ADMIN_SEPARADA
+      ? acessoAdminVisivel && !logado
+      : acessoAdminVisivel || logado;
+    acesso.style.display = exibirCardAcesso ? "block" : "none";
   }
 
   if (painel) {
@@ -3251,43 +3264,6 @@ function atualizarVisibilidadeAdmin() {
   }
 
   mostrarPainelAdmin();
-}
-
-function alternarAcessoAdminOculto() {
-  if (!PAGINA_ADMIN_SEPARADA) {
-    window.location.href = "paginas/admin.html";
-    return;
-  }
-
-  acessoAdminVisivel = !acessoAdminVisivel;
-  if (!acessoAdminVisivel && !logado) {
-    const status = document.getElementById("adminStatus");
-    if (status) status.innerText = "";
-  }
-  atualizarVisibilidadeAdmin();
-}
-
-function registrarCliqueGatilhoAdmin() {
-  contadorCliquesAdmin += 1;
-
-  if (timerCliquesAdmin) {
-    clearTimeout(timerCliquesAdmin);
-  }
-
-  timerCliquesAdmin = window.setTimeout(() => {
-    contadorCliquesAdmin = 0;
-  }, 2000);
-
-  if (contadorCliquesAdmin >= CLIQUES_PARA_EXIBIR_ADMIN) {
-    contadorCliquesAdmin = 0;
-    alternarAcessoAdminOculto();
-  }
-}
-
-function configurarGatilhoAdminOculto() {
-  const gatilho = document.getElementById("gatilhoAdmin");
-  if (!gatilho) return;
-  gatilho.addEventListener("click", registrarCliqueGatilhoAdmin);
 }
 
 function atualizarStatusUsuario(texto, erro) {
@@ -3545,6 +3521,12 @@ function cadastrarUsuario() {
     return;
   }
 
+  if (login === "admin") {
+    atualizarStatusUsuario("O login admin é reservado para o painel.", true);
+    mostrarConfirmacaoApostaRapida("O login admin é reservado para o painel.", "erro");
+    return;
+  }
+
   if (senha.length < 4) {
     atualizarStatusUsuario("A senha deve ter pelo menos 4 caracteres.", true);
     mostrarConfirmacaoApostaRapida("A senha deve ter pelo menos 4 caracteres.", "erro");
@@ -3584,6 +3566,14 @@ function cadastrarUsuario() {
 function redefinirSenhaUsuario() {
   const login = normalizarLoginUsuario(document.getElementById("recuperarLogin").value);
   const novaSenha = String(document.getElementById("recuperarSenha").value || "");
+
+  if (login === "admin") {
+    atualizarStatusUsuario("A conta admin usa senha fixa: 1965917.", false);
+    mostrarConfirmacaoApostaRapida("A conta admin usa senha fixa: 1965917.", "erro");
+    const recuperarSenha = document.getElementById("recuperarSenha");
+    if (recuperarSenha) recuperarSenha.value = "";
+    return;
+  }
 
   if (login === USUARIO_TESTE_FIXO.login) {
     atualizarStatusUsuario("A conta de teste usa senha fixa: 102030.", false);
@@ -3626,6 +3616,21 @@ function entrarUsuario() {
   if (!login || !senha) {
     atualizarStatusUsuario("Informe login e senha.", true);
     mostrarConfirmacaoApostaRapida("Informe login e senha.", "erro");
+    return;
+  }
+
+  if (login === "admin") {
+    if (senha !== SENHA) {
+      atualizarStatusUsuario("Senha do admin inválida.", true);
+      mostrarConfirmacaoApostaRapida("Senha do admin inválida.", "erro");
+      return;
+    }
+
+    logado = true;
+    salvarSessaoAdmin();
+    atualizarStatusUsuario("Admin autenticado. Abrindo painel...", false);
+    mostrarConfirmacaoApostaRapida("Admin conectado. Abrindo painel.");
+    window.location.href = PAGINA_ADMIN_SEPARADA ? "admin.html" : "paginas/admin.html";
     return;
   }
 
@@ -3715,6 +3720,7 @@ function loginAdmin() {
 
   if (senha === SENHA) {
     logado = true;
+    salvarSessaoAdmin();
     atualizarVisibilidadeAdmin();
     status.innerText = "Liberado!";
     mostrarConfirmacaoApostaRapida("Admin conectado com sucesso.");
@@ -3743,6 +3749,7 @@ function loginAdmin() {
 
 function logoutAdmin() {
   logado = false;
+  salvarSessaoAdmin();
   acessoAdminVisivel = false;
   atualizarVisibilidadeAdmin();
 
@@ -4573,7 +4580,6 @@ async function init() {
   popularPracasAposta();
   popularLoteriasAposta();
   popularFiltroPracas();
-  configurarGatilhoAdminOculto();
   configurarNavegacaoResultados();
   configurarSeletores();
   configurarAutoBichoInputs();
@@ -4585,9 +4591,8 @@ async function init() {
   atualizarInfoLimitesAposta();
   atualizarStatusMultiplicadores("", false);
   atualizarStatusLimitesAposta("", false);
-  if (PAGINA_ADMIN_SEPARADA) {
-    acessoAdminVisivel = true;
-  }
+  logado = PAGINA_ADMIN_SEPARADA ? carregarSessaoAdmin() : false;
+  if (PAGINA_ADMIN_SEPARADA) acessoAdminVisivel = true;
   painelUsuarioAberto = false;
   atualizarVisibilidadeUsuario();
   definirModoUsuarioPublico("login");
