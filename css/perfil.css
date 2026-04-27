@@ -160,6 +160,18 @@
   color: #b8d1e6;
 }
 
+.bilhete-resumo-potencial {
+  margin-top: 8px;
+}
+
+.bilhete-resumo-potencial .ganho-potencial-total {
+  margin-left: 4px;
+  color: #00e676;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-shadow: 0 0 10px #00e67655;
+}
+
 .status-aposta {
   font-weight: 700;
 }

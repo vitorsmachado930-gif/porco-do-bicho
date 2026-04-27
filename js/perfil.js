@@ -660,6 +660,7 @@ function resumoStatusBilhete(apostasBilhete) {
 function montarCardBilhete(grupo) {
   const apostasBilhete = Array.isArray(grupo.apostas) ? grupo.apostas : [];
   const statusBilhete = resumoStatusBilhete(apostasBilhete);
+  const dataRef = formatarDataBR(grupo && grupo.data);
   const valorTotal = apostasBilhete.reduce(
     (acc, item) => acc + Number(normalizarValorMoeda(item.valor)),
     0
@@ -688,11 +689,11 @@ function montarCardBilhete(grupo) {
 
   return (
     `<div class="aposta-item">` +
-    `<strong>${escaparHTML(grupo.praca)} | ${escaparHTML(grupo.loteria)}</strong><br>` +
+    `<strong>${escaparHTML(grupo.praca)} | ${escaparHTML(grupo.loteria)} | ${escaparHTML(dataRef)}</strong><br>` +
     `<div>Bilhete criado às <b>${escaparHTML(horarioRef)}</b> | ${apostasBilhete.length} aposta(s)</div>` +
     linhasApostas +
     `<div class="bilhete-resumo-total">Total apostado: <b>${escaparHTML(formatarMoedaBR(valorTotal))}</b></div>` +
-    `<div class="bilhete-resumo-total">Ganho potencial total: <b>${escaparHTML(formatarMoedaBR(premioTotal))}</b></div>` +
+    `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho potencial total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotal))}</b></div>` +
     `Status: <span class="status-aposta ${statusBilhete.classe}">${statusBilhete.status}</span> | ${statusBilhete.detalhe}` +
     `</div>`
   );
