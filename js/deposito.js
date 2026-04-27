@@ -48,6 +48,51 @@ function formatarCentavosComoMoedaBR(centavos) {
   return formatarMoedaBR(final / 100);
 }
 
+function normalizarValorNaoNegativo(valor) {
+  const n = Number(valor);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Number(n.toFixed(2));
+}
+
+function normalizarIdPositivo(valor) {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const id = Number(valor);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  return Math.floor(id);
+}
+
+function normalizarDataISO(valor) {
+  if (typeof valor !== "string") return "";
+  const limpo = valor.trim();
+  if (!limpo) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(limpo)) return limpo;
+  const d = new Date(limpo);
+  if (Number.isNaN(d.getTime())) return "";
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, "0");
+  const dia = String(d.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+function hojeISO() {
+  return normalizarDataISO(new Date().toISOString()) || "";
+}
+
+function normalizarContadorNaoNegativo(valor) {
+  const n = Number(valor);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.floor(n);
+}
+
+function resetarControleDiarioBonusIndicacao(usuario, dataReferencia) {
+  if (!usuario || typeof usuario !== "object") return;
+  const referencia = normalizarDataISO(dataReferencia) || hojeISO();
+  if (String(usuario.bonusIndicacaoConvertidoHojeData || "") !== referencia) {
+    usuario.bonusIndicacaoConvertidoHoje = 0;
+    usuario.bonusIndicacaoConvertidoHojeData = referencia;
+  }
+}
+
 function sanitizarUsuarios(arr) {
   const base = Array.isArray(arr) ? arr : [];
   const sane = base
@@ -81,6 +126,13 @@ function sanitizarUsuarios(arr) {
       const totalDepositos = Number.isFinite(totalDepositosRaw) && totalDepositosRaw >= 0
         ? Number(totalDepositosRaw.toFixed(2))
         : 0;
+      const indicadorId = normalizarIdPositivo(raw.indicadorId);
+      const bonusIndicacaoSaldo = normalizarValorNaoNegativo(raw.bonusIndicacaoSaldo);
+      const bonusIndicacaoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoTotal);
+      const bonusIndicacaoConvertidoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoConvertidoTotal);
+      const bonusIndicacaoConvertidoHoje = normalizarValorNaoNegativo(raw.bonusIndicacaoConvertidoHoje);
+      const bonusIndicacaoConvertidoHojeData = normalizarDataISO(raw.bonusIndicacaoConvertidoHojeData);
+      const indicadosTotal = normalizarContadorNaoNegativo(raw.indicadosTotal);
       const telefone = String(raw.telefone || "").trim();
       const chavePix = String(raw.chavePix || "").trim().slice(0, 120);
       if (!Number.isFinite(id)) return null;
@@ -99,6 +151,13 @@ function sanitizarUsuarios(arr) {
         comissaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? comissaoSaldo : 0,
         comissaoTotal: role === PAPEL_USUARIO_PROMOTOR ? comissaoTotal : 0,
         totalDepositos,
+        indicadorId: role === PAPEL_USUARIO_PROMOTOR ? null : indicadorId,
+        bonusIndicacaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoSaldo,
+        bonusIndicacaoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoTotal,
+        bonusIndicacaoConvertidoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoConvertidoTotal,
+        bonusIndicacaoConvertidoHoje: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoConvertidoHoje,
+        bonusIndicacaoConvertidoHojeData: role === PAPEL_USUARIO_PROMOTOR ? "" : (bonusIndicacaoConvertidoHojeData || ""),
+        indicadosTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : indicadosTotal,
         telefone,
         chavePix
       };
@@ -108,14 +167,28 @@ function sanitizarUsuarios(arr) {
   const idsPromotores = new Set(
     sane.filter((item) => item.role === PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
   );
+  const idsApostadores = new Set(
+    sane.filter((item) => item.role !== PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
+  );
   sane.forEach((item) => {
     if (item.role === PAPEL_USUARIO_PROMOTOR) {
       item.promotorId = null;
+      item.indicadorId = null;
+      item.bonusIndicacaoSaldo = 0;
+      item.bonusIndicacaoTotal = 0;
+      item.bonusIndicacaoConvertidoTotal = 0;
+      item.bonusIndicacaoConvertidoHoje = 0;
+      item.bonusIndicacaoConvertidoHojeData = "";
+      item.indicadosTotal = 0;
       return;
     }
     if (!idsPromotores.has(item.promotorId)) {
       item.promotorId = null;
     }
+    if (!idsApostadores.has(item.indicadorId) || item.indicadorId === item.id) {
+      item.indicadorId = null;
+    }
+    resetarControleDiarioBonusIndicacao(item, hojeISO());
   });
 
   return sane;

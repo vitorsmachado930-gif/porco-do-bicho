@@ -67,6 +67,13 @@ const SALDO_USUARIO_INICIAL = 0;
 const PAPEL_USUARIO_APOSTADOR = "apostador";
 const PAPEL_USUARIO_PROMOTOR = "promotor";
 const COMISSAO_PROMOTOR_PADRAO = 0;
+const BONUS_INDICACAO_PERCENTUAL = 10;
+const BONUS_INDICACAO_BASE_REFERENCIA = 100;
+const BONUS_INDICACAO_VALOR_POR_CADASTRO = Number(
+  ((BONUS_INDICACAO_BASE_REFERENCIA * BONUS_INDICACAO_PERCENTUAL) / 100).toFixed(2)
+);
+const BONUS_INDICACAO_VALOR_CONVERSAO = 10;
+const BONUS_INDICACAO_LIMITE_DIARIO = 100;
 
 const USUARIO_TESTE_FIXO = Object.freeze({
   id: 102030,
@@ -80,6 +87,13 @@ const USUARIO_TESTE_FIXO = Object.freeze({
   comissaoSaldo: 0,
   comissaoTotal: 0,
   totalDepositos: 0,
+  indicadorId: null,
+  bonusIndicacaoSaldo: 0,
+  bonusIndicacaoTotal: 0,
+  bonusIndicacaoConvertidoTotal: 0,
+  bonusIndicacaoConvertidoHoje: 0,
+  bonusIndicacaoConvertidoHojeData: "",
+  indicadosTotal: 0,
   telefone: "",
   chavePix: ""
 });
@@ -380,6 +394,13 @@ function normalizarPromotorId(valor) {
   return Math.floor(id);
 }
 
+function normalizarIndicadorId(valor) {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const id = Number(valor);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  return Math.floor(id);
+}
+
 function normalizarPercentualComissao(valor) {
   const n = Number(valor);
   if (!Number.isFinite(n) || n < 0) return COMISSAO_PROMOTOR_PADRAO;
@@ -391,6 +412,37 @@ function normalizarValorNaoNegativo(valor) {
   const n = Number(valor);
   if (!Number.isFinite(n) || n < 0) return 0;
   return Number(n.toFixed(2));
+}
+
+function normalizarContadorNaoNegativo(valor) {
+  const n = Number(valor);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.floor(n);
+}
+
+function normalizarDataBonusIndicacao(valor) {
+  const data = normalizarDataISO(valor);
+  return data || "";
+}
+
+function resetarControleDiarioBonusIndicacao(usuario, dataReferencia) {
+  if (!usuario || typeof usuario !== "object") return;
+  const referencia = normalizarDataISO(dataReferencia) || hojeISO();
+  if (String(usuario.bonusIndicacaoConvertidoHojeData || "") !== referencia) {
+    usuario.bonusIndicacaoConvertidoHoje = 0;
+    usuario.bonusIndicacaoConvertidoHojeData = referencia;
+  }
+}
+
+function aplicarBonusIndicacaoPorCadastro(indicador) {
+  if (!indicador || !usuarioEhApostador(indicador)) return 0;
+  const bonus = normalizarValorNaoNegativo(BONUS_INDICACAO_VALOR_POR_CADASTRO);
+  if (bonus <= 0) return 0;
+  indicador.bonusIndicacaoSaldo = normalizarValorNaoNegativo(indicador.bonusIndicacaoSaldo + bonus);
+  indicador.bonusIndicacaoTotal = normalizarValorNaoNegativo(indicador.bonusIndicacaoTotal + bonus);
+  indicador.indicadosTotal = normalizarContadorNaoNegativo(indicador.indicadosTotal + 1);
+  resetarControleDiarioBonusIndicacao(indicador, hojeISO());
+  return bonus;
 }
 
 function normalizarTelefoneUsuario(valor) {
@@ -408,6 +460,7 @@ function normalizarChavePixUsuario(valor) {
 function criarUsuarioTesteFixo(rawExistente) {
   const raw = rawExistente && typeof rawExistente === "object" ? rawExistente : {};
   const nomeCustom = String(raw.nome || "").trim();
+  const bonusConvertidoHojeData = normalizarDataBonusIndicacao(raw.bonusIndicacaoConvertidoHojeData);
   return {
     id: USUARIO_TESTE_FIXO.id,
     nome: nomeCustom.length >= 2 ? nomeCustom : USUARIO_TESTE_FIXO.nome,
@@ -420,6 +473,13 @@ function criarUsuarioTesteFixo(rawExistente) {
     comissaoSaldo: 0,
     comissaoTotal: 0,
     totalDepositos: normalizarValorNaoNegativo(raw.totalDepositos),
+    indicadorId: null,
+    bonusIndicacaoSaldo: 0,
+    bonusIndicacaoTotal: 0,
+    bonusIndicacaoConvertidoTotal: 0,
+    bonusIndicacaoConvertidoHoje: 0,
+    bonusIndicacaoConvertidoHojeData: bonusConvertidoHojeData || "",
+    indicadosTotal: 0,
     telefone: normalizarTelefoneUsuario(raw.telefone),
     chavePix: normalizarChavePixUsuario(raw.chavePix)
   };
@@ -438,6 +498,13 @@ function normalizarUsuarioItem(raw, index) {
   const comissaoSaldo = normalizarValorNaoNegativo(raw.comissaoSaldo);
   const comissaoTotal = normalizarValorNaoNegativo(raw.comissaoTotal);
   const totalDepositos = normalizarValorNaoNegativo(raw.totalDepositos);
+  const indicadorId = normalizarIndicadorId(raw.indicadorId);
+  const bonusIndicacaoSaldo = normalizarValorNaoNegativo(raw.bonusIndicacaoSaldo);
+  const bonusIndicacaoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoTotal);
+  const bonusIndicacaoConvertidoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoConvertidoTotal);
+  const bonusIndicacaoConvertidoHoje = normalizarValorNaoNegativo(raw.bonusIndicacaoConvertidoHoje);
+  const bonusIndicacaoConvertidoHojeData = normalizarDataBonusIndicacao(raw.bonusIndicacaoConvertidoHojeData);
+  const indicadosTotal = normalizarContadorNaoNegativo(raw.indicadosTotal);
   const telefone = normalizarTelefoneUsuario(raw.telefone);
   const chavePix = normalizarChavePixUsuario(raw.chavePix);
 
@@ -462,6 +529,13 @@ function normalizarUsuarioItem(raw, index) {
     comissaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? comissaoSaldo : 0,
     comissaoTotal: role === PAPEL_USUARIO_PROMOTOR ? comissaoTotal : 0,
     totalDepositos,
+    indicadorId: role === PAPEL_USUARIO_PROMOTOR ? null : indicadorId,
+    bonusIndicacaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoSaldo,
+    bonusIndicacaoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoTotal,
+    bonusIndicacaoConvertidoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoConvertidoTotal,
+    bonusIndicacaoConvertidoHoje: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoConvertidoHoje,
+    bonusIndicacaoConvertidoHojeData: role === PAPEL_USUARIO_PROMOTOR ? "" : bonusIndicacaoConvertidoHojeData,
+    indicadosTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : indicadosTotal,
     telefone,
     chavePix
   };
@@ -488,14 +562,28 @@ function sanitizarUsuarios(arr) {
   const idsPromotores = new Set(
     sane.filter((item) => item.role === PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
   );
+  const idsApostadores = new Set(
+    sane.filter((item) => item.role !== PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
+  );
   sane.forEach((item) => {
     if (item.role === PAPEL_USUARIO_PROMOTOR) {
       item.promotorId = null;
+      item.indicadorId = null;
+      item.bonusIndicacaoSaldo = 0;
+      item.bonusIndicacaoTotal = 0;
+      item.bonusIndicacaoConvertidoTotal = 0;
+      item.bonusIndicacaoConvertidoHoje = 0;
+      item.bonusIndicacaoConvertidoHojeData = "";
+      item.indicadosTotal = 0;
       return;
     }
     if (!idsPromotores.has(item.promotorId)) {
       item.promotorId = null;
     }
+    if (!idsApostadores.has(item.indicadorId) || item.indicadorId === item.id) {
+      item.indicadorId = null;
+    }
+    resetarControleDiarioBonusIndicacao(item, hojeISO());
   });
 
   return sane;
@@ -1708,6 +1796,13 @@ function serializarPainelParaHash(listaUsuarios, listaApostas) {
     comissaoSaldo: normalizarValorNaoNegativo(item.comissaoSaldo),
     comissaoTotal: normalizarValorNaoNegativo(item.comissaoTotal),
     totalDepositos: normalizarValorNaoNegativo(item.totalDepositos),
+    indicadorId: normalizarIndicadorId(item.indicadorId),
+    bonusIndicacaoSaldo: normalizarValorNaoNegativo(item.bonusIndicacaoSaldo),
+    bonusIndicacaoTotal: normalizarValorNaoNegativo(item.bonusIndicacaoTotal),
+    bonusIndicacaoConvertidoTotal: normalizarValorNaoNegativo(item.bonusIndicacaoConvertidoTotal),
+    bonusIndicacaoConvertidoHoje: normalizarValorNaoNegativo(item.bonusIndicacaoConvertidoHoje),
+    bonusIndicacaoConvertidoHojeData: normalizarDataBonusIndicacao(item.bonusIndicacaoConvertidoHojeData),
+    indicadosTotal: normalizarContadorNaoNegativo(item.indicadosTotal),
     telefone: normalizarTelefoneUsuario(item.telefone),
     chavePix: normalizarChavePixUsuario(item.chavePix)
   }));
@@ -3882,6 +3977,7 @@ function limparCamposUsuario() {
   const cadastroNome = document.getElementById("cadastroNome");
   const cadastroLogin = document.getElementById("cadastroLogin");
   const cadastroSenha = document.getElementById("cadastroSenha");
+  const cadastroIndicador = document.getElementById("cadastroIndicador");
   const loginUsuario = document.getElementById("loginUsuario");
   const senhaUsuario = document.getElementById("senhaUsuario");
   const recuperarLogin = document.getElementById("recuperarLogin");
@@ -3890,6 +3986,7 @@ function limparCamposUsuario() {
   if (cadastroNome) cadastroNome.value = "";
   if (cadastroLogin) cadastroLogin.value = "";
   if (cadastroSenha) cadastroSenha.value = "";
+  if (cadastroIndicador) cadastroIndicador.value = "";
   if (loginUsuario) loginUsuario.value = USUARIO_TESTE_FIXO.login;
   if (senhaUsuario) senhaUsuario.value = USUARIO_TESTE_FIXO.senha;
   if (recuperarLogin) recuperarLogin.value = "";
@@ -3900,6 +3997,11 @@ function cadastrarUsuario() {
   const nome = String(document.getElementById("cadastroNome").value || "").trim();
   const login = normalizarLoginUsuario(document.getElementById("cadastroLogin").value);
   const senha = String(document.getElementById("cadastroSenha").value || "");
+  const indicadorLogin = normalizarLoginUsuario(
+    (document.getElementById("cadastroIndicador") &&
+      document.getElementById("cadastroIndicador").value) ||
+      ""
+  );
 
   if (nome.length < 2) {
     atualizarStatusUsuario("Informe um nome com pelo menos 2 caracteres.", true);
@@ -3928,11 +4030,39 @@ function cadastrarUsuario() {
     return;
   }
 
+  if (indicadorLogin && indicadorLogin === login) {
+    atualizarStatusUsuario("O login indicador não pode ser o mesmo do novo cadastro.", true);
+    mostrarConfirmacaoApostaRapida(
+      "O login indicador não pode ser o mesmo do novo cadastro.",
+      "erro"
+    );
+    return;
+  }
+
   const existe = usuarios.some((u) => u.login === login);
   if (existe) {
     atualizarStatusUsuario("Este login já está em uso.", true);
     mostrarConfirmacaoApostaRapida("Este login já está em uso.", "erro");
     return;
+  }
+
+  let indicador = null;
+  if (indicadorLogin) {
+    indicador =
+      usuarios.find(
+        (u) => u.login === indicadorLogin && usuarioEhApostador(u) && normalizarLoginUsuario(u.login) !== "admin"
+      ) || null;
+    if (!indicador) {
+      atualizarStatusUsuario(
+        "Indicador inválido. Informe o login de um apostador já cadastrado.",
+        true
+      );
+      mostrarConfirmacaoApostaRapida(
+        "Indicador inválido. Informe o login de um apostador já cadastrado.",
+        "erro"
+      );
+      return;
+    }
   }
 
   const novoUsuario = {
@@ -3947,19 +4077,36 @@ function cadastrarUsuario() {
     comissaoSaldo: 0,
     comissaoTotal: 0,
     totalDepositos: 0,
+    indicadorId: indicador ? indicador.id : null,
+    bonusIndicacaoSaldo: 0,
+    bonusIndicacaoTotal: 0,
+    bonusIndicacaoConvertidoTotal: 0,
+    bonusIndicacaoConvertidoHoje: 0,
+    bonusIndicacaoConvertidoHojeData: "",
+    indicadosTotal: 0,
     telefone: "",
     chavePix: ""
   };
 
   usuarios.unshift(novoUsuario);
+  let bonusGerado = 0;
+  if (indicador) {
+    const indicadorAtual =
+      usuarios.find((u) => u.id === indicador.id && usuarioEhApostador(u)) || null;
+    bonusGerado = aplicarBonusIndicacaoPorCadastro(indicadorAtual);
+  }
   salvarUsuarios();
   usuarioAtual = novoUsuario;
   salvarSessaoUsuario();
   painelUsuarioAberto = false;
   definirModoUsuarioPublico("login");
   atualizarVisibilidadeUsuario();
-  atualizarStatusUsuario(`Cadastro concluído. Conectado como ${nome} (@${login}).`, false);
-  mostrarConfirmacaoApostaRapida("Cadastro concluído com sucesso.");
+  const textoBonus =
+    indicador && bonusGerado > 0
+      ? ` Indicação registrada para @${indicador.login} com bônus de ${formatarMoedaBR(bonusGerado)}.`
+      : "";
+  atualizarStatusUsuario(`Cadastro concluído. Conectado como ${nome} (@${login}).${textoBonus}`, false);
+  mostrarConfirmacaoApostaRapida(`Cadastro concluído com sucesso.${textoBonus}`);
   limparCamposUsuario();
   mostrar();
 }
@@ -5063,6 +5210,13 @@ function criarPromotorAdmin() {
     comissaoSaldo: 0,
     comissaoTotal: 0,
     totalDepositos: 0,
+    indicadorId: null,
+    bonusIndicacaoSaldo: 0,
+    bonusIndicacaoTotal: 0,
+    bonusIndicacaoConvertidoTotal: 0,
+    bonusIndicacaoConvertidoHoje: 0,
+    bonusIndicacaoConvertidoHojeData: "",
+    indicadosTotal: 0,
     telefone: "",
     chavePix: ""
   });

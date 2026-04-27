@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/perfil.css?v=20260427-4">
+  <link rel="stylesheet" href="../css/perfil.css?v=20260427-5">
 </head>
 <body>
   <header class="topo-pagina">
@@ -42,6 +42,34 @@
 
     <article class="card-pagina card-perfil">
       <div class="perfil-apostas-topo">
+        <h2>Programa de Indicação</h2>
+      </div>
+      <p id="perfilIndicacaoResumo" class="perfil-apostas-resumo"></p>
+      <p class="perfil-dica-campo">
+        Seu login para indicar: <strong id="perfilLoginIndicacao">@--</strong>
+      </p>
+      <div class="perfil-bonus-grid">
+        <div class="perfil-status-dia-item">
+          Bônus disponível
+          <b id="perfilBonusDisponivel">R$ 0,00</b>
+        </div>
+        <div class="perfil-status-dia-item">
+          Convertido hoje
+          <b id="perfilBonusConvertidoHoje">R$ 0,00</b>
+        </div>
+        <div class="perfil-status-dia-item">
+          Limite diário
+          <b id="perfilBonusLimiteHoje">R$ 100,00</b>
+        </div>
+      </div>
+      <button id="btnConverterBonusPerfil" type="button">
+        Converter bônus em saldo (+R$ 10,00)
+      </button>
+      <p id="perfilBonusStatus" class="perfil-status"></p>
+    </article>
+
+    <article class="card-pagina card-perfil">
+      <div class="perfil-apostas-topo">
         <h2>Minhas Apostas</h2>
         <div class="perfil-apostas-filtro">
           <input id="perfilDataApostas" type="date" aria-label="Data das apostas">
@@ -64,6 +92,6 @@
     Porco do Bicho • Área de perfil • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/perfil.js?v=20260427-7"></script>
+  <script src="../js/perfil.js?v=20260427-8"></script>
 </body>
 </html>

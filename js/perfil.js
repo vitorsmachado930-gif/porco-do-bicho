@@ -6,6 +6,9 @@ const PAINEL_UPDATED_AT_KEY = "painel_updated_at";
 const MAX_DIAS_HISTORICO = 7;
 const PAPEL_USUARIO_APOSTADOR = "apostador";
 const PAPEL_USUARIO_PROMOTOR = "promotor";
+const BONUS_INDICACAO_VALOR_POR_CADASTRO = 10;
+const BONUS_INDICACAO_VALOR_CONVERSAO = 10;
+const BONUS_INDICACAO_LIMITE_DIARIO = 100;
 
 const TIPOS_APOSTA = {
   grupo: "Grupo 1º",
@@ -200,6 +203,25 @@ function formatarMoedaBR(valor) {
   })}`;
 }
 
+function normalizarValorNaoNegativo(valor) {
+  const n = Number(valor);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Number(n.toFixed(2));
+}
+
+function normalizarIdPositivo(valor) {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const id = Number(valor);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  return Math.floor(id);
+}
+
+function normalizarContadorNaoNegativo(valor) {
+  const n = Number(valor);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Math.floor(n);
+}
+
 function escaparHTML(valor) {
   return String(valor || "")
     .replace(/&/g, "&amp;")
@@ -207,6 +229,15 @@ function escaparHTML(valor) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function resetarControleDiarioBonusIndicacao(usuario, dataReferencia) {
+  if (!usuario || typeof usuario !== "object") return;
+  const referencia = normalizarDataISO(dataReferencia) || hojeISO();
+  if (String(usuario.bonusIndicacaoConvertidoHojeData || "") !== referencia) {
+    usuario.bonusIndicacaoConvertidoHoje = 0;
+    usuario.bonusIndicacaoConvertidoHojeData = referencia;
+  }
 }
 
 function sanitizarUsuarios(arr) {
@@ -242,6 +273,13 @@ function sanitizarUsuarios(arr) {
       const totalDepositos = Number.isFinite(totalDepositosRaw) && totalDepositosRaw >= 0
         ? Number(totalDepositosRaw.toFixed(2))
         : 0;
+      const indicadorId = normalizarIdPositivo(raw.indicadorId);
+      const bonusIndicacaoSaldo = normalizarValorNaoNegativo(raw.bonusIndicacaoSaldo);
+      const bonusIndicacaoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoTotal);
+      const bonusIndicacaoConvertidoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoConvertidoTotal);
+      const bonusIndicacaoConvertidoHoje = normalizarValorNaoNegativo(raw.bonusIndicacaoConvertidoHoje);
+      const bonusIndicacaoConvertidoHojeData = normalizarDataISO(raw.bonusIndicacaoConvertidoHojeData);
+      const indicadosTotal = normalizarContadorNaoNegativo(raw.indicadosTotal);
       const telefone = formatarTelefoneBrasil(raw.telefone);
       const chavePix = String(raw.chavePix || "").trim().slice(0, 120);
       if (!Number.isFinite(id)) return null;
@@ -260,6 +298,13 @@ function sanitizarUsuarios(arr) {
         comissaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? comissaoSaldo : 0,
         comissaoTotal: role === PAPEL_USUARIO_PROMOTOR ? comissaoTotal : 0,
         totalDepositos,
+        indicadorId: role === PAPEL_USUARIO_PROMOTOR ? null : indicadorId,
+        bonusIndicacaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoSaldo,
+        bonusIndicacaoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoTotal,
+        bonusIndicacaoConvertidoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoConvertidoTotal,
+        bonusIndicacaoConvertidoHoje: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoConvertidoHoje,
+        bonusIndicacaoConvertidoHojeData: role === PAPEL_USUARIO_PROMOTOR ? "" : (bonusIndicacaoConvertidoHojeData || ""),
+        indicadosTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : indicadosTotal,
         telefone,
         chavePix
       };
@@ -269,14 +314,28 @@ function sanitizarUsuarios(arr) {
   const idsPromotores = new Set(
     sane.filter((item) => item.role === PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
   );
+  const idsApostadores = new Set(
+    sane.filter((item) => item.role !== PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
+  );
   sane.forEach((item) => {
     if (item.role === PAPEL_USUARIO_PROMOTOR) {
       item.promotorId = null;
+      item.indicadorId = null;
+      item.bonusIndicacaoSaldo = 0;
+      item.bonusIndicacaoTotal = 0;
+      item.bonusIndicacaoConvertidoTotal = 0;
+      item.bonusIndicacaoConvertidoHoje = 0;
+      item.bonusIndicacaoConvertidoHojeData = "";
+      item.indicadosTotal = 0;
       return;
     }
     if (!idsPromotores.has(item.promotorId)) {
       item.promotorId = null;
     }
+    if (!idsApostadores.has(item.indicadorId) || item.indicadorId === item.id) {
+      item.indicadorId = null;
+    }
+    resetarControleDiarioBonusIndicacao(item, hojeISO());
   });
 
   return sane;
@@ -468,6 +527,125 @@ function atualizarResumoUsuario() {
   }
   resumo.innerText =
     `Login: @${usuarioAtual.login} | Saldo atual: ${formatarMoedaBR(usuarioAtual.saldo)}`;
+}
+
+function atualizarStatusBonusPerfil(texto, erro) {
+  const el = document.getElementById("perfilBonusStatus");
+  if (!el) return;
+  el.style.color = erro ? "#ff6b6b" : "#9fb3c8";
+  el.innerText = texto || "";
+}
+
+function atualizarCardBonusIndicacaoPerfil() {
+  const resumoEl = document.getElementById("perfilIndicacaoResumo");
+  const loginEl = document.getElementById("perfilLoginIndicacao");
+  const disponivelEl = document.getElementById("perfilBonusDisponivel");
+  const convertidoHojeEl = document.getElementById("perfilBonusConvertidoHoje");
+  const limiteHojeEl = document.getElementById("perfilBonusLimiteHoje");
+  const btnConverter = document.getElementById("btnConverterBonusPerfil");
+  if (!resumoEl || !loginEl || !disponivelEl || !convertidoHojeEl || !limiteHojeEl || !btnConverter) return;
+
+  limiteHojeEl.innerText = formatarMoedaBR(BONUS_INDICACAO_LIMITE_DIARIO);
+
+  if (!usuarioAtual) {
+    resumoEl.innerText = "Faça login para acompanhar seu bônus de indicação.";
+    loginEl.innerText = "@--";
+    disponivelEl.innerText = "R$ 0,00";
+    convertidoHojeEl.innerText = "R$ 0,00";
+    btnConverter.disabled = true;
+    return;
+  }
+
+  if (String(usuarioAtual.role || "") === PAPEL_USUARIO_PROMOTOR) {
+    resumoEl.innerText =
+      "Programa de indicação disponível para apostadores da plataforma (não para perfil promotor).";
+    loginEl.innerText = `@${usuarioAtual.login}`;
+    disponivelEl.innerText = "R$ 0,00";
+    convertidoHojeEl.innerText = "R$ 0,00";
+    btnConverter.disabled = true;
+    return;
+  }
+
+  resetarControleDiarioBonusIndicacao(usuarioAtual, hojeISO());
+  const bonusDisponivel = normalizarValorNaoNegativo(usuarioAtual.bonusIndicacaoSaldo);
+  const convertidoHoje = normalizarValorNaoNegativo(usuarioAtual.bonusIndicacaoConvertidoHoje);
+  const indicadosTotal = normalizarContadorNaoNegativo(usuarioAtual.indicadosTotal);
+  const limiteRestante = normalizarValorNaoNegativo(BONUS_INDICACAO_LIMITE_DIARIO - convertidoHoje);
+  const podeConverter =
+    bonusDisponivel >= BONUS_INDICACAO_VALOR_CONVERSAO &&
+    limiteRestante >= BONUS_INDICACAO_VALOR_CONVERSAO;
+
+  resumoEl.innerText =
+    `Bônus por indicação: a cada cadastro indicado você recebe ${formatarMoedaBR(BONUS_INDICACAO_VALOR_POR_CADASTRO)} de bônus. ` +
+    `Conversão em saldo: ${formatarMoedaBR(BONUS_INDICACAO_VALOR_CONVERSAO)} por vez, ` +
+    `com limite de ${formatarMoedaBR(BONUS_INDICACAO_LIMITE_DIARIO)} por dia. ` +
+    `Indicados totais: ${indicadosTotal}.`;
+  loginEl.innerText = `@${usuarioAtual.login}`;
+  disponivelEl.innerText = formatarMoedaBR(bonusDisponivel);
+  convertidoHojeEl.innerText = formatarMoedaBR(convertidoHoje);
+  btnConverter.disabled = !podeConverter;
+}
+
+function converterBonusIndicacaoPerfil() {
+  if (!usuarioAtual) {
+    atualizarStatusBonusPerfil("Faça login para converter bônus.", true);
+    return;
+  }
+
+  if (String(usuarioAtual.role || "") === PAPEL_USUARIO_PROMOTOR) {
+    atualizarStatusBonusPerfil("Perfil promotor não possui conversão de bônus de indicação.", true);
+    return;
+  }
+
+  const idx = usuarios.findIndex((u) => u.id === usuarioAtual.id);
+  if (idx === -1) {
+    atualizarStatusBonusPerfil("Usuário não encontrado. Faça login novamente.", true);
+    return;
+  }
+
+  const alvo = usuarios[idx];
+  resetarControleDiarioBonusIndicacao(alvo, hojeISO());
+
+  const bonusDisponivel = normalizarValorNaoNegativo(alvo.bonusIndicacaoSaldo);
+  const convertidoHoje = normalizarValorNaoNegativo(alvo.bonusIndicacaoConvertidoHoje);
+  const limiteRestante = normalizarValorNaoNegativo(BONUS_INDICACAO_LIMITE_DIARIO - convertidoHoje);
+  if (bonusDisponivel < BONUS_INDICACAO_VALOR_CONVERSAO) {
+    atualizarStatusBonusPerfil(
+      `Você precisa de pelo menos ${formatarMoedaBR(BONUS_INDICACAO_VALOR_CONVERSAO)} em bônus para converter.`,
+      true
+    );
+    atualizarCardBonusIndicacaoPerfil();
+    return;
+  }
+  if (limiteRestante < BONUS_INDICACAO_VALOR_CONVERSAO) {
+    atualizarStatusBonusPerfil(
+      `Limite diário de conversão atingido (${formatarMoedaBR(BONUS_INDICACAO_LIMITE_DIARIO)}).`,
+      true
+    );
+    atualizarCardBonusIndicacaoPerfil();
+    return;
+  }
+
+  const valorConversao = BONUS_INDICACAO_VALOR_CONVERSAO;
+  alvo.bonusIndicacaoSaldo = normalizarValorNaoNegativo(alvo.bonusIndicacaoSaldo - valorConversao);
+  alvo.bonusIndicacaoConvertidoHoje = normalizarValorNaoNegativo(alvo.bonusIndicacaoConvertidoHoje + valorConversao);
+  alvo.bonusIndicacaoConvertidoHojeData = hojeISO();
+  alvo.bonusIndicacaoConvertidoTotal = normalizarValorNaoNegativo(
+    alvo.bonusIndicacaoConvertidoTotal + valorConversao
+  );
+  alvo.saldo = normalizarValorNaoNegativo(alvo.saldo + valorConversao);
+
+  usuarios[idx] = alvo;
+  usuarioAtual = alvo;
+  salvarJSONStorage(USUARIOS_KEY, usuarios);
+  localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
+
+  atualizarResumoUsuario();
+  atualizarCardBonusIndicacaoPerfil();
+  atualizarStatusBonusPerfil(
+    `Conversão concluída: +${formatarMoedaBR(valorConversao)} no saldo.`,
+    false
+  );
 }
 
 function obterCamposPerfil() {
@@ -898,6 +1076,8 @@ function initPerfil() {
   carregarEstado();
   configurarMascaraTelefonePerfil();
   atualizarResumoUsuario();
+  atualizarCardBonusIndicacaoPerfil();
+  atualizarStatusBonusPerfil("", false);
   preencherCamposPerfil();
   configurarFiltroDataApostas();
   mostrarApostasPerfil();
@@ -933,6 +1113,12 @@ function initPerfil() {
   const btnHoje = document.getElementById("btnPerfilHoje");
   if (btnHoje) {
     btnHoje.addEventListener("click", irHojeApostasPerfil);
+  }
+
+  const btnConverterBonus = document.getElementById("btnConverterBonusPerfil");
+  if (btnConverterBonus) {
+    btnConverterBonus.disabled = !usuarioAtual;
+    btnConverterBonus.addEventListener("click", converterBonusIndicacaoPerfil);
   }
 
   atualizarControlesEdicaoPerfil();

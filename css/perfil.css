@@ -148,6 +148,25 @@
   gap: 8px;
 }
 
+.perfil-bonus-grid {
+  margin: 8px 0 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#perfilBonusDisponivel {
+  color: #00e676;
+}
+
+#perfilBonusConvertidoHoje {
+  color: #9fd5ff;
+}
+
+#perfilBonusLimiteHoje {
+  color: #ffd54f;
+}
+
 .perfil-status-dia-item {
   background: #0f1a24;
   border: 1px solid #2a4155;
@@ -265,6 +284,10 @@
   }
 
   .perfil-resumo-status-dia {
+    grid-template-columns: 1fr;
+  }
+
+  .perfil-bonus-grid {
     grid-template-columns: 1fr;
   }
 
