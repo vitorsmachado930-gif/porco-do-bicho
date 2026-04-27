@@ -4038,9 +4038,9 @@ function renderizarBilheteRascunhoAposta() {
   if (!bloco || !resumo || !lista) return;
 
   if (apostasBilheteRascunho.length === 0) {
-    bloco.style.display = "none";
-    resumo.innerText = "";
-    lista.innerHTML = "";
+    bloco.style.display = "block";
+    resumo.innerText = "Bilhete em montagem. Adicione apostas para visualizar abaixo.";
+    lista.innerHTML = "<div class=\"item-bilhete-rascunho\">Nenhuma aposta adicionada ainda.</div>";
     return;
   }
 
@@ -4068,6 +4068,18 @@ function renderizarBilheteRascunhoAposta() {
   lista.innerHTML = apostasBilheteRascunho
     .map((item, index) => {
       const tipo = TIPOS_APOSTA[item.tipo] || item.tipo;
+      const tipoNormalizado = normalizarTipoAposta(item.tipo);
+      const palpiteEhGrupo =
+        tipoNormalizado === "grupo" ||
+        tipoNormalizado === "dupla_grupo" ||
+        tipoNormalizado === "terno_grupo" ||
+        tipoNormalizado === "dupla_grupo_1a5" ||
+        tipoNormalizado === "terno_grupo_1a5" ||
+        tipoNormalizado === "passe_seco" ||
+        tipoNormalizado === "passe_vai_vem";
+      const classeLinhaPalpite = palpiteEhGrupo
+        ? "bilhete-linha-palpite bilhete-linha-palpite-grupo"
+        : "bilhete-linha-palpite";
       const palpite = formatarPalpiteParaBilhete(item);
       return (
         `<div class="item-bilhete-rascunho">` +
@@ -4075,7 +4087,7 @@ function renderizarBilheteRascunhoAposta() {
         `<strong>${tipo}</strong>` +
         `<button type="button" class="btn-danger btn-remover-rascunho" onclick="removerApostaBilheteRascunho(${index})">Remover</button>` +
         `</div>` +
-        `<div>Palpite: <b>${palpite}</b></div>` +
+        `<div class="${classeLinhaPalpite}">Palpite: <b>${palpite}</b></div>` +
         `<div>Valor: ${formatarMoedaBR(item.valor)} | Potencial: ${formatarMoedaBR(item.premio)}</div>` +
         `</div>`
       );
@@ -4103,24 +4115,6 @@ function removerApostaBilheteRascunho(index) {
     contextoBilheteRascunho = null;
   }
   renderizarBilheteRascunhoAposta();
-}
-
-function verBilheteRascunhoAposta() {
-  const bloco = document.getElementById("bilheteRascunhoAposta");
-  if (!bloco) return;
-
-  if (apostasBilheteRascunho.length === 0) {
-    bloco.style.display = "block";
-    const resumo = document.getElementById("resumoBilheteRascunho");
-    const lista = document.getElementById("listaBilheteRascunho");
-    if (resumo) resumo.innerText = "Bilhete em montagem. Adicione apostas para visualizar.";
-    if (lista) lista.innerHTML = "<div class=\"item-bilhete-rascunho\">Nenhuma aposta adicionada ainda.</div>";
-    mostrarConfirmacaoApostaRapida("Bilhete ainda vazio. Adicione apostas.");
-  } else {
-    renderizarBilheteRascunhoAposta();
-  }
-
-  bloco.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function adicionarApostaAoBilhete() {
@@ -4778,7 +4772,6 @@ window.salvarLimitesAposta = salvarLimitesAposta;
 window.restaurarLimitesPadrao = restaurarLimitesPadrao;
 window.salvarAposta = salvarAposta;
 window.adicionarApostaAoBilhete = adicionarApostaAoBilhete;
-window.verBilheteRascunhoAposta = verBilheteRascunhoAposta;
 window.limparBilheteRascunho = limparBilheteRascunho;
 window.removerApostaBilheteRascunho = removerApostaBilheteRascunho;
 window.depositarSaldoUsuario = depositarSaldoUsuario;

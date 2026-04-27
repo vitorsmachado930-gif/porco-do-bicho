@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="img/mascote/icone.png?v=20260425">
 <link rel="apple-touch-icon" href="img/mascote/icone.png?v=20260425">
 
-<link rel="stylesheet" href="css/style.css?v=20260427-1">
+<link rel="stylesheet" href="css/style.css?v=20260427-4">
 </head>
 
 <body>
@@ -134,8 +134,6 @@
       <option value="dezena">Dezena</option>
     </select>
 
-    <input id="valorAposta" value="R$ 0,00" placeholder="Valor da aposta" inputmode="numeric">
-
     <div id="palpiteGrupoContainer" class="palpite-grupo-container" style="display:none;">
       <div class="palpite-grupo-selects" aria-hidden="true">
         <select id="palpiteGrupo1">
@@ -178,17 +176,17 @@
     </div>
 
     <input id="palpiteAposta" placeholder="Palpite numérico (ex: 1234)" inputmode="numeric">
+    <input id="valorAposta" value="R$ 0,00" placeholder="Valor da aposta" inputmode="numeric">
     <div id="blocoPremiacaoAposta" class="bloco-premiacao-aposta">
       <p id="destaquePremiacaoAposta"></p>
     </div>
     <div class="acoes-bilhete-aposta">
       <button type="button" class="btn-secondary" onclick="adicionarApostaAoBilhete()">Adicionar ao bilhete</button>
-      <button type="button" class="btn-secondary" onclick="verBilheteRascunhoAposta()">Ver bilhete</button>
       <button type="button" class="btn-secondary" onclick="limparBilheteRascunho()">Limpar bilhete</button>
     </div>
     <div id="bilheteRascunhoAposta" class="bilhete-rascunho-aposta" style="display:none;">
-      <p id="resumoBilheteRascunho" class="resumo-bilhete-rascunho"></p>
       <div id="listaBilheteRascunho" class="lista-bilhete-rascunho"></div>
+      <p id="resumoBilheteRascunho" class="resumo-bilhete-rascunho"></p>
     </div>
     <div class="loterias-aposta-bloco">
       <div class="loterias-aposta-topo">
@@ -278,6 +276,6 @@
   </div>
 </footer>
 
-<script src="js/app.js?v=20260427-1"></script>
+<script src="js/app.js?v=20260427-3"></script>
 </body>
 </html>

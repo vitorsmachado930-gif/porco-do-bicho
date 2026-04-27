@@ -580,6 +580,11 @@ button:disabled {
   padding: 8px 10px;
 }
 
+#cardApostas #blocoPremiacaoAposta {
+  width: min(100%, 320px);
+  margin: 4px auto 0 auto;
+}
+
 .bloco-premiacao-aposta.ativa {
   border-color: #ffd60088;
   background: linear-gradient(160deg, #18231a 0%, #203128 100%);
@@ -589,12 +594,18 @@ button:disabled {
 .acoes-bilhete-aposta {
   margin-top: 8px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
 .acoes-bilhete-aposta button {
   margin: 0;
+  width: 100%;
+}
+
+#cardApostas .acoes-bilhete-aposta {
+  width: min(100%, 320px);
+  margin: 8px auto 0 auto;
 }
 
 .bilhete-rascunho-aposta {
@@ -605,8 +616,14 @@ button:disabled {
   background: #0f1a24;
 }
 
+#cardApostas .bilhete-rascunho-aposta {
+  width: min(100%, 320px);
+  margin: 8px auto 0 auto;
+  box-sizing: border-box;
+}
+
 .resumo-bilhete-rascunho {
-  margin: 0 0 6px 0;
+  margin: 6px 0 0 0;
   font-size: 13px;
   color: #9fd5ff;
 }
@@ -636,6 +653,10 @@ button:disabled {
 
 .item-bilhete-rascunho strong {
   color: #e8f3ff;
+}
+
+.bilhete-linha-palpite-grupo {
+  text-align: center;
 }
 
 .btn-remover-rascunho {
@@ -848,6 +869,7 @@ button:disabled {
 }
 
 #cardApostas #tipoAposta,
+#cardApostas #palpiteAposta,
 #cardApostas #valorAposta {
   width: min(100%, 320px);
   margin: 4px auto;
