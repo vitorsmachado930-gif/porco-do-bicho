@@ -4049,12 +4049,13 @@ function entrarUsuario() {
   atualizarVisibilidadeUsuario();
   if (usuarioEhPromotor(encontrado)) {
     atualizarStatusUsuario(`Conectado como promotor ${encontrado.nome} (@${encontrado.login}).`, false);
-    mostrarConfirmacaoApostaRapida(`Login realizado. Redirecionando ${encontrado.nome} para o painel de promotor.`);
-    window.location.href = "paginas/promotor.html";
-    return;
+    mostrarConfirmacaoApostaRapida(
+      `Login realizado. ${encontrado.nome} pode apostar normalmente e acessar o Painel Promotor pelo topo.`
+    );
+  } else {
+    atualizarStatusUsuario(`Conectado como ${encontrado.nome} (@${encontrado.login}).`, false);
+    mostrarConfirmacaoApostaRapida(`Login realizado. Bem-vindo, ${encontrado.nome}!`);
   }
-  atualizarStatusUsuario(`Conectado como ${encontrado.nome} (@${encontrado.login}).`, false);
-  mostrarConfirmacaoApostaRapida(`Login realizado. Bem-vindo, ${encontrado.nome}!`);
   limparCamposUsuario();
   mostrar();
 }
@@ -4885,6 +4886,25 @@ function atualizarGestaoPromotoresAdmin(usuariosOrdenados, apostasComResultado) 
     : sanitizarApostas(apostas).map((item) => ({ item, resultado: resultadoDaAposta(item) }));
   const promotores = listaUsuarios.filter((item) => usuarioEhPromotor(item));
   const apostadores = listaUsuarios.filter((item) => usuarioEhApostador(item));
+  const calcularResumoBase = (baseApostadores) =>
+    baseApostadores.reduce(
+      (acc, apostador) => {
+        const resumoApostas = calcularResumoApostasUsuario(apostador, listaApostas);
+        acc.totalApostas += resumoApostas.totalApostas;
+        acc.totalApostado += resumoApostas.totalApostado;
+        acc.totalGanhos += resumoApostas.totalGanhos;
+        acc.totalPerdas += resumoApostas.totalPerdas;
+        acc.totalDepositos += normalizarValorNaoNegativo(apostador.totalDepositos);
+        return acc;
+      },
+      {
+        totalApostas: 0,
+        totalApostado: 0,
+        totalGanhos: 0,
+        totalPerdas: 0,
+        totalDepositos: 0
+      }
+    );
 
   if (inputNovoPercentual && !String(inputNovoPercentual.value || "").trim()) {
     inputNovoPercentual.value = String(COMISSAO_PROMOTOR_PADRAO);
@@ -4921,7 +4941,7 @@ function atualizarGestaoPromotoresAdmin(usuariosOrdenados, apostasComResultado) 
 
   if (selectPromotorVinculo) {
     const valorAtual = String(selectPromotorVinculo.value || "");
-    selectPromotorVinculo.innerHTML = '<option value="">Sem promotor</option>';
+    selectPromotorVinculo.innerHTML = '<option value="">Base do Admin</option>';
     promotores.forEach((promotor) => {
       const opt = document.createElement("option");
       opt.value = String(promotor.id);
@@ -4938,7 +4958,7 @@ function atualizarGestaoPromotoresAdmin(usuariosOrdenados, apostasComResultado) 
     selectApostadorVinculo.innerHTML = '<option value="">Selecione o apostador</option>';
     apostadores.forEach((apostador) => {
       const promotor = promotores.find((item) => item.id === normalizarPromotorId(apostador.promotorId));
-      const infoBase = promotor ? ` | base de @${promotor.login}` : " | sem base";
+      const infoBase = promotor ? ` | base de @${promotor.login}` : " | base do admin";
       const opt = document.createElement("option");
       opt.value = String(apostador.id);
       opt.innerText = `${apostador.nome} (@${apostador.login})${infoBase}`;
@@ -4950,35 +4970,30 @@ function atualizarGestaoPromotoresAdmin(usuariosOrdenados, apostasComResultado) 
   }
 
   if (listaPromotoresAdmin) {
-    if (promotores.length === 0) {
-      listaPromotoresAdmin.innerHTML = '<div class="item-admin-linha">Nenhum promotor cadastrado.</div>';
-      return;
-    }
+    const baseAdmin = apostadores.filter((item) => !normalizarPromotorId(item.promotorId));
+    const resumoBaseAdmin = calcularResumoBase(baseAdmin);
+    const blocos = [];
 
-    listaPromotoresAdmin.innerHTML = promotores
-      .map((promotor) => {
+    blocos.push(
+      `<div class="item-admin-linha">` +
+      `<b>Admin</b> (base padrão)<br>` +
+      `Apostadores da base: <b>${baseAdmin.length}</b><br>` +
+      `Depósitos da base: <b>${formatarMoedaBR(resumoBaseAdmin.totalDepositos)}</b><br>` +
+      `Apostado pela base: <b>${formatarMoedaBR(resumoBaseAdmin.totalApostado)}</b><br>` +
+      `Ganhos da base: <b>${formatarMoedaBR(resumoBaseAdmin.totalGanhos)}</b> | ` +
+      `Perdas da base: <b>${formatarMoedaBR(resumoBaseAdmin.totalPerdas)}</b>` +
+      `</div>`
+    );
+
+    if (promotores.length === 0) {
+      blocos.push('<div class="item-admin-linha">Nenhum promotor cadastrado.</div>');
+    } else {
+      promotores.forEach((promotor) => {
         const base = apostadores.filter(
           (item) => normalizarPromotorId(item.promotorId) === normalizarPromotorId(promotor.id)
         );
-        const resumoBase = base.reduce(
-          (acc, apostador) => {
-            const resumoApostas = calcularResumoApostasUsuario(apostador, listaApostas);
-            acc.totalApostas += resumoApostas.totalApostas;
-            acc.totalApostado += resumoApostas.totalApostado;
-            acc.totalGanhos += resumoApostas.totalGanhos;
-            acc.totalPerdas += resumoApostas.totalPerdas;
-            acc.totalDepositos += normalizarValorNaoNegativo(apostador.totalDepositos);
-            return acc;
-          },
-          {
-            totalApostas: 0,
-            totalApostado: 0,
-            totalGanhos: 0,
-            totalPerdas: 0,
-            totalDepositos: 0
-          }
-        );
-        return (
+        const resumoBase = calcularResumoBase(base);
+        blocos.push(
           `<div class="item-admin-linha">` +
           `<b>${promotor.nome}</b> (@${promotor.login})<br>` +
           `Comissão: <b>${normalizarPercentualComissao(promotor.comissaoPercentual).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%</b><br>` +
@@ -4991,8 +5006,10 @@ function atualizarGestaoPromotoresAdmin(usuariosOrdenados, apostasComResultado) 
           `Disponível: <b>${formatarMoedaBR(promotor.comissaoSaldo)}</b>` +
           `</div>`
         );
-      })
-      .join("");
+      });
+    }
+
+    listaPromotoresAdmin.innerHTML = blocos.join("");
   }
 }
 
@@ -5126,7 +5143,11 @@ function vincularApostadorPromotorAdmin() {
     );
   } else {
     apostador.promotorId = null;
-    atualizarStatusAdminPromotor("statusVinculoPromotorAdmin", "Vínculo removido com sucesso.", false);
+    atualizarStatusAdminPromotor(
+      "statusVinculoPromotorAdmin",
+      "Apostador movido para a base do admin.",
+      false
+    );
   }
 
   salvarUsuarios();
@@ -5296,11 +5317,16 @@ function mostrarPainelAdmin() {
           !usuarioEhPromotor(user) && user.promotorId
             ? usuariosOrdenados.find((item) => item.id === user.promotorId && usuarioEhPromotor(item))
             : null;
+        const baseLinha = usuarioEhPromotor(user)
+          ? ""
+          : promotor
+            ? ` | Base: <b>@${promotor.login}</b>`
+            : " | Base: <b>Admin</b>";
         const depositoTotal = normalizarValorNaoNegativo(user.totalDepositos);
         return (
           `<div class="item-admin-linha">` +
           `<b>${user.nome}</b> (@${user.login})<br>` +
-          `Perfil: <b>${papel}</b>${promotor ? ` | Base: <b>@${promotor.login}</b>` : ""}<br>` +
+          `Perfil: <b>${papel}</b>${baseLinha}<br>` +
           `Cadastro: ${dataCadastroUsuario(user)}<br>` +
           `Saldo: <b>${formatarMoedaBR(user.saldo)}</b><br>` +
           `Depósitos: <b>${formatarMoedaBR(depositoTotal)}</b><br>` +
