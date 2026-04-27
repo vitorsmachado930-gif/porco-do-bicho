@@ -15,9 +15,12 @@ const TIPOS_APOSTA = {
   passe_vai_vem: "Passe Vai e Vem",
   dupla_grupo_1a5: "Dupla de Grupo 1º ao 5º",
   terno_grupo_1a5: "Terno de Grupo 1º ao 5º",
-  milhar: "Milhar",
-  centena: "Centena",
-  dezena: "Dezena"
+  milhar: "Milhar (Ao quinto 1º-5º)",
+  milhar_seca: "Milhar (Seca 1º)",
+  centena: "Centena (Ao quinto 1º-5º)",
+  centena_seca: "Centena (Seca 1º)",
+  dezena: "Dezena (Ao quinto 1º-5º)",
+  dezena_seca: "Dezena (Seca 1º)"
 };
 
 let usuarios = [];
@@ -353,6 +356,7 @@ function resultadoDaAposta(aposta) {
   const numerosResultado = achado.resultados.map((r) => String(r.numero || "").padStart(4, "0"));
   const dezenasResultado = numerosResultado.map((n) => n.slice(-2));
   const gruposPrimeiros2 = gruposResultado.slice(0, 2);
+  const primeiroNumero = numerosResultado[0] || "";
   const palpite = String(aposta.palpite || "").trim();
   let ganhou = false;
 
@@ -392,10 +396,16 @@ function resultadoDaAposta(aposta) {
     ganhou = alvo.length === 3 && alvo.every((g) => gruposResultado.includes(g));
   } else if (aposta.tipo === "milhar") {
     ganhou = numerosResultado.includes(palpite);
+  } else if (aposta.tipo === "milhar_seca") {
+    ganhou = primeiroNumero === palpite;
   } else if (aposta.tipo === "centena") {
     ganhou = numerosResultado.some((n) => n.slice(-3) === palpite);
+  } else if (aposta.tipo === "centena_seca") {
+    ganhou = primeiroNumero.slice(-3) === palpite;
   } else if (aposta.tipo === "dezena") {
     ganhou = numerosResultado.some((n) => n.slice(-2) === palpite);
+  } else if (aposta.tipo === "dezena_seca") {
+    ganhou = primeiroNumero.slice(-2) === palpite;
   }
 
   return ganhou

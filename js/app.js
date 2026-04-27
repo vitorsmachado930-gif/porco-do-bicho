@@ -30,9 +30,12 @@ const TIPOS_APOSTA = {
   passe_vai_vem: "Passe Vai e Vem",
   dupla_grupo_1a5: "Dupla de Grupo 1º ao 5º",
   terno_grupo_1a5: "Terno de Grupo 1º ao 5º",
-  milhar: "Milhar",
-  centena: "Centena",
-  dezena: "Dezena"
+  milhar: "Milhar (Ao quinto 1º-5º)",
+  milhar_seca: "Milhar (Seca 1º)",
+  centena: "Centena (Ao quinto 1º-5º)",
+  centena_seca: "Centena (Seca 1º)",
+  dezena: "Dezena (Ao quinto 1º-5º)",
+  dezena_seca: "Dezena (Seca 1º)"
 };
 
 const PREMIO_FICTICIO_MULTIPLICADOR = {
@@ -46,8 +49,11 @@ const PREMIO_FICTICIO_MULTIPLICADOR = {
   dupla_grupo_1a5: 45,
   terno_grupo_1a5: 140,
   milhar: 4000,
+  milhar_seca: 4000,
   centena: 600,
-  dezena: 60
+  centena_seca: 600,
+  dezena: 60,
+  dezena_seca: 60
 };
 const TIPOS_PREMIACAO_DESTAQUE_BASE = ["grupo", "terno_grupo", "milhar"];
 const TIPOS_PREMIACAO_DESTAQUE_EXTRA = ["dupla_grupo", "centena", "dezena"];
@@ -257,6 +263,12 @@ function obterSubtipoTernoGrupoSelecionado() {
   return valor === "ao_quinto" ? "ao_quinto" : "seco";
 }
 
+function obterSubtipoNumericoSelecionado() {
+  const select = document.getElementById("subtipoNumericoAposta");
+  const valor = String(select ? select.value : "").trim();
+  return valor === "ao_quinto" ? "ao_quinto" : "seca";
+}
+
 function obterTipoApostaSelecionadoNoFormulario() {
   const tipoInput = document.getElementById("tipoAposta");
   const tipoBruto = normalizarTipoAposta(tipoInput ? tipoInput.value : "");
@@ -270,6 +282,21 @@ function obterTipoApostaSelecionadoNoFormulario() {
       ? "terno_grupo_1a5"
       : "terno_grupo";
   }
+  if (tipoBruto === "milhar") {
+    return obterSubtipoNumericoSelecionado() === "ao_quinto"
+      ? "milhar"
+      : "milhar_seca";
+  }
+  if (tipoBruto === "centena") {
+    return obterSubtipoNumericoSelecionado() === "ao_quinto"
+      ? "centena"
+      : "centena_seca";
+  }
+  if (tipoBruto === "dezena") {
+    return obterSubtipoNumericoSelecionado() === "ao_quinto"
+      ? "dezena"
+      : "dezena_seca";
+  }
   return tipoBruto;
 }
 
@@ -277,19 +304,25 @@ function atualizarVisibilidadeSubtiposGrupo() {
   const tipoInput = document.getElementById("tipoAposta");
   const selectSubtipoDupla = document.getElementById("subtipoDuplaGrupo");
   const selectSubtipoTerno = document.getElementById("subtipoTernoGrupo");
-  if (!tipoInput || !selectSubtipoDupla || !selectSubtipoTerno) return;
+  const selectSubtipoNumerico = document.getElementById("subtipoNumericoAposta");
+  if (!tipoInput || !selectSubtipoDupla || !selectSubtipoTerno || !selectSubtipoNumerico) return;
 
   const tipoBruto = normalizarTipoAposta(tipoInput.value);
   const exibirDupla = tipoBruto === "dupla_grupo";
   const exibirTerno = tipoBruto === "terno_grupo";
+  const exibirNumerico = tipoBruto === "milhar" || tipoBruto === "centena" || tipoBruto === "dezena";
   selectSubtipoDupla.style.display = exibirDupla ? "block" : "none";
   selectSubtipoTerno.style.display = exibirTerno ? "block" : "none";
+  selectSubtipoNumerico.style.display = exibirNumerico ? "block" : "none";
 
   if (selectSubtipoDupla.value !== "ao_quinto" && selectSubtipoDupla.value !== "seca") {
     selectSubtipoDupla.value = "seca";
   }
   if (selectSubtipoTerno.value !== "ao_quinto" && selectSubtipoTerno.value !== "seco") {
     selectSubtipoTerno.value = "seco";
+  }
+  if (selectSubtipoNumerico.value !== "ao_quinto" && selectSubtipoNumerico.value !== "seca") {
+    selectSubtipoNumerico.value = "seca";
   }
 }
 
@@ -1043,6 +1076,7 @@ function resultadoDaAposta(aposta) {
   const palpite = String(aposta.palpite || "").trim();
   const dezenasResultado = numerosResultado.map((n) => n.slice(-2));
   const gruposPrimeiros2 = gruposResultado.slice(0, 2);
+  const primeiroNumero = numerosResultado[0] || "";
 
   if (tipo === "grupo") {
     ganhou = gruposResultado.includes(palpite);
@@ -1080,10 +1114,16 @@ function resultadoDaAposta(aposta) {
     ganhou = alvo.length === 3 && alvo.every((g) => gruposResultado.includes(g));
   } else if (tipo === "milhar") {
     ganhou = numerosResultado.includes(palpite);
+  } else if (tipo === "milhar_seca") {
+    ganhou = primeiroNumero === palpite;
   } else if (tipo === "centena") {
     ganhou = numerosResultado.some((n) => n.slice(-3) === palpite);
+  } else if (tipo === "centena_seca") {
+    ganhou = primeiroNumero.slice(-3) === palpite;
   } else if (tipo === "dezena") {
     ganhou = numerosResultado.some((n) => n.slice(-2) === palpite);
+  } else if (tipo === "dezena_seca") {
+    ganhou = primeiroNumero.slice(-2) === palpite;
   }
 
   const valor = Number(aposta.valor || 0);
@@ -1179,17 +1219,17 @@ function validarPalpiteAposta(tipo, palpite) {
     return parseGruposPalpite(palpiteTxt, 3);
   }
 
-  if (tipo === "milhar") {
+  if (tipo === "milhar" || tipo === "milhar_seca") {
     if (digitos.length !== 4) return { ok: false, mensagem: "Milhar precisa ter 4 dígitos." };
     return { ok: true, valor: digitos };
   }
 
-  if (tipo === "centena") {
+  if (tipo === "centena" || tipo === "centena_seca") {
     if (digitos.length !== 3) return { ok: false, mensagem: "Centena precisa ter 3 dígitos." };
     return { ok: true, valor: digitos };
   }
 
-  if (tipo === "dezena") {
+  if (tipo === "dezena" || tipo === "dezena_seca") {
     if (digitos.length !== 2) return { ok: false, mensagem: "Dezena precisa ter 2 dígitos." };
     return { ok: true, valor: digitos };
   }
@@ -2136,6 +2176,7 @@ function atualizarEstadoSecaoApostas(encerrada, opcoes) {
     "tipoAposta",
     "subtipoDuplaGrupo",
     "subtipoTernoGrupo",
+    "subtipoNumericoAposta",
     "palpiteAposta",
     "valorAposta",
     "palpiteGrupo1",
@@ -2487,18 +2528,18 @@ function quantidadeGruposPorTipoAposta(tipo) {
 function limiteDigitosPalpitePorTipo(tipo) {
   if (tipo === "duque_dezena") return 4;
   if (tipo === "terno_dezena") return 6;
-  if (tipo === "milhar") return 4;
-  if (tipo === "centena") return 3;
-  if (tipo === "dezena") return 2;
+  if (tipo === "milhar" || tipo === "milhar_seca") return 4;
+  if (tipo === "centena" || tipo === "centena_seca") return 3;
+  if (tipo === "dezena" || tipo === "dezena_seca") return 2;
   return 10;
 }
 
 function placeholderPalpitePorTipo(tipo) {
   if (tipo === "duque_dezena") return "Duque de Dezena (ex: 12-34)";
   if (tipo === "terno_dezena") return "Terno de Dezena (ex: 12-34-56)";
-  if (tipo === "milhar") return "Milhar (4 digitos)";
-  if (tipo === "centena") return "Centena (3 digitos)";
-  if (tipo === "dezena") return "Dezena (2 digitos)";
+  if (tipo === "milhar" || tipo === "milhar_seca") return "Milhar (4 digitos)";
+  if (tipo === "centena" || tipo === "centena_seca") return "Centena (3 digitos)";
+  if (tipo === "dezena" || tipo === "dezena_seca") return "Dezena (2 digitos)";
   return "Palpite numerico";
 }
 
@@ -3187,6 +3228,7 @@ function configurarCamposAposta() {
   const tipoInput = document.getElementById("tipoAposta");
   const subtipoDuplaInput = document.getElementById("subtipoDuplaGrupo");
   const subtipoTernoInput = document.getElementById("subtipoTernoGrupo");
+  const subtipoNumericoInput = document.getElementById("subtipoNumericoAposta");
   const palpiteInput = document.getElementById("palpiteAposta");
   const selectGrupo1 = document.getElementById("palpiteGrupo1");
   const selectGrupo2 = document.getElementById("palpiteGrupo2");
@@ -3208,6 +3250,13 @@ function configurarCamposAposta() {
 
   if (subtipoTernoInput) {
     subtipoTernoInput.addEventListener("change", () => {
+      atualizarModoCampoPalpiteAposta();
+      atualizarPreviewPremiacaoAposta();
+    });
+  }
+
+  if (subtipoNumericoInput) {
+    subtipoNumericoInput.addEventListener("change", () => {
       atualizarModoCampoPalpiteAposta();
       atualizarPreviewPremiacaoAposta();
     });
@@ -4385,6 +4434,7 @@ function limparCamposAposta(opcoes) {
   const tipo = document.getElementById("tipoAposta");
   const subtipoDuplaGrupo = document.getElementById("subtipoDuplaGrupo");
   const subtipoTernoGrupo = document.getElementById("subtipoTernoGrupo");
+  const subtipoNumericoAposta = document.getElementById("subtipoNumericoAposta");
   const palpite = document.getElementById("palpiteAposta");
   const valor = document.getElementById("valorAposta");
   const loteriaAposta = document.getElementById("loteriaAposta");
@@ -4397,6 +4447,7 @@ function limparCamposAposta(opcoes) {
   if (tipo) tipo.value = "";
   if (subtipoDuplaGrupo) subtipoDuplaGrupo.value = "seca";
   if (subtipoTernoGrupo) subtipoTernoGrupo.value = "seco";
+  if (subtipoNumericoAposta) subtipoNumericoAposta.value = "seca";
   if (palpite) palpite.value = "";
   if (valor) valor.value = "R$ 0,00";
   if (!manterLoteria) {

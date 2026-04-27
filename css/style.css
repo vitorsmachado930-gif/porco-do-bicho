@@ -888,6 +888,7 @@ button:disabled {
 #cardApostas #tipoAposta,
 #cardApostas #subtipoDuplaGrupo,
 #cardApostas #subtipoTernoGrupo,
+#cardApostas #subtipoNumericoAposta,
 #cardApostas #palpiteAposta,
 #cardApostas #valorAposta {
   width: min(100%, 320px);
