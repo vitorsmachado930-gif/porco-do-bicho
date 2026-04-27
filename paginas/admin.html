@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/style.css?v=20260427-9">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/admin.css?v=20260427-13">
+  <link rel="stylesheet" href="../css/admin.css?v=20260427-14">
 </head>
 <body>
   <header class="topo-pagina">
@@ -85,6 +85,46 @@
           <h4>Premiadas do dia</h4>
           <div id="listaApostasPremiadasAdmin" class="lista-admin-scroll"></div>
         </div>
+      </div>
+
+      <h3>Gestão de Promotores</h3>
+      <div class="painel-admin-listas">
+        <div class="painel-admin-bloco">
+          <h4>Cadastrar Promotor</h4>
+          <input id="promotorNomeAdmin" type="text" placeholder="Nome do promotor">
+          <input id="promotorLoginAdmin" type="text" placeholder="Login do promotor">
+          <input id="promotorSenhaAdmin" type="password" placeholder="Senha do promotor">
+          <input id="promotorPercentualAdmin" type="number" min="0" max="100" step="0.01" placeholder="% comissão por depósito">
+          <button type="button" onclick="criarPromotorAdmin()">Criar Promotor</button>
+          <p id="statusPromotorAdmin"></p>
+        </div>
+
+        <div class="painel-admin-bloco">
+          <h4>Comissão do Promotor</h4>
+          <select id="promotorComissaoAdmin">
+            <option value="">Selecione o promotor</option>
+          </select>
+          <input id="percentualComissaoPromotor" type="number" min="0" max="100" step="0.01" placeholder="Percentual de comissão">
+          <button type="button" onclick="salvarComissaoPromotorAdmin()">Salvar Comissão</button>
+          <p id="statusComissaoPromotorAdmin"></p>
+        </div>
+
+        <div class="painel-admin-bloco">
+          <h4>Vincular Apostador</h4>
+          <select id="apostadorVinculoAdmin">
+            <option value="">Selecione o apostador</option>
+          </select>
+          <select id="promotorVinculoAdmin">
+            <option value="">Sem promotor</option>
+          </select>
+          <button type="button" onclick="vincularApostadorPromotorAdmin()">Salvar Vínculo</button>
+          <p id="statusVinculoPromotorAdmin"></p>
+        </div>
+      </div>
+
+      <div class="painel-admin-bloco">
+        <h4>Resumo dos Promotores</h4>
+        <div id="listaPromotoresAdmin" class="lista-admin-scroll"></div>
       </div>
 
       <div class="admin-operacao-grid">
@@ -207,6 +247,6 @@
     Porco do Bicho • Painel Admin • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/app.js?v=20260427-11"></script>
+  <script src="../js/app.js?v=20260427-12"></script>
 </body>
 </html>

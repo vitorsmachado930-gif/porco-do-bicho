@@ -4,6 +4,8 @@ const USUARIOS_KEY = "usuarios_aposta";
 const USUARIO_SESSAO_KEY = "usuario_sessao_id";
 const PAINEL_UPDATED_AT_KEY = "painel_updated_at";
 const MAX_DIAS_HISTORICO = 7;
+const PAPEL_USUARIO_APOSTADOR = "apostador";
+const PAPEL_USUARIO_PROMOTOR = "promotor";
 
 const TIPOS_APOSTA = {
   grupo: "Grupo 1º",
@@ -209,7 +211,7 @@ function escaparHTML(valor) {
 
 function sanitizarUsuarios(arr) {
   const base = Array.isArray(arr) ? arr : [];
-  return base
+  const sane = base
     .map((raw) => {
       if (!raw || typeof raw !== "object") return null;
       const id = Number(raw.id);
@@ -217,6 +219,29 @@ function sanitizarUsuarios(arr) {
       const login = normalizarLoginUsuario(raw.login);
       const senha = String(raw.senha || "");
       const saldo = Number(raw.saldo);
+      const role =
+        String(raw.role || "").trim().toLowerCase() === PAPEL_USUARIO_PROMOTOR
+          ? PAPEL_USUARIO_PROMOTOR
+          : PAPEL_USUARIO_APOSTADOR;
+      const promotorIdNum = Number(raw.promotorId);
+      const promotorId =
+        Number.isFinite(promotorIdNum) && promotorIdNum > 0 ? Math.floor(promotorIdNum) : null;
+      const comissaoPercentualRaw = Number(raw.comissaoPercentual);
+      const comissaoPercentual = Number.isFinite(comissaoPercentualRaw)
+        ? Math.max(0, Math.min(100, Number(comissaoPercentualRaw.toFixed(2))))
+        : 0;
+      const comissaoSaldoRaw = Number(raw.comissaoSaldo);
+      const comissaoSaldo = Number.isFinite(comissaoSaldoRaw) && comissaoSaldoRaw >= 0
+        ? Number(comissaoSaldoRaw.toFixed(2))
+        : 0;
+      const comissaoTotalRaw = Number(raw.comissaoTotal);
+      const comissaoTotal = Number.isFinite(comissaoTotalRaw) && comissaoTotalRaw >= 0
+        ? Number(comissaoTotalRaw.toFixed(2))
+        : 0;
+      const totalDepositosRaw = Number(raw.totalDepositos);
+      const totalDepositos = Number.isFinite(totalDepositosRaw) && totalDepositosRaw >= 0
+        ? Number(totalDepositosRaw.toFixed(2))
+        : 0;
       const telefone = formatarTelefoneBrasil(raw.telefone);
       const chavePix = String(raw.chavePix || "").trim().slice(0, 120);
       if (!Number.isFinite(id)) return null;
@@ -229,11 +254,32 @@ function sanitizarUsuarios(arr) {
         login,
         senha,
         saldo: Number.isFinite(saldo) && saldo >= 0 ? Number(saldo.toFixed(2)) : 0,
+        role,
+        promotorId: role === PAPEL_USUARIO_PROMOTOR ? null : promotorId,
+        comissaoPercentual: role === PAPEL_USUARIO_PROMOTOR ? comissaoPercentual : 0,
+        comissaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? comissaoSaldo : 0,
+        comissaoTotal: role === PAPEL_USUARIO_PROMOTOR ? comissaoTotal : 0,
+        totalDepositos,
         telefone,
         chavePix
       };
     })
     .filter(Boolean);
+
+  const idsPromotores = new Set(
+    sane.filter((item) => item.role === PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
+  );
+  sane.forEach((item) => {
+    if (item.role === PAPEL_USUARIO_PROMOTOR) {
+      item.promotorId = null;
+      return;
+    }
+    if (!idsPromotores.has(item.promotorId)) {
+      item.promotorId = null;
+    }
+  });
+
+  return sane;
 }
 
 function sanitizarApostas(arr) {

@@ -63,6 +63,18 @@
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+#statusPromotorAdmin,
+#statusComissaoPromotorAdmin,
+#statusVinculoPromotorAdmin {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#listaPromotoresAdmin {
+  max-height: 320px;
+}
+
 .admin-operacao-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

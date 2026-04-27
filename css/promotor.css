@@ -1,0 +1,104 @@
+.topo-promotor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topo-promotor strong {
+  color: #d8e8f7;
+  font-size: 14px;
+}
+
+.container-promotor {
+  width: min(100%, 980px);
+}
+
+.topo-painel-promotor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topo-painel-promotor h3 {
+  margin: 0;
+}
+
+.btn-sair-promotor {
+  width: auto;
+  margin-top: 0;
+}
+
+.dashboard-promotor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+  margin: 10px 0 12px 0;
+}
+
+.dashboard-admin-card {
+  background: #0f1a24;
+  border: 1px solid #2a4155;
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.dashboard-admin-card span {
+  color: #9fb3c8;
+  font-size: 12px;
+}
+
+.dashboard-admin-card strong {
+  color: #e8f3ff;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.painel-promotor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 10px;
+}
+
+.item-base-promotor {
+  background: #13202d;
+  border: 1px solid #2a4155;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.item-base-promotor b {
+  color: #e8f3ff;
+}
+
+#statusPromotor {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#dashPromotorComissaoSaldo,
+#dashPromotorComissaoTotal {
+  color: #00e676;
+}
+
+#dashPromotorPerdas {
+  color: #ff5252;
+}
+
+@media (max-width: 640px) {
+  .topo-promotor strong {
+    font-size: 12px;
+  }
+
+  .dashboard-promotor-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

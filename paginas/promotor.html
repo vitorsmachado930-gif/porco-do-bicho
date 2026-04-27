@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel do Promotor | Porco do Bicho</title>
+  <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
+  <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
+  <link rel="stylesheet" href="../css/style.css?v=20260427-9">
+  <link rel="stylesheet" href="../css/paginas.css?v=20260425">
+  <link rel="stylesheet" href="../css/promotor.css?v=20260427-1">
+</head>
+<body>
+  <header class="topo-pagina">
+    <div class="topo-pagina-conteudo topo-promotor">
+      <a href="../index.html">← Voltar para Home</a>
+      <strong>Painel do Promotor</strong>
+    </div>
+  </header>
+
+  <main class="container container-promotor">
+    <div id="avisoPromotor" class="card" style="display:none;"></div>
+
+    <div id="painelPromotor" class="card" style="display:none;">
+      <div class="topo-painel-promotor">
+        <h3>Dashboard da Base</h3>
+        <button type="button" class="btn-danger btn-sair-promotor" onclick="sairPromotor()">Sair</button>
+      </div>
+      <p id="resumoPromotor" class="resumo-painel-admin"></p>
+
+      <div class="dashboard-promotor-grid">
+        <div class="dashboard-admin-card">
+          <span>Apostadores da base</span>
+          <strong id="dashPromotorApostadores">0</strong>
+        </div>
+        <div class="dashboard-admin-card">
+          <span>Depósitos da base</span>
+          <strong id="dashPromotorDepositos">R$ 0,00</strong>
+        </div>
+        <div class="dashboard-admin-card">
+          <span>Total de apostas</span>
+          <strong id="dashPromotorApostas">0</strong>
+        </div>
+        <div class="dashboard-admin-card">
+          <span>Valor apostado</span>
+          <strong id="dashPromotorApostado">R$ 0,00</strong>
+        </div>
+        <div class="dashboard-admin-card">
+          <span>Ganhos dos apostadores</span>
+          <strong id="dashPromotorGanhos">R$ 0,00</strong>
+        </div>
+        <div class="dashboard-admin-card">
+          <span>Perdas dos apostadores</span>
+          <strong id="dashPromotorPerdas">R$ 0,00</strong>
+        </div>
+        <div class="dashboard-admin-card">
+          <span>Comissão disponível</span>
+          <strong id="dashPromotorComissaoSaldo">R$ 0,00</strong>
+        </div>
+        <div class="dashboard-admin-card">
+          <span>Comissão acumulada</span>
+          <strong id="dashPromotorComissaoTotal">R$ 0,00</strong>
+        </div>
+      </div>
+
+      <div class="painel-promotor-grid">
+        <section class="painel-admin-bloco">
+          <h4>Cadastrar Apostador da Base</h4>
+          <input id="baseNome" type="text" placeholder="Nome do apostador">
+          <input id="baseLogin" type="text" placeholder="Login do apostador">
+          <input id="baseSenha" type="password" placeholder="Senha do apostador">
+          <button type="button" onclick="cadastrarApostadorBasePromotor()">Cadastrar na Base</button>
+          <p id="statusPromotor"></p>
+        </section>
+
+        <section class="painel-admin-bloco">
+          <h4>Apostadores da Base</h4>
+          <p id="resumoBasePromotor" class="resumo-painel-admin"></p>
+          <div id="listaApostadoresBasePromotor" class="lista-admin-scroll"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="rodape-pagina">
+    Porco do Bicho • Painel do Promotor.
+  </footer>
+
+  <script src="../js/promotor.js?v=20260427-1"></script>
+</body>
+</html>
