@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/perfil.css?v=20260427-2">
+  <link rel="stylesheet" href="../css/perfil.css?v=20260427-4">
 </head>
 <body>
   <header class="topo-pagina">
@@ -45,10 +45,17 @@
         <h2>Minhas Apostas</h2>
         <div class="perfil-apostas-filtro">
           <input id="perfilDataApostas" type="date" aria-label="Data das apostas">
+          <select id="perfilFiltroApostas" aria-label="Filtro de status das apostas">
+            <option value="todas">Todas as Apostas</option>
+            <option value="pendentes">Apostas em Andamento</option>
+            <option value="premiadas">Apostas Premiadas</option>
+            <option value="perdidas">Apostas Perdidas</option>
+          </select>
           <button id="btnPerfilHoje" type="button" class="btn-secundario">Hoje</button>
         </div>
       </div>
       <p id="perfilApostasResumo" class="perfil-apostas-resumo"></p>
+      <div id="perfilResumoStatusDia" class="perfil-resumo-status-dia"></div>
       <div id="perfilListaApostas" class="perfil-lista-apostas"></div>
     </article>
   </main>
@@ -57,6 +64,6 @@
     Porco do Bicho • Área de perfil • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/perfil.js?v=20260427-5"></script>
+  <script src="../js/perfil.js?v=20260427-7"></script>
 </body>
 </html>

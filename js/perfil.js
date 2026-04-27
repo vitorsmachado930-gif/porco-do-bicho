@@ -667,6 +667,65 @@ function resumoStatusBilhete(apostasBilhete) {
   };
 }
 
+function classificarBilhetesDoDia(bilhetes) {
+  const enriquecidos = (Array.isArray(bilhetes) ? bilhetes : []).map((grupo) => {
+    const status = resumoStatusBilhete(Array.isArray(grupo.apostas) ? grupo.apostas : []);
+    const createdAtRef = String(
+      grupo && grupo.apostas && grupo.apostas[0] && grupo.apostas[0].createdAt || ""
+    );
+    return {
+      grupo,
+      status,
+      createdAtRef
+    };
+  });
+
+  enriquecidos.sort((a, b) => a.createdAtRef.localeCompare(b.createdAtRef, "pt-BR"));
+
+  return {
+    pendentes: enriquecidos.filter((item) => item.status.status === "PENDENTE"),
+    premiados: enriquecidos.filter((item) => item.status.status === "GANHOU"),
+    perdidos: enriquecidos.filter((item) => item.status.status === "PERDEU")
+  };
+}
+
+function atualizarResumoStatusDia(pendentes, premiados, perdidos) {
+  const el = document.getElementById("perfilResumoStatusDia");
+  if (!el) return;
+
+  const listaPendentes = Array.isArray(pendentes) ? pendentes : [];
+  const listaPremiados = Array.isArray(premiados) ? premiados : [];
+  const listaPerdidos = Array.isArray(perdidos) ? perdidos : [];
+  const premiadas = listaPremiados.length;
+  const perdidas = listaPerdidos.length;
+
+  el.innerHTML =
+    `<div class="perfil-status-dia-item premiadas">Apostas premiadas do dia<b>${premiadas}</b></div>` +
+    `<div class="perfil-status-dia-item perdidas">Apostas perdidas do dia<b>${perdidas}</b></div>`;
+
+  if (listaPendentes.length === 0 && listaPremiados.length === 0 && listaPerdidos.length === 0) {
+    el.innerHTML =
+      `<div class="perfil-status-dia-item premiadas">Apostas premiadas do dia<b>0</b></div>` +
+      `<div class="perfil-status-dia-item perdidas">Apostas perdidas do dia<b>0</b></div>`;
+  }
+}
+
+function obterFiltroApostasPerfil() {
+  const select = document.getElementById("perfilFiltroApostas");
+  const valor = String(select && select.value || "").trim();
+  if (valor === "pendentes" || valor === "premiadas" || valor === "perdidas") return valor;
+  return "todas";
+}
+
+function renderizarSecaoBilhetes(listaEl, titulo, itens) {
+  const bilhetes = Array.isArray(itens) ? itens : [];
+  if (!listaEl || bilhetes.length === 0) return;
+  listaEl.innerHTML += `<div class="perfil-secao-apostas">${escaparHTML(titulo)} (${bilhetes.length})</div>`;
+  bilhetes.forEach((item) => {
+    listaEl.innerHTML += montarCardBilhete(item.grupo);
+  });
+}
+
 function montarCardBilhete(grupo) {
   const apostasBilhete = Array.isArray(grupo.apostas) ? grupo.apostas : [];
   const statusBilhete = resumoStatusBilhete(apostasBilhete);
@@ -713,6 +772,7 @@ function mostrarApostasPerfil() {
   const lista = document.getElementById("perfilListaApostas");
   const resumo = document.getElementById("perfilApostasResumo");
   const inputData = document.getElementById("perfilDataApostas");
+  const filtro = obterFiltroApostasPerfil();
   if (!lista || !resumo || !inputData) return;
 
   const dataSelecionada = normalizarDataISO(inputData.value) || hojeISO();
@@ -721,6 +781,7 @@ function mostrarApostasPerfil() {
 
   if (!usuarioAtual) {
     resumo.innerText = "Entre na Home com seu usuário para ver seus bilhetes.";
+    atualizarResumoStatusDia([], [], []);
     lista.innerHTML = "<p>Nenhuma sessão ativa.</p>";
     return;
   }
@@ -735,19 +796,49 @@ function mostrarApostasPerfil() {
     .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || ""), "pt-BR"));
 
   const bilhetes = agruparApostasPorBilhete(filtradas);
+  const classificados = classificarBilhetesDoDia(bilhetes);
+  const totalExibicao =
+    filtro === "pendentes"
+      ? classificados.pendentes.length
+      : filtro === "premiadas"
+        ? classificados.premiados.length
+        : filtro === "perdidas"
+          ? classificados.perdidos.length
+          : bilhetes.length;
+  const labelFiltro =
+    filtro === "pendentes"
+      ? "Apostas em Andamento"
+      : filtro === "premiadas"
+        ? "Apostas Premiadas"
+        : filtro === "perdidas"
+          ? "Apostas Perdidas"
+          : "Todas as Apostas";
 
   resumo.innerText =
     `${formatarDataBR(dataSelecionada)}: ` +
-    `${bilhetes.length} bilhete(s) | ${filtradas.length} aposta(s).`;
+    `${totalExibicao} bilhete(s) exibido(s) em "${labelFiltro}" | ${filtradas.length} aposta(s).`;
+  atualizarResumoStatusDia(classificados.pendentes, classificados.premiados, classificados.perdidos);
 
   if (filtradas.length === 0) {
     lista.innerHTML = "<p>Nenhuma aposta encontrada para esta data.</p>";
     return;
   }
 
-  bilhetes.forEach((grupo) => {
-    lista.innerHTML += montarCardBilhete(grupo);
-  });
+  if (filtro === "todas") {
+    renderizarSecaoBilhetes(lista, "Apostas em Andamento", classificados.pendentes);
+    renderizarSecaoBilhetes(lista, "Apostas Premiadas", classificados.premiados);
+    renderizarSecaoBilhetes(lista, "Apostas Perdidas", classificados.perdidos);
+  } else if (filtro === "pendentes") {
+    renderizarSecaoBilhetes(lista, "Apostas em Andamento", classificados.pendentes);
+  } else if (filtro === "premiadas") {
+    renderizarSecaoBilhetes(lista, "Apostas Premiadas", classificados.premiados);
+  } else if (filtro === "perdidas") {
+    renderizarSecaoBilhetes(lista, "Apostas Perdidas", classificados.perdidos);
+  }
+
+  if (!lista.innerHTML.trim()) {
+    lista.innerHTML = "<p>Nenhum bilhete encontrado para o filtro selecionado.</p>";
+  }
 }
 
 function irHojeApostasPerfil() {
@@ -786,6 +877,11 @@ function initPerfil() {
   const inputData = document.getElementById("perfilDataApostas");
   if (inputData) {
     inputData.addEventListener("change", mostrarApostasPerfil);
+  }
+
+  const filtroApostas = document.getElementById("perfilFiltroApostas");
+  if (filtroApostas) {
+    filtroApostas.addEventListener("change", mostrarApostasPerfil);
   }
 
   const btnHoje = document.getElementById("btnPerfilHoje");

@@ -19,6 +19,95 @@
   margin-bottom: 16px;
 }
 
+.dashboard-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin: 8px 0 6px 0;
+}
+
+.dashboard-admin-card {
+  background: #0f1a24;
+  border: 1px solid #2a4155;
+  border-radius: 8px;
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.dashboard-admin-card span {
+  color: #9fb3c8;
+  font-size: 12px;
+}
+
+.dashboard-admin-card strong {
+  color: #e8f3ff;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+#dashPremiadasTotal,
+#dashPremiacaoApurada {
+  color: #00e676;
+}
+
+#dashSaidaTotal {
+  color: #ff5252;
+}
+
+.item-admin-linha b.valor-premiacao-admin {
+  color: #00e676;
+}
+
+.container-admin .painel-admin-listas {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.admin-operacao-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 8px 0 12px 0;
+  align-items: stretch;
+}
+
+.admin-operacao-bloco h3 {
+  margin-top: 0;
+}
+
+.bloco-resultado-admin {
+  display: flex;
+  flex-direction: column;
+}
+
+.bloco-limites-admin {
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+.admin-operacao-bloco .titulo-subsecao-admin {
+  margin-top: 0;
+}
+
+#painelAdmin .linha-praca-fixa,
+#painelAdmin #loteria,
+#painelAdmin .btn-salvar-resultado-admin {
+  width: min(100%, 368px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#painelAdmin .btn-multiplicador-admin {
+  width: min(100%, 368px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#painelAdmin #loteria {
+  margin-top: 5px;
+  margin-bottom: 8px;
+}
+
 #painelAdmin .linha-numero-bicho {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 180px));
@@ -71,9 +160,33 @@
   text-align: left;
 }
 
+@media (max-width: 980px) {
+  .admin-operacao-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .topo-admin strong {
     font-size: 12px;
+  }
+
+  .dashboard-admin-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-admin-card strong {
+    font-size: 16px;
+  }
+
+  #painelAdmin .linha-praca-fixa,
+  #painelAdmin #loteria,
+  #painelAdmin .btn-salvar-resultado-admin {
+    width: min(100%, 288px);
+  }
+
+  #painelAdmin .btn-multiplicador-admin {
+    width: min(100%, 288px);
   }
 
   #painelAdmin .linha-numero-bicho {

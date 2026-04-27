@@ -55,6 +55,17 @@
   box-sizing: border-box;
 }
 
+.card-perfil select {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border-radius: 7px;
+  border: 1px solid #2a4155;
+  background: #0f1a24;
+  color: #e8f3ff;
+  box-sizing: border-box;
+}
+
 .card-perfil input:disabled {
   opacity: 0.75;
   cursor: not-allowed;
@@ -120,10 +131,45 @@
   width: 170px;
 }
 
+.perfil-apostas-filtro select {
+  width: 220px;
+}
+
 .perfil-apostas-resumo {
   margin: 8px 0 2px 0;
   font-size: 13px;
   color: #9fb3c8;
+}
+
+.perfil-resumo-status-dia {
+  margin: 8px 0 0 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.perfil-status-dia-item {
+  background: #0f1a24;
+  border: 1px solid #2a4155;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+  color: #9fb3c8;
+  text-align: center;
+}
+
+.perfil-status-dia-item b {
+  display: block;
+  margin-top: 2px;
+  font-size: 16px;
+}
+
+.perfil-status-dia-item.premiadas b {
+  color: #00e676;
+}
+
+.perfil-status-dia-item.perdidas b {
+  color: #ff6b6b;
 }
 
 .perfil-lista-apostas {
@@ -188,6 +234,15 @@
   color: #ff6b6b;
 }
 
+.perfil-secao-apostas {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9fd5ff;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
 @media (max-width: 640px) {
   .topo-perfil strong {
     font-size: 12px;
@@ -203,6 +258,14 @@
 
   .perfil-apostas-filtro input {
     width: 100%;
+  }
+
+  .perfil-apostas-filtro select {
+    width: 100%;
+  }
+
+  .perfil-resumo-status-dia {
+    grid-template-columns: 1fr;
   }
 
   .perfil-acoes-edicao {

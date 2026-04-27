@@ -4646,12 +4646,49 @@ function mostrarPainelAdmin() {
   const resumo = document.getElementById("resumoPainelAdmin");
   const listaUsuariosAdmin = document.getElementById("listaUsuariosAdmin");
   const listaApostasAdmin = document.getElementById("listaApostasAdmin");
+  const listaApostasPremiadasAdmin = document.getElementById("listaApostasPremiadasAdmin");
+  const dashUsuariosTotal = document.getElementById("dashUsuariosTotal");
+  const dashBilhetesTotal = document.getElementById("dashBilhetesTotal");
+  const dashApostasTotal = document.getElementById("dashApostasTotal");
+  const dashValorApostado = document.getElementById("dashValorApostado");
+  const dashPremiadasTotal = document.getElementById("dashPremiadasTotal");
+  const dashPremiacaoApurada = document.getElementById("dashPremiacaoApurada");
+  const dashEntradaTotal = document.getElementById("dashEntradaTotal");
+  const dashSaidaTotal = document.getElementById("dashSaidaTotal");
+  const dashInfoFinanceiro = document.getElementById("dashInfoFinanceiro");
   if (!resumo || !listaUsuariosAdmin || !listaApostasAdmin) return;
+
+  const fmtInt = (valor) => Number(valor || 0).toLocaleString("pt-BR");
+  const preencherDashboard = (dados) => {
+    if (dashUsuariosTotal) dashUsuariosTotal.innerText = fmtInt(dados.usuarios);
+    if (dashBilhetesTotal) dashBilhetesTotal.innerText = fmtInt(dados.bilhetes);
+    if (dashApostasTotal) dashApostasTotal.innerText = fmtInt(dados.apostas);
+    if (dashValorApostado) dashValorApostado.innerText = formatarMoedaBR(dados.valorApostado);
+    if (dashPremiadasTotal) dashPremiadasTotal.innerText = fmtInt(dados.premiadas);
+    if (dashPremiacaoApurada) dashPremiacaoApurada.innerText = formatarMoedaBR(dados.premiacaoApurada);
+    if (dashEntradaTotal) dashEntradaTotal.innerText = formatarMoedaBR(dados.entrada);
+    if (dashSaidaTotal) dashSaidaTotal.innerText = formatarMoedaBR(dados.saida);
+  };
 
   if (!logado) {
     resumo.innerText = "Faça login no admin para visualizar os cadastros e as apostas.";
     listaUsuariosAdmin.innerHTML = "";
     listaApostasAdmin.innerHTML = "";
+    if (listaApostasPremiadasAdmin) listaApostasPremiadasAdmin.innerHTML = "";
+    preencherDashboard({
+      usuarios: 0,
+      bilhetes: 0,
+      apostas: 0,
+      valorApostado: 0,
+      premiadas: 0,
+      premiacaoApurada: 0,
+      entrada: 0,
+      saida: 0
+    });
+    if (dashInfoFinanceiro) {
+      dashInfoFinanceiro.innerText =
+        "Entrada = valor total apostado. Saída = premiação apurada das apostas vencedoras.";
+    }
     return;
   }
 
@@ -4662,6 +4699,10 @@ function mostrarPainelAdmin() {
     if (a.data !== b.data) return String(b.data).localeCompare(String(a.data), "pt-BR");
     return compararPorHorario(a, b);
   });
+  const apostasComResultado = apostasOrdenadas.map((item) => ({
+    item,
+    resultado: resultadoDaAposta(item)
+  }));
 
   const mapaApostasPorUsuario = new Map();
   apostasOrdenadas.forEach((item) => {
@@ -4670,12 +4711,52 @@ function mostrarPainelAdmin() {
     mapaApostasPorUsuario.set(chave, (mapaApostasPorUsuario.get(chave) || 0) + 1);
   });
 
-  const apostasDaData = apostasOrdenadas.filter((item) => item.data === dataSelecionada);
+  const apostasDaData = apostasComResultado.filter(({ item }) => item.data === dataSelecionada);
+  const premiadasDaData = apostasDaData.filter(({ resultado }) => resultado.status === "GANHOU");
+
+  const totalBilhetes = new Set(
+    apostasOrdenadas.map((item) => {
+      const bruto = String(item.bilheteId || "").trim();
+      if (bruto) return bruto;
+      return `${item.data}|${item.praca}|${item.loteria}|${item.usuarioLogin}|${item.id}`;
+    })
+  ).size;
+  const totalApostas = apostasOrdenadas.length;
+  const valorTotalApostado = apostasOrdenadas.reduce(
+    (acc, item) => acc + Number(normalizarValorMoeda(item.valor) || 0),
+    0
+  );
+  const totalPremiadas = apostasComResultado.filter(
+    ({ resultado }) => resultado.status === "GANHOU"
+  ).length;
+  const premiacaoApuradaTotal = apostasComResultado.reduce((acc, { resultado }) => {
+    if (resultado.status !== "GANHOU") return acc;
+    return acc + Number(resultado.retorno || 0);
+  }, 0);
+  const totalEntrada = valorTotalApostado;
+  const totalSaida = premiacaoApuradaTotal;
+
+  preencherDashboard({
+    usuarios: usuariosOrdenados.length,
+    bilhetes: totalBilhetes,
+    apostas: totalApostas,
+    valorApostado: valorTotalApostado,
+    premiadas: totalPremiadas,
+    premiacaoApurada: premiacaoApuradaTotal,
+    entrada: totalEntrada,
+    saida: totalSaida
+  });
+  if (dashInfoFinanceiro) {
+    dashInfoFinanceiro.innerText =
+      "Entrada = valor total apostado. Saída = premiação apurada das apostas vencedoras.";
+  }
 
   resumo.innerText =
     `Cadastros: ${usuariosOrdenados.length} | ` +
-    `Apostas totais: ${apostasOrdenadas.length} | ` +
-    `Apostas em ${formatarDataBR(dataSelecionada)}: ${apostasDaData.length}`;
+    `Bilhetes totais: ${fmtInt(totalBilhetes)} | ` +
+    `Apostas totais: ${fmtInt(totalApostas)} | ` +
+    `Apostas em ${formatarDataBR(dataSelecionada)}: ${fmtInt(apostasDaData.length)} | ` +
+    `Premiadas na data: ${fmtInt(premiadasDaData.length)}`;
 
   if (usuariosOrdenados.length === 0) {
     listaUsuariosAdmin.innerHTML = '<div class="item-admin-linha">Nenhum usuário cadastrado.</div>';
@@ -4700,7 +4781,7 @@ function mostrarPainelAdmin() {
       `<div class="item-admin-linha">Nenhuma aposta em ${formatarDataBR(dataSelecionada)}.</div>`;
   } else {
     listaApostasAdmin.innerHTML = apostasDaData
-      .map((item) => {
+      .map(({ item, resultado }) => {
         const tipoLabel = TIPOS_APOSTA[item.tipo] || item.tipo;
         const palpiteBilhete = formatarPalpiteParaBilhete(item);
         return (
@@ -4710,12 +4791,38 @@ function mostrarPainelAdmin() {
           `${tipoLabel}: <b>${palpiteBilhete}</b><br>` +
           `Valor: <b>${formatarMoedaBR(item.valor)}</b> | ` +
           `Potencial: <b>${formatarMoedaBR(item.premio)}</b><br>` +
+          `Status: <span class="status-aposta ${resultado.classeStatus}">${resultado.status}</span><br>` +
           `Feita em: ${formatarDataHoraCurtaBR(item.createdAt)}` +
           `</div>`
         );
       })
       .join("");
   }
+
+  if (!listaApostasPremiadasAdmin) return;
+
+  if (premiadasDaData.length === 0) {
+    listaApostasPremiadasAdmin.innerHTML =
+      `<div class="item-admin-linha">Nenhuma aposta premiada em ${formatarDataBR(dataSelecionada)}.</div>`;
+    return;
+  }
+
+  listaApostasPremiadasAdmin.innerHTML = premiadasDaData
+    .map(({ item, resultado }) => {
+      const tipoLabel = TIPOS_APOSTA[item.tipo] || item.tipo;
+      const palpiteBilhete = formatarPalpiteParaBilhete(item);
+      return (
+        `<div class="item-admin-linha">` +
+        `<b>${item.praca} | ${item.loteria}</b><br>` +
+        `Usuário: <b>@${item.usuarioLogin || "-"}</b><br>` +
+        `${tipoLabel}: <b>${palpiteBilhete}</b><br>` +
+        `Aposta: <b>${formatarMoedaBR(item.valor)}</b> | ` +
+        `Premiação: <b class="valor-premiacao-admin">${formatarMoedaBR(resultado.retorno)}</b><br>` +
+        `Feita em: ${formatarDataHoraCurtaBR(item.createdAt)}` +
+        `</div>`
+      );
+    })
+    .join("");
 }
 
 function limparCamposResultado() {
