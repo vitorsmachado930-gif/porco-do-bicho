@@ -829,9 +829,29 @@ function montarPalpiteDestaque(tipo, rand) {
     return String(sortearInteiro(rand, 10000)).padStart(4, "0");
   }
 
+  if (tipo === "centena") {
+    return String(sortearInteiro(rand, 1000)).padStart(3, "0");
+  }
+
+  if (tipo === "dezena") {
+    return String(sortearInteiro(rand, 100)).padStart(2, "0");
+  }
+
   if (tipo === "grupo") {
     const grupo = sortearInteiro(rand, 25) + 1;
     return formatarBichoComGrupo(grupo);
+  }
+
+  if (tipo === "dupla_grupo") {
+    const usados = new Set();
+    const escolhidos = [];
+    while (escolhidos.length < 2) {
+      const grupo = sortearInteiro(rand, 25) + 1;
+      if (usados.has(grupo)) continue;
+      usados.add(grupo);
+      escolhidos.push(formatarBichoComGrupo(grupo));
+    }
+    return escolhidos.join(" | ");
   }
 
   if (tipo === "terno_grupo") {
