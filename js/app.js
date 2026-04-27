@@ -22,8 +22,8 @@ const PAGINA_ADMIN_SEPARADA = (() => {
 
 const TIPOS_APOSTA = {
   grupo: "Grupo",
-  dupla_grupo: "Dupla de Grupo Seco",
-  terno_grupo: "Terno de Grupo Seco",
+  dupla_grupo: "Dupla de Grupo",
+  terno_grupo: "Terno de Grupo",
   duque_dezena: "Duque de Dezena",
   terno_dezena: "Terno de Dezena",
   passe_seco: "Passe-Seco",
@@ -71,8 +71,8 @@ const USUARIO_TESTE_FIXO = Object.freeze({
 
 const CAMPOS_MULTIPLICADOR = [
   { tipo: "grupo", id: "multGrupo", label: "Grupo" },
-  { tipo: "dupla_grupo", id: "multDuplaGrupo", label: "Dupla de Grupo Seco" },
-  { tipo: "terno_grupo", id: "multTernoGrupo", label: "Terno de Grupo Seco" },
+  { tipo: "dupla_grupo", id: "multDuplaGrupo", label: "Dupla de Grupo" },
+  { tipo: "terno_grupo", id: "multTernoGrupo", label: "Terno de Grupo" },
   { tipo: "duque_dezena", id: "multDuqueDezena", label: "Duque de Dezena" },
   { tipo: "terno_dezena", id: "multTernoDezena", label: "Terno de Dezena" },
   { tipo: "passe_seco", id: "multPasseSeco", label: "Passe-Seco" },
