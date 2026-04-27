@@ -6,7 +6,7 @@ const PAINEL_UPDATED_AT_KEY = "painel_updated_at";
 const MAX_DIAS_HISTORICO = 7;
 
 const TIPOS_APOSTA = {
-  grupo: "Grupo",
+  grupo: "Grupo 1º",
   dupla_grupo: "Dupla de Grupo",
   terno_grupo: "Terno de Grupo",
   duque_dezena: "Duque de Dezena",

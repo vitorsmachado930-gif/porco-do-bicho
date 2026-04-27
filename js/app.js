@@ -21,7 +21,7 @@ const PAGINA_ADMIN_SEPARADA = (() => {
 })();
 
 const TIPOS_APOSTA = {
-  grupo: "Grupo",
+  grupo: "Grupo 1º",
   dupla_grupo: "Dupla de Grupo",
   terno_grupo: "Terno de Grupo",
   duque_dezena: "Duque de Dezena",
@@ -70,7 +70,7 @@ const USUARIO_TESTE_FIXO = Object.freeze({
 });
 
 const CAMPOS_MULTIPLICADOR = [
-  { tipo: "grupo", id: "multGrupo", label: "Grupo" },
+  { tipo: "grupo", id: "multGrupo", label: "Grupo 1º" },
   { tipo: "dupla_grupo", id: "multDuplaGrupo", label: "Dupla de Grupo" },
   { tipo: "terno_grupo", id: "multTernoGrupo", label: "Terno de Grupo" },
   { tipo: "duque_dezena", id: "multDuqueDezena", label: "Duque de Dezena" },
@@ -243,6 +243,54 @@ function normalizarValorMoeda(valor) {
 function normalizarTipoAposta(tipo) {
   const t = String(tipo || "").trim();
   return Object.prototype.hasOwnProperty.call(TIPOS_APOSTA, t) ? t : "";
+}
+
+function obterSubtipoDuplaGrupoSelecionado() {
+  const select = document.getElementById("subtipoDuplaGrupo");
+  const valor = String(select ? select.value : "").trim();
+  return valor === "ao_quinto" ? "ao_quinto" : "seca";
+}
+
+function obterSubtipoTernoGrupoSelecionado() {
+  const select = document.getElementById("subtipoTernoGrupo");
+  const valor = String(select ? select.value : "").trim();
+  return valor === "ao_quinto" ? "ao_quinto" : "seco";
+}
+
+function obterTipoApostaSelecionadoNoFormulario() {
+  const tipoInput = document.getElementById("tipoAposta");
+  const tipoBruto = normalizarTipoAposta(tipoInput ? tipoInput.value : "");
+  if (tipoBruto === "dupla_grupo") {
+    return obterSubtipoDuplaGrupoSelecionado() === "ao_quinto"
+      ? "dupla_grupo_1a5"
+      : "dupla_grupo";
+  }
+  if (tipoBruto === "terno_grupo") {
+    return obterSubtipoTernoGrupoSelecionado() === "ao_quinto"
+      ? "terno_grupo_1a5"
+      : "terno_grupo";
+  }
+  return tipoBruto;
+}
+
+function atualizarVisibilidadeSubtiposGrupo() {
+  const tipoInput = document.getElementById("tipoAposta");
+  const selectSubtipoDupla = document.getElementById("subtipoDuplaGrupo");
+  const selectSubtipoTerno = document.getElementById("subtipoTernoGrupo");
+  if (!tipoInput || !selectSubtipoDupla || !selectSubtipoTerno) return;
+
+  const tipoBruto = normalizarTipoAposta(tipoInput.value);
+  const exibirDupla = tipoBruto === "dupla_grupo";
+  const exibirTerno = tipoBruto === "terno_grupo";
+  selectSubtipoDupla.style.display = exibirDupla ? "block" : "none";
+  selectSubtipoTerno.style.display = exibirTerno ? "block" : "none";
+
+  if (selectSubtipoDupla.value !== "ao_quinto" && selectSubtipoDupla.value !== "seca") {
+    selectSubtipoDupla.value = "seca";
+  }
+  if (selectSubtipoTerno.value !== "ao_quinto" && selectSubtipoTerno.value !== "seco") {
+    selectSubtipoTerno.value = "seco";
+  }
 }
 
 function slugBilheteParte(valor) {
@@ -2086,6 +2134,8 @@ function atualizarEstadoSecaoApostas(encerrada, opcoes) {
 
   const idsControles = [
     "tipoAposta",
+    "subtipoDuplaGrupo",
+    "subtipoTernoGrupo",
     "palpiteAposta",
     "valorAposta",
     "palpiteGrupo1",
@@ -2493,9 +2543,7 @@ function definirValorPalpiteGrupo(indice, valor) {
 }
 
 function quantidadeGruposNoFormularioAposta() {
-  const tipoInput = document.getElementById("tipoAposta");
-  if (!tipoInput) return 0;
-  const tipo = normalizarTipoAposta(tipoInput.value);
+  const tipo = obterTipoApostaSelecionadoNoFormulario();
   return quantidadeGruposPorTipoAposta(tipo);
 }
 
@@ -2589,17 +2637,34 @@ function renderizarSelecaoPalpiteGrupoPorImagem() {
   const container = document.getElementById("palpiteGrupoContainer");
   const dica = document.getElementById("palpiteGrupoDica");
   const grade = document.getElementById("palpiteGrupoGrade");
+  const slots = container ? container.querySelector(".palpite-grupo-slots") : null;
   const editor = document.getElementById("palpiteGrupoEditor");
   const btnEditar = document.getElementById("btnEditarPalpiteGrupo");
   if (!container || !dica || !grade || !editor || !btnEditar) return;
 
   const quantidade = quantidadeGruposNoFormularioAposta();
   if (quantidade <= 0) {
+    if (slots) {
+      slots.classList.remove(
+        "palpite-grupo-slots-qtd-1",
+        "palpite-grupo-slots-qtd-2",
+        "palpite-grupo-slots-qtd-3"
+      );
+    }
     dica.innerText = "";
     editor.style.display = "none";
     btnEditar.style.display = "none";
     atualizarBotoesCarrosselPalpiteGrupo();
     return;
+  }
+
+  if (slots) {
+    slots.classList.remove(
+      "palpite-grupo-slots-qtd-1",
+      "palpite-grupo-slots-qtd-2",
+      "palpite-grupo-slots-qtd-3"
+    );
+    slots.classList.add(`palpite-grupo-slots-qtd-${Math.min(3, Math.max(1, quantidade))}`);
   }
 
   if (slotGrupoAtivo < 1 || slotGrupoAtivo > quantidade) {
@@ -2636,7 +2701,7 @@ function renderizarSelecaoPalpiteGrupoPorImagem() {
     slot.classList.toggle("ativo", ativo && i === slotGrupoAtivo);
     slot.dataset.grupo = valor;
 
-    if (titulo) titulo.innerText = `${i}o bicho`;
+    if (titulo) titulo.innerText = `${i}º Bicho`;
 
     if (ativo && valor) {
       const grupoNum = Number(valor);
@@ -2768,17 +2833,16 @@ function configurarPalpiteGrupoComImagens() {
 
 function popularPalpitesGrupo() {
   popularSelectPalpiteGrupo("palpiteGrupo1", "Selecione o bicho");
-  popularSelectPalpiteGrupo("palpiteGrupo2", "Selecione o 2o bicho");
-  popularSelectPalpiteGrupo("palpiteGrupo3", "Selecione o 3o bicho");
+  popularSelectPalpiteGrupo("palpiteGrupo2", "Selecione o 2º bicho");
+  popularSelectPalpiteGrupo("palpiteGrupo3", "Selecione o 3º bicho");
   renderizarSelecaoPalpiteGrupoPorImagem();
 }
 
 function sincronizarPalpiteApostaGrupoParaInput() {
   const palpiteInput = document.getElementById("palpiteAposta");
-  const tipoInput = document.getElementById("tipoAposta");
-  if (!palpiteInput || !tipoInput) return;
+  if (!palpiteInput) return;
 
-  const tipo = normalizarTipoAposta(tipoInput.value);
+  const tipo = obterTipoApostaSelecionadoNoFormulario();
   const quantidade = quantidadeGruposPorTipoAposta(tipo);
 
   if (quantidade <= 0) return;
@@ -2794,10 +2858,9 @@ function sincronizarPalpiteApostaGrupoParaInput() {
 
 function normalizarPalpiteNumericoDigitado() {
   const palpiteInput = document.getElementById("palpiteAposta");
-  const tipoInput = document.getElementById("tipoAposta");
-  if (!palpiteInput || !tipoInput) return;
+  if (!palpiteInput) return;
 
-  const tipo = normalizarTipoAposta(tipoInput.value);
+  const tipo = obterTipoApostaSelecionadoNoFormulario();
   if (quantidadeGruposPorTipoAposta(tipo) > 0) return;
 
   const limite = limiteDigitosPalpitePorTipo(tipo);
@@ -2821,7 +2884,8 @@ function atualizarModoCampoPalpiteAposta() {
   const grupoContainer = document.getElementById("palpiteGrupoContainer");
   if (!tipoInput || !palpiteInput || !grupoContainer) return;
 
-  const tipo = normalizarTipoAposta(tipoInput.value);
+  atualizarVisibilidadeSubtiposGrupo();
+  const tipo = obterTipoApostaSelecionadoNoFormulario();
   const quantidade = quantidadeGruposPorTipoAposta(tipo);
   const estavaEmGrupo = palpiteInput.dataset.modoGrupo === "1";
 
@@ -2898,14 +2962,13 @@ function atualizarModoCampoPalpiteAposta() {
 }
 
 function atualizarPreviewPremiacaoAposta() {
-  const tipoInput = document.getElementById("tipoAposta");
   const valorInput = document.getElementById("valorAposta");
   const bloco = document.getElementById("blocoPremiacaoAposta");
   const destaque = document.getElementById("destaquePremiacaoAposta");
 
-  if (!tipoInput || !valorInput || !bloco || !destaque) return;
+  if (!valorInput || !bloco || !destaque) return;
 
-  const tipo = normalizarTipoAposta(tipoInput.value);
+  const tipo = obterTipoApostaSelecionadoNoFormulario();
   const valor = normalizarValorMoeda(valorInput.value);
 
   if (!tipo || !valor) {
@@ -3122,6 +3185,8 @@ function depositarSaldoUsuario() {
 
 function configurarCamposAposta() {
   const tipoInput = document.getElementById("tipoAposta");
+  const subtipoDuplaInput = document.getElementById("subtipoDuplaGrupo");
+  const subtipoTernoInput = document.getElementById("subtipoTernoGrupo");
   const palpiteInput = document.getElementById("palpiteAposta");
   const selectGrupo1 = document.getElementById("palpiteGrupo1");
   const selectGrupo2 = document.getElementById("palpiteGrupo2");
@@ -3129,6 +3194,20 @@ function configurarCamposAposta() {
 
   if (tipoInput) {
     tipoInput.addEventListener("change", () => {
+      atualizarModoCampoPalpiteAposta();
+      atualizarPreviewPremiacaoAposta();
+    });
+  }
+
+  if (subtipoDuplaInput) {
+    subtipoDuplaInput.addEventListener("change", () => {
+      atualizarModoCampoPalpiteAposta();
+      atualizarPreviewPremiacaoAposta();
+    });
+  }
+
+  if (subtipoTernoInput) {
+    subtipoTernoInput.addEventListener("change", () => {
       atualizarModoCampoPalpiteAposta();
       atualizarPreviewPremiacaoAposta();
     });
@@ -3978,7 +4057,7 @@ function contextoIgualBilheteRascunho(contexto) {
 }
 
 function formularioApostaTemConteudoDigitado() {
-  const tipo = normalizarTipoAposta(document.getElementById("tipoAposta").value);
+  const tipo = obterTipoApostaSelecionadoNoFormulario();
   const palpite = String(document.getElementById("palpiteAposta").value || "").trim();
   const valor = normalizarValorMoeda(document.getElementById("valorAposta").value);
   return Boolean(tipo || palpite || Number(valor || 0) > 0);
@@ -3986,7 +4065,7 @@ function formularioApostaTemConteudoDigitado() {
 
 function lerLinhaApostaDoFormulario() {
   const contexto = contextoAtualFormularioAposta();
-  const tipo = normalizarTipoAposta(document.getElementById("tipoAposta").value);
+  const tipo = obterTipoApostaSelecionadoNoFormulario();
   sincronizarPalpiteApostaGrupoParaInput();
   const palpite = String(document.getElementById("palpiteAposta").value || "").trim();
   const valor = normalizarValorMoeda(document.getElementById("valorAposta").value);
@@ -4304,6 +4383,8 @@ function limparCamposAposta(opcoes) {
   const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
   const manterLoteria = cfg.manterLoteria === true;
   const tipo = document.getElementById("tipoAposta");
+  const subtipoDuplaGrupo = document.getElementById("subtipoDuplaGrupo");
+  const subtipoTernoGrupo = document.getElementById("subtipoTernoGrupo");
   const palpite = document.getElementById("palpiteAposta");
   const valor = document.getElementById("valorAposta");
   const loteriaAposta = document.getElementById("loteriaAposta");
@@ -4314,6 +4395,8 @@ function limparCamposAposta(opcoes) {
   const palpiteGrupo3 = document.getElementById("palpiteGrupo3");
 
   if (tipo) tipo.value = "";
+  if (subtipoDuplaGrupo) subtipoDuplaGrupo.value = "seca";
+  if (subtipoTernoGrupo) subtipoTernoGrupo.value = "seco";
   if (palpite) palpite.value = "";
   if (valor) valor.value = "R$ 0,00";
   if (!manterLoteria) {

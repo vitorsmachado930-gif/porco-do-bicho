@@ -269,6 +269,23 @@ button {
   gap: 6px;
 }
 
+.palpite-grupo-slots.palpite-grupo-slots-qtd-1 {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 120px;
+  margin: 0 auto;
+}
+
+.palpite-grupo-slots.palpite-grupo-slots-qtd-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 240px;
+  margin: 0 auto;
+}
+
+.palpite-grupo-slots.palpite-grupo-slots-qtd-3 {
+  max-width: none;
+  margin: 0;
+}
+
 .palpite-grupo-slot {
   margin: 0;
   padding: 6px 6px 8px;
@@ -869,6 +886,8 @@ button:disabled {
 }
 
 #cardApostas #tipoAposta,
+#cardApostas #subtipoDuplaGrupo,
+#cardApostas #subtipoTernoGrupo,
 #cardApostas #palpiteAposta,
 #cardApostas #valorAposta {
   width: min(100%, 320px);

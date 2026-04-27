@@ -7,7 +7,7 @@
 <link rel="icon" type="image/png" href="img/mascote/icone.png?v=20260425">
 <link rel="apple-touch-icon" href="img/mascote/icone.png?v=20260425">
 
-<link rel="stylesheet" href="css/style.css?v=20260427-4">
+<link rel="stylesheet" href="css/style.css?v=20260427-7">
 </head>
 
 <body>
@@ -120,11 +120,9 @@
 
     <select id="tipoAposta">
       <option value="">Selecione o tipo de aposta</option>
-      <option value="grupo">Grupo</option>
+      <option value="grupo">Grupo 1º</option>
       <option value="dupla_grupo">Dupla de Grupo</option>
       <option value="terno_grupo">Terno de Grupo</option>
-      <option value="dupla_grupo_1a5">Dupla de Grupo 1º ao 5º</option>
-      <option value="terno_grupo_1a5">Terno de Grupo 1º ao 5º</option>
       <option value="passe_seco">Passe-Seco</option>
       <option value="passe_vai_vem">Passe Vai e Vem</option>
       <option value="duque_dezena">Duque de Dezena</option>
@@ -133,6 +131,14 @@
       <option value="centena">Centena</option>
       <option value="dezena">Dezena</option>
     </select>
+    <select id="subtipoDuplaGrupo" style="display:none;">
+      <option value="seca">Seca (1º-2º)</option>
+      <option value="ao_quinto">Ao quinto (1º-5º)</option>
+    </select>
+    <select id="subtipoTernoGrupo" style="display:none;">
+      <option value="seco">Seco (1º-2º-3º)</option>
+      <option value="ao_quinto">Ao quinto (1º-5º)</option>
+    </select>
 
     <div id="palpiteGrupoContainer" class="palpite-grupo-container" style="display:none;">
       <div class="palpite-grupo-selects" aria-hidden="true">
@@ -140,26 +146,26 @@
           <option value="">Selecione o bicho</option>
         </select>
         <select id="palpiteGrupo2">
-          <option value="">Selecione o 2o bicho</option>
+          <option value="">Selecione o 2º bicho</option>
         </select>
         <select id="palpiteGrupo3">
-          <option value="">Selecione o 3o bicho</option>
+          <option value="">Selecione o 3º bicho</option>
         </select>
       </div>
       <div class="palpite-grupo-slots">
         <button type="button" class="palpite-grupo-slot" id="palpiteGrupoSlot1" data-slot="1">
           <img alt="">
-          <span class="palpite-grupo-slot-titulo">1o bicho</span>
+          <span class="palpite-grupo-slot-titulo">1º Bicho</span>
           <strong class="palpite-grupo-slot-nome">Toque em um bicho</strong>
         </button>
         <button type="button" class="palpite-grupo-slot" id="palpiteGrupoSlot2" data-slot="2">
           <img alt="">
-          <span class="palpite-grupo-slot-titulo">2o bicho</span>
+          <span class="palpite-grupo-slot-titulo">2º Bicho</span>
           <strong class="palpite-grupo-slot-nome">Toque em um bicho</strong>
         </button>
         <button type="button" class="palpite-grupo-slot" id="palpiteGrupoSlot3" data-slot="3">
           <img alt="">
-          <span class="palpite-grupo-slot-titulo">3o bicho</span>
+          <span class="palpite-grupo-slot-titulo">3º Bicho</span>
           <strong class="palpite-grupo-slot-nome">Toque em um bicho</strong>
         </button>
       </div>
@@ -276,6 +282,6 @@
   </div>
 </footer>
 
-<script src="js/app.js?v=20260427-3"></script>
+<script src="js/app.js?v=20260427-8"></script>
 </body>
 </html>
