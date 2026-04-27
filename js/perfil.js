@@ -273,6 +273,7 @@ function sanitizarUsuarios(arr) {
       const totalDepositos = Number.isFinite(totalDepositosRaw) && totalDepositosRaw >= 0
         ? Number(totalDepositosRaw.toFixed(2))
         : 0;
+      const saldoApostador = normalizarValorNaoNegativo(raw.saldoApostador);
       const indicadorId = normalizarIdPositivo(raw.indicadorId);
       const bonusIndicacaoSaldo = normalizarValorNaoNegativo(raw.bonusIndicacaoSaldo);
       const bonusIndicacaoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoTotal);
@@ -298,6 +299,7 @@ function sanitizarUsuarios(arr) {
         comissaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? comissaoSaldo : 0,
         comissaoTotal: role === PAPEL_USUARIO_PROMOTOR ? comissaoTotal : 0,
         totalDepositos,
+        saldoApostador: role === PAPEL_USUARIO_PROMOTOR ? saldoApostador : 0,
         indicadorId: role === PAPEL_USUARIO_PROMOTOR ? null : indicadorId,
         bonusIndicacaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoSaldo,
         bonusIndicacaoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoTotal,
@@ -329,6 +331,7 @@ function sanitizarUsuarios(arr) {
       item.indicadosTotal = 0;
       return;
     }
+    item.saldoApostador = 0;
     if (!idsPromotores.has(item.promotorId)) {
       item.promotorId = null;
     }

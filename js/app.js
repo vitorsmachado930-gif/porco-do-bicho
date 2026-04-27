@@ -64,6 +64,7 @@ const LIMITES_APOSTA_PADRAO = {
   valorMaximo: 500
 };
 const SALDO_USUARIO_INICIAL = 0;
+const SALDO_APOSTADOR_PROMOTOR_INICIAL = 0;
 const PAPEL_USUARIO_APOSTADOR = "apostador";
 const PAPEL_USUARIO_PROMOTOR = "promotor";
 const COMISSAO_PROMOTOR_PADRAO = 0;
@@ -87,6 +88,7 @@ const USUARIO_TESTE_FIXO = Object.freeze({
   comissaoSaldo: 0,
   comissaoTotal: 0,
   totalDepositos: 0,
+  saldoApostador: 0,
   indicadorId: null,
   bonusIndicacaoSaldo: 0,
   bonusIndicacaoTotal: 0,
@@ -473,6 +475,7 @@ function criarUsuarioTesteFixo(rawExistente) {
     comissaoSaldo: 0,
     comissaoTotal: 0,
     totalDepositos: normalizarValorNaoNegativo(raw.totalDepositos),
+    saldoApostador: 0,
     indicadorId: null,
     bonusIndicacaoSaldo: 0,
     bonusIndicacaoTotal: 0,
@@ -498,6 +501,7 @@ function normalizarUsuarioItem(raw, index) {
   const comissaoSaldo = normalizarValorNaoNegativo(raw.comissaoSaldo);
   const comissaoTotal = normalizarValorNaoNegativo(raw.comissaoTotal);
   const totalDepositos = normalizarValorNaoNegativo(raw.totalDepositos);
+  const saldoApostador = normalizarValorNaoNegativo(raw.saldoApostador);
   const indicadorId = normalizarIndicadorId(raw.indicadorId);
   const bonusIndicacaoSaldo = normalizarValorNaoNegativo(raw.bonusIndicacaoSaldo);
   const bonusIndicacaoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoTotal);
@@ -529,6 +533,7 @@ function normalizarUsuarioItem(raw, index) {
     comissaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? comissaoSaldo : 0,
     comissaoTotal: role === PAPEL_USUARIO_PROMOTOR ? comissaoTotal : 0,
     totalDepositos,
+    saldoApostador: role === PAPEL_USUARIO_PROMOTOR ? saldoApostador : 0,
     indicadorId: role === PAPEL_USUARIO_PROMOTOR ? null : indicadorId,
     bonusIndicacaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoSaldo,
     bonusIndicacaoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoTotal,
@@ -577,6 +582,7 @@ function sanitizarUsuarios(arr) {
       item.indicadosTotal = 0;
       return;
     }
+    item.saldoApostador = 0;
     if (!idsPromotores.has(item.promotorId)) {
       item.promotorId = null;
     }
@@ -1796,6 +1802,7 @@ function serializarPainelParaHash(listaUsuarios, listaApostas) {
     comissaoSaldo: normalizarValorNaoNegativo(item.comissaoSaldo),
     comissaoTotal: normalizarValorNaoNegativo(item.comissaoTotal),
     totalDepositos: normalizarValorNaoNegativo(item.totalDepositos),
+    saldoApostador: normalizarValorNaoNegativo(item.saldoApostador),
     indicadorId: normalizarIndicadorId(item.indicadorId),
     bonusIndicacaoSaldo: normalizarValorNaoNegativo(item.bonusIndicacaoSaldo),
     bonusIndicacaoTotal: normalizarValorNaoNegativo(item.bonusIndicacaoTotal),
@@ -3419,6 +3426,10 @@ function configurarMascaraValorDepositoUsuario() {
 }
 
 function depositarSaldoUsuario() {
+  atualizarStatusDepositoUsuario("Recarga disponível somente no Painel Admin.", true);
+  mostrarConfirmacaoApostaRapida("Recarga disponível somente no Painel Admin.", "erro");
+  return;
+
   if (secaoApostasEncerrada) {
     atualizarStatusDepositoUsuario("Apostas encerradas para hoje.", true);
     mostrarConfirmacaoApostaRapida("Apostas encerradas para hoje.", "erro");
@@ -3825,11 +3836,7 @@ function abrirPainelPromotor() {
 }
 
 function abrirDeposito() {
-  if (!usuarioAtual) {
-    mostrarConfirmacaoApostaRapida("Faça login para acessar a área de depósito.", "erro");
-    return;
-  }
-  window.location.href = "paginas/deposito.html";
+  mostrarConfirmacaoApostaRapida("Recarga disponível somente no Painel Admin.", "erro");
 }
 
 function abrirPainelLoginUsuario() {
@@ -4077,6 +4084,7 @@ function cadastrarUsuario() {
     comissaoSaldo: 0,
     comissaoTotal: 0,
     totalDepositos: 0,
+    saldoApostador: 0,
     indicadorId: indicador ? indicador.id : null,
     bonusIndicacaoSaldo: 0,
     bonusIndicacaoTotal: 0,
@@ -5210,6 +5218,7 @@ function criarPromotorAdmin() {
     comissaoSaldo: 0,
     comissaoTotal: 0,
     totalDepositos: 0,
+    saldoApostador: SALDO_APOSTADOR_PROMOTOR_INICIAL,
     indicadorId: null,
     bonusIndicacaoSaldo: 0,
     bonusIndicacaoTotal: 0,
@@ -5343,6 +5352,230 @@ function configurarEventosGestaoPromotorAdmin() {
   }
 }
 
+function atualizarStatusAdminSaldo(id, texto, erro) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.color = erro ? "#ff6b6b" : "#9fb3c8";
+  el.innerText = texto || "";
+}
+
+function atualizarGestaoSaldosAdmin(usuariosOrdenados) {
+  const selectRecarga = document.getElementById("recargaDestinoAdmin");
+  const selectEdicao = document.getElementById("editarSaldoUsuarioAdmin");
+  const inputSaldo = document.getElementById("editarSaldoPrincipalAdmin");
+  const inputSaldoApostador = document.getElementById("editarSaldoApostadorAdmin");
+  const listaSaldos = document.getElementById("listaSaldosAdmin");
+  const listaUsuarios = Array.isArray(usuariosOrdenados) ? usuariosOrdenados : sanitizarUsuarios(usuarios);
+
+  const promotores = listaUsuarios.filter((item) => usuarioEhPromotor(item));
+  const apostadoresBaseAdmin = listaUsuarios.filter(
+    (item) => usuarioEhApostador(item) && !normalizarPromotorId(item.promotorId)
+  );
+
+  if (selectRecarga) {
+    const valorAtual = String(selectRecarga.value || "");
+    selectRecarga.innerHTML = '<option value="">Selecione promotor ou apostador da base admin</option>';
+    promotores.forEach((item) => {
+      const opt = document.createElement("option");
+      opt.value = String(item.id);
+      opt.innerText = `Promotor: ${item.nome} (@${item.login})`;
+      selectRecarga.appendChild(opt);
+    });
+    apostadoresBaseAdmin.forEach((item) => {
+      const opt = document.createElement("option");
+      opt.value = String(item.id);
+      opt.innerText = `Apostador Base Admin: ${item.nome} (@${item.login})`;
+      selectRecarga.appendChild(opt);
+    });
+    if (valorAtual && [...promotores, ...apostadoresBaseAdmin].some((item) => String(item.id) === valorAtual)) {
+      selectRecarga.value = valorAtual;
+    }
+  }
+
+  if (selectEdicao) {
+    const valorAtual = String(selectEdicao.value || "");
+    selectEdicao.innerHTML = '<option value="">Selecione o usuário</option>';
+    listaUsuarios.forEach((item) => {
+      const opt = document.createElement("option");
+      opt.value = String(item.id);
+      const tipo = usuarioEhPromotor(item) ? "Promotor" : "Apostador";
+      opt.innerText = `${tipo}: ${item.nome} (@${item.login})`;
+      selectEdicao.appendChild(opt);
+    });
+    if (valorAtual && listaUsuarios.some((item) => String(item.id) === valorAtual)) {
+      selectEdicao.value = valorAtual;
+    }
+  }
+
+  const userSelecionado = listaUsuarios.find(
+    (item) => String(item.id) === String(selectEdicao && selectEdicao.value)
+  ) || null;
+  if (inputSaldo) {
+    inputSaldo.value = userSelecionado ? String(normalizarSaldoUsuario(userSelecionado.saldo)) : "";
+  }
+  if (inputSaldoApostador) {
+    inputSaldoApostador.value = userSelecionado && usuarioEhPromotor(userSelecionado)
+      ? String(normalizarValorNaoNegativo(userSelecionado.saldoApostador))
+      : "0";
+    inputSaldoApostador.disabled = !(userSelecionado && usuarioEhPromotor(userSelecionado));
+  }
+
+  if (listaSaldos) {
+    if (listaUsuarios.length === 0) {
+      listaSaldos.innerHTML = '<div class="item-admin-linha">Sem usuários para exibir saldos.</div>';
+      return;
+    }
+    listaSaldos.innerHTML = listaUsuarios
+      .map((item) => {
+        const tipo = usuarioEhPromotor(item) ? "Promotor" : "Apostador";
+        const base = !usuarioEhPromotor(item)
+          ? normalizarPromotorId(item.promotorId)
+            ? `Base: @${(listaUsuarios.find((u) => u.id === item.promotorId) || {}).login || "-"}`
+            : "Base: Admin"
+          : "Base própria";
+        const saldoPrincipal = formatarMoedaBR(item.saldo);
+        const saldoPool = usuarioEhPromotor(item)
+          ? ` | Saldo apostador: <b>${formatarMoedaBR(item.saldoApostador)}</b>`
+          : "";
+        return (
+          `<div class="item-admin-linha">` +
+          `<b>${item.nome}</b> (@${item.login})<br>` +
+          `Perfil: <b>${tipo}</b> | ${base}<br>` +
+          `Saldo principal: <b>${saldoPrincipal}</b>${saldoPool}` +
+          `</div>`
+        );
+      })
+      .join("");
+  }
+}
+
+function recarregarSaldoAdmin() {
+  if (!logado) {
+    atualizarStatusAdminSaldo("statusRecargaAdmin", "Faça login no admin para recarregar saldo.", true);
+    return;
+  }
+
+  const select = document.getElementById("recargaDestinoAdmin");
+  const input = document.getElementById("recargaValorAdmin");
+  if (!select || !input) return;
+
+  const usuarioId = Number(select.value);
+  const valor = parseNumeroPositivo(input.value);
+  if (!Number.isFinite(usuarioId)) {
+    atualizarStatusAdminSaldo("statusRecargaAdmin", "Selecione um destino de recarga.", true);
+    return;
+  }
+  if (!valor) {
+    atualizarStatusAdminSaldo("statusRecargaAdmin", "Informe um valor válido para recarga.", true);
+    return;
+  }
+
+  const alvo = usuarios.find((item) => item.id === usuarioId) || null;
+  if (!alvo) {
+    atualizarStatusAdminSaldo("statusRecargaAdmin", "Usuário não encontrado para recarga.", true);
+    return;
+  }
+
+  if (usuarioEhPromotor(alvo)) {
+    alvo.saldoApostador = normalizarValorNaoNegativo(alvo.saldoApostador + valor);
+    atualizarStatusAdminSaldo(
+      "statusRecargaAdmin",
+      `Recarga concluída no saldo apostador de @${alvo.login}: +${formatarMoedaBR(valor)}.`,
+      false
+    );
+  } else if (usuarioEhApostador(alvo) && !normalizarPromotorId(alvo.promotorId)) {
+    alvo.saldo = normalizarSaldoUsuario(normalizarSaldoUsuario(alvo.saldo) + valor);
+    atualizarStatusAdminSaldo(
+      "statusRecargaAdmin",
+      `Recarga concluída para apostador da base admin @${alvo.login}: +${formatarMoedaBR(valor)}.`,
+      false
+    );
+  } else {
+    atualizarStatusAdminSaldo(
+      "statusRecargaAdmin",
+      "Recarga direta permitida apenas para promotores e apostadores da base admin.",
+      true
+    );
+    return;
+  }
+
+  salvarUsuarios();
+  mostrarConfirmacaoApostaRapida("Recarga de saldo realizada pelo admin.");
+  input.value = "";
+  mostrarPainelAdmin();
+}
+
+function salvarEdicaoSaldoAdmin() {
+  if (!logado) {
+    atualizarStatusAdminSaldo("statusEdicaoSaldoAdmin", "Faça login no admin para editar saldos.", true);
+    return;
+  }
+
+  const select = document.getElementById("editarSaldoUsuarioAdmin");
+  const inputSaldo = document.getElementById("editarSaldoPrincipalAdmin");
+  const inputSaldoApostador = document.getElementById("editarSaldoApostadorAdmin");
+  if (!select || !inputSaldo || !inputSaldoApostador) return;
+
+  const usuarioId = Number(select.value);
+  if (!Number.isFinite(usuarioId)) {
+    atualizarStatusAdminSaldo("statusEdicaoSaldoAdmin", "Selecione um usuário.", true);
+    return;
+  }
+
+  const saldoPrincipal = parseNumeroNaoNegativo(inputSaldo.value);
+  const saldoApostador = parseNumeroNaoNegativo(inputSaldoApostador.value);
+  if (saldoPrincipal === null) {
+    atualizarStatusAdminSaldo("statusEdicaoSaldoAdmin", "Saldo principal inválido.", true);
+    return;
+  }
+  if (saldoApostador === null) {
+    atualizarStatusAdminSaldo("statusEdicaoSaldoAdmin", "Saldo apostador inválido.", true);
+    return;
+  }
+
+  const alvo = usuarios.find((item) => item.id === usuarioId) || null;
+  if (!alvo) {
+    atualizarStatusAdminSaldo("statusEdicaoSaldoAdmin", "Usuário não encontrado.", true);
+    return;
+  }
+
+  alvo.saldo = normalizarSaldoUsuario(saldoPrincipal);
+  alvo.saldoApostador = usuarioEhPromotor(alvo)
+    ? normalizarValorNaoNegativo(saldoApostador)
+    : 0;
+
+  salvarUsuarios();
+  mostrarConfirmacaoApostaRapida("Saldos atualizados pelo admin.");
+  atualizarStatusAdminSaldo("statusEdicaoSaldoAdmin", `Saldos de @${alvo.login} atualizados.`, false);
+  mostrarPainelAdmin();
+}
+
+function configurarEventosGestaoSaldoAdmin() {
+  const selectEdicao = document.getElementById("editarSaldoUsuarioAdmin");
+  const inputSaldo = document.getElementById("editarSaldoPrincipalAdmin");
+  const inputSaldoApostador = document.getElementById("editarSaldoApostadorAdmin");
+  if (!selectEdicao || !inputSaldo || !inputSaldoApostador) return;
+
+  selectEdicao.addEventListener("change", () => {
+    const usuarioId = Number(selectEdicao.value);
+    const alvo = usuarios.find((item) => item.id === usuarioId) || null;
+    if (!alvo) {
+      inputSaldo.value = "";
+      inputSaldoApostador.value = "0";
+      inputSaldoApostador.disabled = true;
+      return;
+    }
+    inputSaldo.value = String(normalizarSaldoUsuario(alvo.saldo));
+    if (usuarioEhPromotor(alvo)) {
+      inputSaldoApostador.disabled = false;
+      inputSaldoApostador.value = String(normalizarValorNaoNegativo(alvo.saldoApostador));
+    } else {
+      inputSaldoApostador.disabled = true;
+      inputSaldoApostador.value = "0";
+    }
+  });
+}
+
 function mostrarPainelAdmin() {
   const resumo = document.getElementById("resumoPainelAdmin");
   const listaUsuariosAdmin = document.getElementById("listaUsuariosAdmin");
@@ -5391,6 +5624,7 @@ function mostrarPainelAdmin() {
         "Entrada = valor total apostado. Saída = premiação apurada das apostas vencedoras.";
     }
     atualizarGestaoPromotoresAdmin([], []);
+    atualizarGestaoSaldosAdmin([]);
     return;
   }
 
@@ -5477,12 +5711,15 @@ function mostrarPainelAdmin() {
             ? ` | Base: <b>@${promotor.login}</b>`
             : " | Base: <b>Admin</b>";
         const depositoTotal = normalizarValorNaoNegativo(user.totalDepositos);
+        const linhaSaldoApostador = usuarioEhPromotor(user)
+          ? ` | Saldo apostador: <b>${formatarMoedaBR(user.saldoApostador)}</b>`
+          : "";
         return (
           `<div class="item-admin-linha">` +
           `<b>${user.nome}</b> (@${user.login})<br>` +
           `Perfil: <b>${papel}</b>${baseLinha}<br>` +
           `Cadastro: ${dataCadastroUsuario(user)}<br>` +
-          `Saldo: <b>${formatarMoedaBR(user.saldo)}</b><br>` +
+          `Saldo: <b>${formatarMoedaBR(user.saldo)}</b>${linhaSaldoApostador}<br>` +
           `Depósitos: <b>${formatarMoedaBR(depositoTotal)}</b><br>` +
           `Apostas: <b>${totalApostas}</b>` +
           `</div>`
@@ -5492,6 +5729,7 @@ function mostrarPainelAdmin() {
   }
 
   atualizarGestaoPromotoresAdmin(usuariosOrdenados, apostasComResultado);
+  atualizarGestaoSaldosAdmin(usuariosOrdenados);
 
   if (apostasDaData.length === 0) {
     listaApostasAdmin.innerHTML =
@@ -5686,6 +5924,7 @@ async function init() {
   configurarAutoBichoInputs();
   configurarCamposAposta();
   configurarEventosGestaoPromotorAdmin();
+  configurarEventosGestaoSaldoAdmin();
   configurarMascaraValorDepositoUsuario();
   configurarCronometroAposta();
   preencherCamposMultiplicadores();
@@ -5757,6 +5996,8 @@ window.abrirDeposito = abrirDeposito;
 window.criarPromotorAdmin = criarPromotorAdmin;
 window.salvarComissaoPromotorAdmin = salvarComissaoPromotorAdmin;
 window.vincularApostadorPromotorAdmin = vincularApostadorPromotorAdmin;
+window.recarregarSaldoAdmin = recarregarSaldoAdmin;
+window.salvarEdicaoSaldoAdmin = salvarEdicaoSaldoAdmin;
 
 window.addEventListener("load", () => {
   init();

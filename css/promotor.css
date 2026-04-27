@@ -89,8 +89,22 @@
   color: #00e676;
 }
 
+#dashPromotorSaldoProprio {
+  color: #9fd5ff;
+}
+
+#dashPromotorSaldoApostador {
+  color: #ffd54f;
+}
+
 #dashPromotorPerdas {
   color: #ff5252;
+}
+
+#statusRepassePromotor {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
 }
 
 @media (max-width: 640px) {

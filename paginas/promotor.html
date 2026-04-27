@@ -30,6 +30,14 @@
 
       <div class="dashboard-promotor-grid">
         <div class="dashboard-admin-card">
+          <span>Saldo próprio (apostas)</span>
+          <strong id="dashPromotorSaldoProprio">R$ 0,00</strong>
+        </div>
+        <div class="dashboard-admin-card">
+          <span>Saldo apostador (repasse)</span>
+          <strong id="dashPromotorSaldoApostador">R$ 0,00</strong>
+        </div>
+        <div class="dashboard-admin-card">
           <span>Apostadores da base</span>
           <strong id="dashPromotorApostadores">0</strong>
         </div>
@@ -78,6 +86,16 @@
           <p id="resumoBasePromotor" class="resumo-painel-admin"></p>
           <div id="listaApostadoresBasePromotor" class="lista-admin-scroll"></div>
         </section>
+
+        <section class="painel-admin-bloco">
+          <h4>Repassar Saldo ao Apostador</h4>
+          <select id="repasseApostadorPromotor">
+            <option value="">Selecione o apostador da base</option>
+          </select>
+          <input id="repasseValorPromotor" type="number" min="0.01" step="0.01" placeholder="Valor do repasse (R$)">
+          <button type="button" onclick="repassarSaldoApostadorPromotor()">Repassar Saldo</button>
+          <p id="statusRepassePromotor"></p>
+        </section>
       </div>
     </div>
   </main>
@@ -86,6 +104,6 @@
     Porco do Bicho • Painel do Promotor.
   </footer>
 
-  <script src="../js/promotor.js?v=20260427-2"></script>
+  <script src="../js/promotor.js?v=20260427-3"></script>
 </body>
 </html>

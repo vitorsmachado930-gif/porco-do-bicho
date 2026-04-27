@@ -127,6 +127,35 @@
         <div id="listaPromotoresAdmin" class="lista-admin-scroll"></div>
       </div>
 
+      <h3>Gestão de Saldos</h3>
+      <div class="painel-admin-listas">
+        <div class="painel-admin-bloco">
+          <h4>Recarga (somente Admin)</h4>
+          <select id="recargaDestinoAdmin">
+            <option value="">Selecione promotor ou apostador da base admin</option>
+          </select>
+          <input id="recargaValorAdmin" type="number" min="0.01" step="0.01" placeholder="Valor da recarga (R$)">
+          <button type="button" onclick="recarregarSaldoAdmin()">Recarregar Saldo</button>
+          <p id="statusRecargaAdmin"></p>
+        </div>
+
+        <div class="painel-admin-bloco">
+          <h4>Editar Saldo de Usuário</h4>
+          <select id="editarSaldoUsuarioAdmin">
+            <option value="">Selecione o usuário</option>
+          </select>
+          <input id="editarSaldoPrincipalAdmin" type="number" min="0" step="0.01" placeholder="Saldo principal (R$)">
+          <input id="editarSaldoApostadorAdmin" type="number" min="0" step="0.01" placeholder="Saldo apostador (promotor)">
+          <button type="button" onclick="salvarEdicaoSaldoAdmin()">Salvar Edição</button>
+          <p id="statusEdicaoSaldoAdmin"></p>
+        </div>
+      </div>
+
+      <div class="painel-admin-bloco">
+        <h4>Visão de Saldos</h4>
+        <div id="listaSaldosAdmin" class="lista-admin-scroll"></div>
+      </div>
+
       <div class="admin-operacao-grid">
         <section class="painel-admin-bloco admin-operacao-bloco bloco-resultado-admin">
           <h3>Cadastrar Resultado</h3>
@@ -247,6 +276,6 @@
     Porco do Bicho • Painel Admin • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/app.js?v=20260427-13"></script>
+  <script src="../js/app.js?v=20260427-14"></script>
 </body>
 </html>

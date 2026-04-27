@@ -126,6 +126,7 @@ function sanitizarUsuarios(arr) {
       const totalDepositos = Number.isFinite(totalDepositosRaw) && totalDepositosRaw >= 0
         ? Number(totalDepositosRaw.toFixed(2))
         : 0;
+      const saldoApostador = normalizarValorNaoNegativo(raw.saldoApostador);
       const indicadorId = normalizarIdPositivo(raw.indicadorId);
       const bonusIndicacaoSaldo = normalizarValorNaoNegativo(raw.bonusIndicacaoSaldo);
       const bonusIndicacaoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoTotal);
@@ -151,6 +152,7 @@ function sanitizarUsuarios(arr) {
         comissaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? comissaoSaldo : 0,
         comissaoTotal: role === PAPEL_USUARIO_PROMOTOR ? comissaoTotal : 0,
         totalDepositos,
+        saldoApostador: role === PAPEL_USUARIO_PROMOTOR ? saldoApostador : 0,
         indicadorId: role === PAPEL_USUARIO_PROMOTOR ? null : indicadorId,
         bonusIndicacaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoSaldo,
         bonusIndicacaoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoTotal,
@@ -182,6 +184,7 @@ function sanitizarUsuarios(arr) {
       item.indicadosTotal = 0;
       return;
     }
+    item.saldoApostador = 0;
     if (!idsPromotores.has(item.promotorId)) {
       item.promotorId = null;
     }
@@ -218,18 +221,14 @@ function atualizarResumoUsuario() {
   const btnEl = document.getElementById("btnDepositarSaldo");
   if (!resumoEl || !saldoEl || !inputEl || !btnEl) return;
 
-  if (!usuarioAtual) {
-    resumoEl.innerText = "Faça login na Home para usar a área de depósito.";
+  if (usuarioAtual) {
+    saldoEl.innerText = formatarMoedaBR(usuarioAtual.saldo);
+  } else {
     saldoEl.innerText = "R$ 0,00";
-    inputEl.disabled = true;
-    btnEl.disabled = true;
-    return;
   }
-
-  resumoEl.innerText = `Usuário: ${usuarioAtual.nome} (@${usuarioAtual.login})`;
-  saldoEl.innerText = formatarMoedaBR(usuarioAtual.saldo);
-  inputEl.disabled = false;
-  btnEl.disabled = false;
+  resumoEl.innerText = "Recarga disponível somente no Painel Admin.";
+  inputEl.disabled = true;
+  btnEl.disabled = true;
 }
 
 function configurarMascaraValorDeposito() {
@@ -247,74 +246,7 @@ function configurarMascaraValorDeposito() {
 }
 
 function depositarSaldo() {
-  if (!usuarioAtual) {
-    atualizarStatusDeposito("Sessão inválida. Volte para a Home e faça login.", true);
-    return;
-  }
-
-  const input = document.getElementById("valorDepositoNovo");
-  if (!input) return;
-  const centavos = Number(extrairDigitos(input.value) || 0);
-
-  if (!Number.isFinite(centavos) || centavos <= 0) {
-    atualizarStatusDeposito("Informe um valor de depósito válido.", true);
-    return;
-  }
-
-  const valorDeposito = centavos / 100;
-  const idx = usuarios.findIndex((u) => u.id === usuarioAtual.id);
-  if (idx === -1) {
-    atualizarStatusDeposito("Usuário não encontrado. Faça login novamente.", true);
-    return;
-  }
-
-  const saldoAtual = Number(usuarios[idx].saldo || 0);
-  const novoSaldo = Number((saldoAtual + valorDeposito).toFixed(2));
-  usuarios[idx].saldo = novoSaldo;
-  usuarios[idx].totalDepositos = Number((Number(usuarios[idx].totalDepositos || 0) + valorDeposito).toFixed(2));
-
-  const apostador = usuarios[idx];
-  let comissaoGerada = 0;
-  let promotorLogin = "";
-  const promotorId = Number(apostador.promotorId);
-  if (apostador.role !== PAPEL_USUARIO_PROMOTOR && Number.isFinite(promotorId) && promotorId > 0) {
-    const idxPromotor = usuarios.findIndex(
-      (u) => u.id === promotorId && String(u.role || "") === PAPEL_USUARIO_PROMOTOR
-    );
-    if (idxPromotor !== -1) {
-      const percentual = Number(usuarios[idxPromotor].comissaoPercentual || 0);
-      if (Number.isFinite(percentual) && percentual > 0) {
-        comissaoGerada = Number(((valorDeposito * percentual) / 100).toFixed(2));
-      }
-      if (comissaoGerada > 0) {
-        usuarios[idxPromotor].comissaoSaldo = Number(
-          (Number(usuarios[idxPromotor].comissaoSaldo || 0) + comissaoGerada).toFixed(2)
-        );
-        usuarios[idxPromotor].comissaoTotal = Number(
-          (Number(usuarios[idxPromotor].comissaoTotal || 0) + comissaoGerada).toFixed(2)
-        );
-      }
-      promotorLogin = String(usuarios[idxPromotor].login || "");
-    } else {
-      usuarios[idx].promotorId = null;
-    }
-  }
-
-  usuarioAtual = usuarios[idx];
-
-  salvarJSONStorage(USUARIOS_KEY, usuarios);
-  localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
-
-  atualizarResumoUsuario();
-  input.value = "R$ 0,00";
-  const textoComissao =
-    comissaoGerada > 0 && promotorLogin
-      ? ` Comissão para @${promotorLogin}: ${formatarMoedaBR(comissaoGerada)}.`
-      : "";
-  atualizarStatusDeposito(
-    `Depósito confirmado: +${formatarMoedaBR(valorDeposito)}. Novo saldo: ${formatarMoedaBR(novoSaldo)}.${textoComissao}`,
-    false
-  );
+  atualizarStatusDeposito("Recarga disponível somente no Painel Admin.", true);
 }
 
 function initDeposito() {

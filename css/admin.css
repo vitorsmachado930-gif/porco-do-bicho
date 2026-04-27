@@ -65,13 +65,16 @@
 
 #statusPromotorAdmin,
 #statusComissaoPromotorAdmin,
-#statusVinculoPromotorAdmin {
+#statusVinculoPromotorAdmin,
+#statusRecargaAdmin,
+#statusEdicaoSaldoAdmin {
   margin: 8px 0 0;
   color: #9fb3c8;
   font-size: 13px;
 }
 
-#listaPromotoresAdmin {
+#listaPromotoresAdmin,
+#listaSaldosAdmin {
   max-height: 320px;
 }
 

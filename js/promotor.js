@@ -110,6 +110,14 @@ function normalizarValorNaoNegativo(valor) {
   return Number(n.toFixed(2));
 }
 
+function parseNumeroPositivo(valor) {
+  const txt = String(valor || "").replace(",", ".").trim();
+  if (!txt) return null;
+  const numero = Number(txt);
+  if (!Number.isFinite(numero) || numero <= 0) return null;
+  return Number(numero.toFixed(2));
+}
+
 function normalizarContadorNaoNegativo(valor) {
   const n = Number(valor);
   if (!Number.isFinite(n) || n < 0) return 0;
@@ -176,6 +184,7 @@ function sanitizarUsuarios(arr) {
       const comissaoSaldo = Number(raw.comissaoSaldo);
       const comissaoTotal = Number(raw.comissaoTotal);
       const totalDepositos = Number(raw.totalDepositos);
+      const saldoApostador = normalizarValorNaoNegativo(raw.saldoApostador);
       const indicadorId = normalizarIndicadorId(raw.indicadorId);
       const bonusIndicacaoSaldo = normalizarValorNaoNegativo(raw.bonusIndicacaoSaldo);
       const bonusIndicacaoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoTotal);
@@ -215,6 +224,7 @@ function sanitizarUsuarios(arr) {
           Number.isFinite(totalDepositos) && totalDepositos >= 0
             ? Number(totalDepositos.toFixed(2))
             : 0,
+        saldoApostador: role === PAPEL_USUARIO_PROMOTOR ? saldoApostador : 0,
         indicadorId: role === PAPEL_USUARIO_PROMOTOR ? null : indicadorId,
         bonusIndicacaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoSaldo,
         bonusIndicacaoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoTotal,
@@ -246,6 +256,7 @@ function sanitizarUsuarios(arr) {
       item.indicadosTotal = 0;
       return;
     }
+    item.saldoApostador = 0;
     if (!idsPromotores.has(item.promotorId)) {
       item.promotorId = null;
     }
@@ -333,6 +344,30 @@ function atualizarStatusPromotor(texto, erro) {
   if (!el) return;
   el.style.color = erro ? "#ff6b6b" : "#9fb3c8";
   el.innerText = texto || "";
+}
+
+function atualizarStatusRepassePromotor(texto, erro) {
+  const el = document.getElementById("statusRepassePromotor");
+  if (!el) return;
+  el.style.color = erro ? "#ff6b6b" : "#9fb3c8";
+  el.innerText = texto || "";
+}
+
+function atualizarSelecaoRepassePromotor(base) {
+  const select = document.getElementById("repasseApostadorPromotor");
+  if (!select) return;
+  const listaBase = Array.isArray(base) ? base : [];
+  const valorAtual = String(select.value || "");
+  select.innerHTML = '<option value="">Selecione o apostador da base</option>';
+  listaBase.forEach((apostador) => {
+    const opt = document.createElement("option");
+    opt.value = String(apostador.id);
+    opt.innerText = `${apostador.nome} (@${apostador.login})`;
+    select.appendChild(opt);
+  });
+  if (valorAtual && listaBase.some((apostador) => String(apostador.id) === valorAtual)) {
+    select.value = valorAtual;
+  }
 }
 
 function gruposDoPalpite(palpite) {
@@ -471,6 +506,7 @@ function renderPainelPromotor() {
     avisoEl.style.display = "block";
     painelEl.style.display = "none";
     avisoEl.innerText = "Faça login na Home como promotor para acessar este painel.";
+    atualizarSelecaoRepassePromotor([]);
     return;
   }
 
@@ -478,6 +514,7 @@ function renderPainelPromotor() {
     avisoEl.style.display = "block";
     painelEl.style.display = "none";
     avisoEl.innerText = "Seu usuário não possui perfil de promotor.";
+    atualizarSelecaoRepassePromotor([]);
     return;
   }
 
@@ -486,6 +523,7 @@ function renderPainelPromotor() {
     avisoEl.style.display = "block";
     painelEl.style.display = "none";
     avisoEl.innerText = "Promotor não encontrado. Faça login novamente.";
+    atualizarSelecaoRepassePromotor([]);
     return;
   }
   usuarioAtual = usuarios[idxPromotor];
@@ -522,6 +560,8 @@ function renderPainelPromotor() {
     const el = document.getElementById(id);
     if (el) el.innerText = valor;
   };
+  setTexto("dashPromotorSaldoProprio", formatarMoedaBR(usuarioAtual.saldo));
+  setTexto("dashPromotorSaldoApostador", formatarMoedaBR(usuarioAtual.saldoApostador));
   setTexto("dashPromotorApostadores", String(totais.totalApostadores));
   setTexto("dashPromotorDepositos", formatarMoedaBR(totais.totalDepositos));
   setTexto("dashPromotorApostas", String(totais.totalApostas));
@@ -535,6 +575,7 @@ function renderPainelPromotor() {
     `Promotor: ${usuarioAtual.nome} (@${usuarioAtual.login}) | Comissão por depósito: ${formatarPercentual(usuarioAtual.comissaoPercentual)}`;
   resumoBaseEl.innerText =
     `${totais.totalApostadores} apostador(es) na sua base | Depósitos: ${formatarMoedaBR(totais.totalDepositos)} | Apostas: ${totais.totalApostas}`;
+  atualizarSelecaoRepassePromotor(base);
 
   if (base.length === 0) {
     listaEl.innerHTML = "<p>Nenhum apostador vinculado à sua base ainda.</p>";
@@ -604,6 +645,7 @@ function cadastrarApostadorBasePromotor() {
     comissaoSaldo: 0,
     comissaoTotal: 0,
     totalDepositos: 0,
+    saldoApostador: 0,
     indicadorId: null,
     bonusIndicacaoSaldo: 0,
     bonusIndicacaoTotal: 0,
@@ -625,6 +667,73 @@ function cadastrarApostadorBasePromotor() {
   renderPainelPromotor();
 }
 
+function repassarSaldoApostadorPromotor() {
+  if (!usuarioAtual || usuarioAtual.role !== PAPEL_USUARIO_PROMOTOR) {
+    atualizarStatusRepassePromotor("Somente promotores podem repassar saldo aos apostadores.", true);
+    return;
+  }
+
+  const idxPromotor = usuarios.findIndex(
+    (u) => Number(u.id) === Number(usuarioAtual.id) && u.role === PAPEL_USUARIO_PROMOTOR
+  );
+  if (idxPromotor === -1) {
+    atualizarStatusRepassePromotor("Promotor não encontrado. Faça login novamente.", true);
+    return;
+  }
+
+  const selectApostador = document.getElementById("repasseApostadorPromotor");
+  const inputValor = document.getElementById("repasseValorPromotor");
+  if (!selectApostador || !inputValor) return;
+
+  const apostadorId = Number(selectApostador.value);
+  if (!Number.isFinite(apostadorId)) {
+    atualizarStatusRepassePromotor("Selecione um apostador da sua base.", true);
+    return;
+  }
+
+  const valor = parseNumeroPositivo(inputValor.value);
+  if (!valor) {
+    atualizarStatusRepassePromotor("Informe um valor válido para repasse.", true);
+    return;
+  }
+
+  const idxApostador = usuarios.findIndex(
+    (u) =>
+      Number(u.id) === apostadorId &&
+      u.role !== PAPEL_USUARIO_PROMOTOR &&
+      Number(u.promotorId) === Number(usuarioAtual.id)
+  );
+  if (idxApostador === -1) {
+    atualizarStatusRepassePromotor("Apostador inválido para repasse.", true);
+    return;
+  }
+
+  const saldoApostadorPromotor = normalizarValorNaoNegativo(usuarios[idxPromotor].saldoApostador);
+  if (saldoApostadorPromotor < valor) {
+    atualizarStatusRepassePromotor(
+      `Saldo apostador insuficiente. Disponível: ${formatarMoedaBR(saldoApostadorPromotor)}.`,
+      true
+    );
+    return;
+  }
+
+  usuarios[idxPromotor].saldoApostador = normalizarValorNaoNegativo(saldoApostadorPromotor - valor);
+  usuarios[idxApostador].saldo = normalizarValorNaoNegativo(
+    normalizarValorNaoNegativo(usuarios[idxApostador].saldo) + valor
+  );
+
+  usuarioAtual = usuarios[idxPromotor];
+  salvarJSONStorage(USUARIOS_KEY, usuarios);
+  localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
+
+  inputValor.value = "";
+  atualizarStatusRepassePromotor(
+    `Repasse concluído: ${formatarMoedaBR(valor)} para @${usuarios[idxApostador].login}.`,
+    false
+  );
+  renderPainelPromotor();
+}
+
 function sairPromotor() {
   localStorage.removeItem(USUARIO_SESSAO_KEY);
   window.location.href = "../index.html";
@@ -633,9 +742,11 @@ function sairPromotor() {
 function initPromotor() {
   carregarEstado();
   atualizarStatusPromotor("", false);
+  atualizarStatusRepassePromotor("", false);
   renderPainelPromotor();
 }
 
 window.cadastrarApostadorBasePromotor = cadastrarApostadorBasePromotor;
+window.repassarSaldoApostadorPromotor = repassarSaldoApostadorPromotor;
 window.sairPromotor = sairPromotor;
 window.addEventListener("load", initPromotor);
