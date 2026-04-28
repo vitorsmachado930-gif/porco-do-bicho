@@ -1945,8 +1945,6 @@ function normalizarItem(raw, index) {
     normalizarDataISO(raw.createdAt) ||
     hojeISO();
 
-  if (!dataDentroDaJanela(data)) return null;
-
   const loteria = normalizarNomeLoteriaPorData(praca, raw.loteria, data);
   const resultados = normalizarResultados(raw);
   if (!loteria || resultados.length === 0) return null;
@@ -4671,11 +4669,8 @@ async function salvar() {
     return;
   }
 
-  if (!dataDentroDaJanela(data)) {
-    mostrarConfirmacaoApostaRapida(
-      `A data deve estar entre ${formatarDataBR(dataMinimaISO())} e ${formatarDataBR(hojeISO())}.`,
-      "erro"
-    );
+  if (data > hojeISO()) {
+    mostrarConfirmacaoApostaRapida("A data do resultado não pode ser futura.", "erro");
     return;
   }
 
