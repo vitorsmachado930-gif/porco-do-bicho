@@ -161,6 +161,7 @@ let sincronizacaoResultadosAtiva = false;
 let aplicandoResultadosRemotos = false;
 let sincronizacaoResultadosTimer = null;
 let pushResultadosRemotosTimer = null;
+let inicializandoSincronizacaoResultados = false;
 let sincronizacaoPainelAtiva = false;
 let aplicandoPainelRemoto = false;
 let sincronizacaoPainelTimer = null;
@@ -209,15 +210,6 @@ function formatarDataBR(dataISO) {
   const [ano, mes, dia] = String(dataISO).split("-");
   if (!ano || !mes || !dia) return dataISO;
   return `${dia}/${mes}/${ano.slice(-2)}`;
-}
-
-function obterUltimaDataComResultadoApurado() {
-  const datas = sanitizarLista(lista)
-    .filter((item) => Array.isArray(item.resultados) && item.resultados.length > 0)
-    .map((item) => normalizarDataISO(item.data))
-    .filter(Boolean)
-    .sort((a, b) => String(b).localeCompare(String(a), "pt-BR"));
-  return datas.length > 0 ? datas[0] : "";
 }
 
 function normalizarModoDashboardAdmin(valor) {
@@ -2089,16 +2081,38 @@ function serializarPainelParaHash(listaUsuarios, listaApostas) {
 }
 
 function agendarPushResultadosRemotos(delayMs) {
-  if (!sincronizacaoResultadosAtiva || aplicandoResultadosRemotos) return;
+  if (aplicandoResultadosRemotos) return;
   const delay = Number.isFinite(delayMs) ? Math.max(100, delayMs) : 500;
 
   if (pushResultadosRemotosTimer) {
     clearTimeout(pushResultadosRemotosTimer);
   }
 
-  pushResultadosRemotosTimer = window.setTimeout(() => {
+  pushResultadosRemotosTimer = window.setTimeout(async () => {
+    if (!sincronizacaoResultadosAtiva) {
+      const ativou = await tentarAtivarSincronizacaoResultadosRemotos();
+      if (!ativou) return;
+    }
     sincronizarResultadosRemotos("push");
   }, delay);
+}
+
+async function tentarAtivarSincronizacaoResultadosRemotos() {
+  if (sincronizacaoResultadosAtiva) return true;
+  if (!window.fetch) return false;
+  if (inicializandoSincronizacaoResultados) return false;
+
+  inicializandoSincronizacaoResultados = true;
+  try {
+    await buscarEstadoResultadosRemotos();
+    sincronizacaoResultadosAtiva = true;
+    return true;
+  } catch (_err) {
+    sincronizacaoResultadosAtiva = false;
+    return false;
+  } finally {
+    inicializandoSincronizacaoResultados = false;
+  }
 }
 
 async function fetchComTimeout(url, opcoes, timeoutMs) {
@@ -2193,7 +2207,10 @@ function aplicarEstadoResultadosRemotos(estadoRemoto) {
 }
 
 async function sincronizarResultadosRemotos(modo) {
-  if (!sincronizacaoResultadosAtiva) return;
+  if (!sincronizacaoResultadosAtiva) {
+    const ativou = await tentarAtivarSincronizacaoResultadosRemotos();
+    if (!ativou) return;
+  }
 
   try {
     const estadoRemoto = await buscarEstadoResultadosRemotos();
@@ -2247,15 +2264,10 @@ async function sincronizarResultadosRemotos(modo) {
 async function inicializarSincronizacaoResultadosRemotos() {
   if (!window.fetch) return;
 
-  try {
-    await buscarEstadoResultadosRemotos();
-    sincronizacaoResultadosAtiva = true;
-  } catch (_err) {
-    sincronizacaoResultadosAtiva = false;
-    return;
+  const ativou = await tentarAtivarSincronizacaoResultadosRemotos();
+  if (ativou) {
+    await sincronizarResultadosRemotos("bootstrap");
   }
-
-  await sincronizarResultadosRemotos("bootstrap");
 
   if (!sincronizacaoResultadosTimer) {
     sincronizacaoResultadosTimer = window.setInterval(() => {
@@ -2929,32 +2941,9 @@ function atualizarDestaqueCarrosselResultados() {
   if (!container) return;
 
   const cards = Array.from(container.querySelectorAll(".resultado-card"));
-  const ativarCarrossel = window.innerWidth <= 820 && cards.length > 1;
-
-  container.classList.toggle("tem-carrossel", ativarCarrossel);
-
-  if (!ativarCarrossel) {
-    cards.forEach((card) => {
-      card.classList.remove("resultado-card-ativo");
-    });
-    return;
-  }
-
-  const centroContainer = container.scrollLeft + container.clientWidth / 2;
-  let menorDistancia = Number.POSITIVE_INFINITY;
-  let cardAtivo = cards[0] || null;
-
+  container.classList.remove("tem-carrossel");
   cards.forEach((card) => {
-    const centroCard = card.offsetLeft + card.offsetWidth / 2;
-    const distancia = Math.abs(centroCard - centroContainer);
-    if (distancia < menorDistancia) {
-      menorDistancia = distancia;
-      cardAtivo = card;
-    }
-  });
-
-  cards.forEach((card) => {
-    card.classList.toggle("resultado-card-ativo", card === cardAtivo);
+    card.classList.remove("resultado-card-ativo");
   });
 }
 
@@ -6609,23 +6598,6 @@ async function init() {
   atualizarResumoData();
   await inicializarSincronizacaoResultadosRemotos();
   await inicializarSincronizacaoPainelRemoto();
-
-  const temResultadoNaDataAtual = sanitizarLista(lista).some(
-    (item) =>
-      item.data === dataSelecionada &&
-      Array.isArray(item.resultados) &&
-      item.resultados.length > 0
-  );
-  if (!temResultadoNaDataAtual) {
-    const ultimaDataApurada = obterUltimaDataComResultadoApurado();
-    if (ultimaDataApurada && ultimaDataApurada !== dataSelecionada) {
-      dataSelecionada = ultimaDataApurada;
-      aplicarLimitesDeData();
-      atualizarEstadoNavegacao();
-      atualizarResumoData();
-    }
-  }
-
   mostrar();
 }
 
