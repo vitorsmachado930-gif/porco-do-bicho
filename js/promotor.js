@@ -28,6 +28,7 @@ let usuarios = [];
 let apostas = [];
 let resultados = [];
 let usuarioAtual = null;
+let modoEdicaoPerfilPromotor = false;
 
 function lerJSONStorage(chave, fallback) {
   try {
@@ -53,6 +54,51 @@ function normalizarLoginUsuario(login) {
 
 function extrairDigitos(valor) {
   return String(valor || "").replace(/\D/g, "");
+}
+
+function normalizarTelefoneBrasil(valor) {
+  let digitos = extrairDigitos(valor);
+  if (digitos.startsWith("55") && digitos.length > 11) {
+    digitos = digitos.slice(2);
+  }
+  if (digitos.length > 11) {
+    digitos = digitos.slice(0, 11);
+  }
+  return digitos;
+}
+
+function formatarTelefoneBrasil(valor) {
+  const digitos = normalizarTelefoneBrasil(valor);
+  if (!digitos) return "";
+
+  const ddd = digitos.slice(0, 2);
+  const numero = digitos.slice(2);
+
+  if (digitos.length <= 2) return `(${ddd}`;
+  if (numero.length <= 4) return `(${ddd}) ${numero}`;
+  if (numero.length <= 8) return `(${ddd}) ${numero.slice(0, 4)}-${numero.slice(4)}`;
+  return `(${ddd}) ${numero.slice(0, 5)}-${numero.slice(5, 9)}`;
+}
+
+function validarTelefoneBrasil(valor) {
+  const digitos = normalizarTelefoneBrasil(valor);
+  if (!digitos) {
+    return { ok: true, valor: "" };
+  }
+  if (digitos.length < 10 || digitos.length > 11) {
+    return {
+      ok: false,
+      mensagem: "Informe telefone com DDD e número válido (10 ou 11 dígitos)."
+    };
+  }
+  const ddd = Number(digitos.slice(0, 2));
+  if (!Number.isInteger(ddd) || ddd < 11 || ddd > 99) {
+    return {
+      ok: false,
+      mensagem: "DDD inválido. Informe um DDD entre 11 e 99."
+    };
+  }
+  return { ok: true, valor: formatarTelefoneBrasil(digitos) };
 }
 
 function normalizarDataISO(valor) {
@@ -359,6 +405,158 @@ function atualizarStatusRepassePromotor(texto, erro) {
   el.innerText = texto || "";
 }
 
+function atualizarStatusPerfilPromotor(texto, erro) {
+  const el = document.getElementById("statusPerfilPromotor");
+  if (!el) return;
+  el.style.color = erro ? "#ff6b6b" : "#9fb3c8";
+  el.innerText = texto || "";
+}
+
+function obterCamposPerfilPromotor() {
+  return {
+    resumo: document.getElementById("promotorPerfilResumo"),
+    nome: document.getElementById("promotorPerfilNome"),
+    telefone: document.getElementById("promotorPerfilTelefone"),
+    pix: document.getElementById("promotorPerfilPix")
+  };
+}
+
+function atualizarControlesPerfilPromotor() {
+  const btnEditar = document.getElementById("btnEditarPerfilPromotor");
+  const btnCancelar = document.getElementById("btnCancelarPerfilPromotor");
+  const btnSalvar = document.getElementById("btnSalvarPerfilPromotor");
+  const podeEditar = Boolean(usuarioAtual && usuarioAtual.role === PAPEL_USUARIO_PROMOTOR);
+  const emEdicao = Boolean(modoEdicaoPerfilPromotor && podeEditar);
+
+  if (btnEditar) {
+    btnEditar.style.display = emEdicao ? "none" : "inline-block";
+    btnEditar.disabled = !podeEditar;
+  }
+  if (btnCancelar) {
+    btnCancelar.style.display = emEdicao ? "inline-block" : "none";
+    btnCancelar.disabled = !emEdicao;
+  }
+  if (btnSalvar) {
+    btnSalvar.style.display = emEdicao ? "inline-block" : "none";
+    btnSalvar.disabled = !emEdicao;
+  }
+}
+
+function definirModoEdicaoPerfilPromotor(ativo, focar) {
+  modoEdicaoPerfilPromotor = Boolean(ativo) && Boolean(usuarioAtual);
+  const campos = obterCamposPerfilPromotor();
+  const desabilitar = !modoEdicaoPerfilPromotor;
+  if (campos.nome) campos.nome.disabled = desabilitar;
+  if (campos.telefone) campos.telefone.disabled = desabilitar;
+  if (campos.pix) campos.pix.disabled = desabilitar;
+  atualizarControlesPerfilPromotor();
+
+  if (modoEdicaoPerfilPromotor && focar && campos.nome) {
+    campos.nome.focus();
+    campos.nome.select();
+  }
+}
+
+function preencherCamposPerfilPromotor() {
+  const campos = obterCamposPerfilPromotor();
+  if (!campos.nome || !campos.telefone || !campos.pix || !campos.resumo) return;
+
+  if (!usuarioAtual) {
+    campos.resumo.innerText = "Faça login como promotor para editar seu perfil.";
+    campos.nome.value = "";
+    campos.telefone.value = "";
+    campos.pix.value = "";
+    definirModoEdicaoPerfilPromotor(false, false);
+    return;
+  }
+
+  campos.resumo.innerText = `Login: @${usuarioAtual.login}`;
+  campos.nome.value = String(usuarioAtual.nome || "");
+  campos.telefone.value = formatarTelefoneBrasil(usuarioAtual.telefone || "");
+  campos.pix.value = String(usuarioAtual.chavePix || "");
+  definirModoEdicaoPerfilPromotor(false, false);
+}
+
+function abrirEdicaoPerfilPromotor() {
+  if (!usuarioAtual || usuarioAtual.role !== PAPEL_USUARIO_PROMOTOR) {
+    atualizarStatusPerfilPromotor("Faça login como promotor para editar seu perfil.", true);
+    return;
+  }
+  definirModoEdicaoPerfilPromotor(true, true);
+  atualizarStatusPerfilPromotor("Modo de edição ativado.", false);
+}
+
+function cancelarEdicaoPerfilPromotor() {
+  preencherCamposPerfilPromotor();
+  definirModoEdicaoPerfilPromotor(false, false);
+  atualizarStatusPerfilPromotor("Edição cancelada.", false);
+}
+
+function salvarPerfilPromotor() {
+  if (!usuarioAtual || usuarioAtual.role !== PAPEL_USUARIO_PROMOTOR) {
+    atualizarStatusPerfilPromotor("Sessão de promotor não encontrada.", true);
+    return;
+  }
+
+  const nomeEl = document.getElementById("promotorPerfilNome");
+  const telefoneEl = document.getElementById("promotorPerfilTelefone");
+  const pixEl = document.getElementById("promotorPerfilPix");
+  if (!nomeEl || !telefoneEl || !pixEl) return;
+
+  const nome = String(nomeEl.value || "").trim();
+  const validacaoTelefone = validarTelefoneBrasil(telefoneEl.value || "");
+  const telefone = validacaoTelefone.ok ? validacaoTelefone.valor : "";
+  const chavePix = String(pixEl.value || "").trim().slice(0, 120);
+
+  if (nome.length < 2) {
+    atualizarStatusPerfilPromotor("Informe um nome válido com pelo menos 2 caracteres.", true);
+    return;
+  }
+  if (!validacaoTelefone.ok) {
+    atualizarStatusPerfilPromotor(validacaoTelefone.mensagem, true);
+    return;
+  }
+
+  const idx = usuarios.findIndex(
+    (u) => Number(u.id) === Number(usuarioAtual.id) && u.role === PAPEL_USUARIO_PROMOTOR
+  );
+  if (idx === -1) {
+    atualizarStatusPerfilPromotor("Promotor não encontrado no armazenamento local.", true);
+    return;
+  }
+
+  usuarios[idx] = {
+    ...usuarios[idx],
+    nome,
+    telefone,
+    chavePix
+  };
+  usuarioAtual = usuarios[idx];
+  salvarJSONStorage(USUARIOS_KEY, usuarios);
+  localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
+  preencherCamposPerfilPromotor();
+  atualizarStatusPerfilPromotor("Dados do perfil salvos com sucesso.", false);
+  renderPainelPromotor();
+}
+
+function configurarMascaraTelefonePerfilPromotor() {
+  const telefoneEl = document.getElementById("promotorPerfilTelefone");
+  if (!telefoneEl) return;
+
+  telefoneEl.addEventListener("input", () => {
+    const cursorNoFim = telefoneEl.selectionStart === telefoneEl.value.length;
+    telefoneEl.value = formatarTelefoneBrasil(telefoneEl.value);
+    if (cursorNoFim) {
+      const pos = telefoneEl.value.length;
+      telefoneEl.setSelectionRange(pos, pos);
+    }
+  });
+
+  telefoneEl.addEventListener("blur", () => {
+    telefoneEl.value = formatarTelefoneBrasil(telefoneEl.value);
+  });
+}
+
 function atualizarStatusDepositoPromotor(texto, erro) {
   const el = document.getElementById("statusDepositoPromotor");
   if (!el) return;
@@ -595,6 +793,14 @@ function renderPainelPromotor() {
   resumoBaseEl.innerText =
     `${totais.totalApostadores} apostador(es) na sua base | Depósitos: ${formatarMoedaBR(totais.totalDepositos)} | Apostas: ${totais.totalApostas}`;
   atualizarSelecoesApostadoresPromotor(base);
+  if (!modoEdicaoPerfilPromotor) {
+    preencherCamposPerfilPromotor();
+  } else {
+    const camposPerfil = obterCamposPerfilPromotor();
+    if (camposPerfil.resumo) {
+      camposPerfil.resumo.innerText = `Login: @${usuarioAtual.login}`;
+    }
+  }
 
   if (base.length === 0) {
     listaEl.innerHTML = "<p>Nenhum apostador vinculado à sua base ainda.</p>";
@@ -728,6 +934,17 @@ function registrarDepositoApostadorPromotor() {
     return;
   }
 
+  const saldoApostadorPromotor = normalizarValorNaoNegativo(usuarios[idxPromotor].saldoApostador);
+  if (saldoApostadorPromotor < valor) {
+    atualizarStatusDepositoPromotor(
+      `Saldo apostador insuficiente. Disponível: ${formatarMoedaBR(saldoApostadorPromotor)}.`,
+      true
+    );
+    return;
+  }
+
+  usuarios[idxPromotor].saldoApostador = normalizarValorNaoNegativo(saldoApostadorPromotor - valor);
+
   usuarios[idxApostador].saldo = normalizarValorNaoNegativo(
     normalizarValorNaoNegativo(usuarios[idxApostador].saldo) + valor
   );
@@ -831,10 +1048,27 @@ function sairPromotor() {
 
 function initPromotor() {
   carregarEstado();
+  configurarMascaraTelefonePerfilPromotor();
   atualizarStatusPromotor("", false);
+  atualizarStatusPerfilPromotor("", false);
   atualizarStatusDepositoPromotor("", false);
   atualizarStatusRepassePromotor("", false);
+  preencherCamposPerfilPromotor();
   renderPainelPromotor();
+  atualizarControlesPerfilPromotor();
+
+  const btnEditarPerfil = document.getElementById("btnEditarPerfilPromotor");
+  if (btnEditarPerfil) {
+    btnEditarPerfil.addEventListener("click", abrirEdicaoPerfilPromotor);
+  }
+  const btnCancelarPerfil = document.getElementById("btnCancelarPerfilPromotor");
+  if (btnCancelarPerfil) {
+    btnCancelarPerfil.addEventListener("click", cancelarEdicaoPerfilPromotor);
+  }
+  const btnSalvarPerfil = document.getElementById("btnSalvarPerfilPromotor");
+  if (btnSalvarPerfil) {
+    btnSalvarPerfil.addEventListener("click", salvarPerfilPromotor);
+  }
 }
 
 window.cadastrarApostadorBasePromotor = cadastrarApostadorBasePromotor;

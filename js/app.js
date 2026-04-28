@@ -4080,6 +4080,10 @@ function abrirMeuPerfil() {
     mostrarConfirmacaoApostaRapida("Faça login para acessar seu perfil.", "erro");
     return;
   }
+  if (usuarioEhPromotor(usuarioAtual)) {
+    window.location.href = "paginas/promotor.html";
+    return;
+  }
   window.location.href = "paginas/meu-perfil.html";
 }
 
@@ -4167,6 +4171,7 @@ function atualizarVisibilidadeUsuario() {
   const entradaInicial = document.getElementById("usuarioEntradaInicial");
   const cabecalhoUsuario = document.getElementById("cabecalhoUsuario");
   const cabecalhoUsuarioNome = document.getElementById("cabecalhoUsuarioNome");
+  const btnMeuPerfil = document.getElementById("btnMeuPerfil");
   const btnPainelPromotor = document.getElementById("btnPainelPromotor");
   const areaPublica = document.getElementById("usuarioAreaPublica");
   const areaLogado = document.getElementById("usuarioAreaLogado");
@@ -4186,6 +4191,11 @@ function atualizarVisibilidadeUsuario() {
   if (btnPainelPromotor) {
     btnPainelPromotor.style.display =
       usuarioAtual && usuarioEhPromotor(usuarioAtual) ? "inline-flex" : "none";
+  }
+
+  if (btnMeuPerfil) {
+    btnMeuPerfil.style.display =
+      usuarioAtual && usuarioEhPromotor(usuarioAtual) ? "none" : "inline-flex";
   }
 
   if (cardUsuario) {

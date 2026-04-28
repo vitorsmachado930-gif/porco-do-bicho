@@ -78,6 +78,32 @@
   color: #e8f3ff;
 }
 
+.painel-promotor-perfil {
+  margin-bottom: 10px;
+}
+
+.painel-promotor-perfil label {
+  display: block;
+  margin: 8px 0 4px;
+  color: #9fd5ff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.promotor-perfil-dica {
+  display: block;
+  margin: 2px 0 6px;
+  color: #8ea6bc;
+  font-size: 11px;
+}
+
+.promotor-perfil-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 #statusPromotor {
   margin: 8px 0 0;
   color: #9fb3c8;
@@ -104,6 +130,12 @@
 }
 
 #statusDepositoPromotor {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#statusPerfilPromotor {
   margin: 8px 0 0;
   color: #9fb3c8;
   font-size: 13px;
