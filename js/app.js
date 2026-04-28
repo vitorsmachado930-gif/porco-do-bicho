@@ -172,7 +172,6 @@ let aplicandoResultadosRemotos = false;
 let sincronizacaoResultadosTimer = null;
 let pushResultadosRemotosTimer = null;
 let inicializandoSincronizacaoResultados = false;
-let ultimoErroSyncResultados = "";
 let sincronizacaoPainelAtiva = false;
 let aplicandoPainelRemoto = false;
 let sincronizacaoPainelTimer = null;
@@ -2160,14 +2159,7 @@ async function extrairErroResposta(resp, fallback) {
   } catch (_err) {
     detalhe = "";
   }
-  const origem = resp && typeof resp.url === "string" ? resp.url : "";
-  const allow = resp && typeof resp.headers?.get === "function" ? resp.headers.get("allow") : "";
-  const base = detalhe ? `${fallback} ${detalhe}` : fallback;
-  if (!origem && !allow) return base;
-  const extras = [];
-  if (origem) extras.push(`URL: ${origem}`);
-  if (allow) extras.push(`Allow: ${allow}`);
-  return `${base} (${extras.join(" | ")})`;
+  return detalhe ? `${fallback} ${detalhe}` : fallback;
 }
 
 async function buscarEstadoResultadosRemotos() {
@@ -2368,17 +2360,15 @@ async function sincronizarResultadosRemotos(modo) {
 
 async function publicarResultadosRemotosAgora(tentativas = 2) {
   const maxTentativas = Math.max(1, Number(tentativas) || 1);
-  ultimoErroSyncResultados = "";
   for (let i = 0; i < maxTentativas; i++) {
     try {
       const tsLocal = Date.now();
       const tsEnviado = await enviarEstadoResultadosRemotos(tsLocal);
       salvarAtualizacaoDadosLocal(tsEnviado);
       sincronizacaoResultadosAtiva = true;
-      ultimoErroSyncResultados = "";
       return true;
-    } catch (err) {
-      ultimoErroSyncResultados = err && err.message ? String(err.message) : "Falha de comunicação.";
+    } catch (_err) {
+      // tenta novamente
     }
   }
   return false;
@@ -2393,8 +2383,8 @@ async function publicarResultadoIndividualRemoto(item, tentativas = 2) {
       salvarAtualizacaoDadosLocal(tsEnviado);
       sincronizacaoResultadosAtiva = true;
       return true;
-    } catch (err) {
-      ultimoErroSyncResultados = err && err.message ? String(err.message) : "Falha de comunicação.";
+    } catch (_err) {
+      // tenta novamente
     }
   }
   return false;
@@ -4821,7 +4811,7 @@ async function salvar() {
     mostrarConfirmacaoApostaRapida("Resultado salvo e sincronizado com sucesso.");
   } else {
     mostrarConfirmacaoApostaRapida(
-      `Resultado salvo localmente. Sincronização pendente (${ultimoErroSyncResultados || "sem conexão remota"}).`,
+      "Resultado salvo localmente. Sincronização pendente. Tente novamente em instantes.",
       "erro"
     );
   }
