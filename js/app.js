@@ -8,8 +8,18 @@ const ADMIN_SESSAO_KEY = "admin_sessao_ativa";
 const LIMITES_APOSTA_KEY = "limites_aposta";
 const DADOS_UPDATED_AT_KEY = "dados_updated_at";
 const PAINEL_UPDATED_AT_KEY = "painel_updated_at";
-const RESULTADOS_SYNC_API_URL = "/api/resultados.php";
-const PAINEL_SYNC_API_URL = "/api/painel.php";
+const API_ORIGIN_FALLBACK = "https://porcodobicho.com";
+const API_ORIGIN_ATIVO = (() => {
+  const host = String(window.location.hostname || "").toLowerCase();
+  const isLocal =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host.endsWith(".local");
+  return isLocal ? API_ORIGIN_FALLBACK : "";
+})();
+const RESULTADOS_SYNC_API_URL = `${API_ORIGIN_ATIVO}/api/resultados.php`;
+const PAINEL_SYNC_API_URL = `${API_ORIGIN_ATIVO}/api/painel.php`;
 const RESULTADOS_SYNC_INTERVALO_MS = 30000;
 const PAINEL_SYNC_INTERVALO_MS = 30000;
 const MAX_DIAS_HISTORICO = 7;
