@@ -2017,6 +2017,20 @@ function serializarResultadosParaHash(arr) {
   return JSON.stringify(sane);
 }
 
+function resumoResultadosApurados(arr) {
+  const sane = sanitizarLista(arr);
+  const apurados = sane.filter((item) => Array.isArray(item.resultados) && item.resultados.length > 0);
+  const datas = apurados.map((item) => normalizarDataISO(item.data)).filter(Boolean).sort();
+  const maxData = datas.length > 0 ? datas[datas.length - 1] : "";
+  const hoje = hojeISO();
+  const temHoje = apurados.some((item) => normalizarDataISO(item.data) === hoje);
+  return {
+    quantidade: apurados.length,
+    maxData,
+    temHoje
+  };
+}
+
 function serializarPainelParaHash(listaUsuarios, listaApostas) {
   const usuariosSane = sanitizarUsuarios(listaUsuarios).map((item) => ({
     id: item.id,
@@ -2219,6 +2233,21 @@ async function sincronizarResultadosRemotos(modo) {
 
     const hashLocal = serializarResultadosParaHash(lista);
     const hashRemoto = serializarResultadosParaHash(estadoRemoto.resultados);
+    const resumoLocal = resumoResultadosApurados(lista);
+    const resumoRemoto = resumoResultadosApurados(estadoRemoto.resultados);
+
+    const localTemApuracaoMaisNova =
+      resumoLocal.quantidade > 0 &&
+      ((!resumoRemoto.maxData && Boolean(resumoLocal.maxData)) ||
+        (resumoLocal.maxData && resumoRemoto.maxData && resumoLocal.maxData > resumoRemoto.maxData) ||
+        (resumoLocal.temHoje && !resumoRemoto.temHoje));
+
+    if (localTemApuracaoMaisNova && hashLocal !== hashRemoto) {
+      const tsForcado = Date.now();
+      const tsEnviado = await enviarEstadoResultadosRemotos(tsForcado);
+      salvarAtualizacaoDadosLocal(tsEnviado);
+      return;
+    }
 
     if (atualizadoRemoto > atualizadoLocal) {
       if (estadoRemoto.resultados.length === 0 && lista.length > 0) {
