@@ -215,9 +215,64 @@ if (!is_array($payload)) {
 }
 
 $updatedAt = isset($payload['updatedAt']) ? (int)$payload['updatedAt'] : 0;
-$resultados = isset($payload['resultados']) && is_array($payload['resultados'])
-    ? $payload['resultados']
-    : null;
+$resultados = null;
+$estadoAtual = lerEstado($filePath);
+
+if (isset($payload['resultados']) && is_array($payload['resultados'])) {
+    $resultados = $payload['resultados'];
+} elseif (isset($payload['resultado']) && is_array($payload['resultado'])) {
+    $entrada = $payload['resultado'];
+    $data = isset($entrada['data']) ? trim((string)$entrada['data']) : '';
+    $praca = isset($entrada['praca']) ? trim((string)$entrada['praca']) : '';
+    $loteria = isset($entrada['loteria']) ? trim((string)$entrada['loteria']) : '';
+    $listaResultados = isset($entrada['resultados']) && is_array($entrada['resultados'])
+        ? $entrada['resultados']
+        : [];
+
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data) || $praca === '' || $loteria === '' || count($listaResultados) === 0) {
+        responder(422, [
+            'ok' => false,
+            'error' => 'Resultado individual invalido.'
+        ]);
+    }
+
+    $idEntrada = isset($entrada['id']) && is_numeric($entrada['id']) ? (int)$entrada['id'] : 0;
+    $listaAtual = isset($estadoAtual['resultados']) && is_array($estadoAtual['resultados'])
+        ? $estadoAtual['resultados']
+        : [];
+
+    $novoItem = [
+        'id' => $idEntrada > 0 ? $idEntrada : (int)round(microtime(true) * 1000),
+        'praca' => $praca,
+        'data' => $data,
+        'loteria' => $loteria,
+        'resultados' => $listaResultados
+    ];
+
+    $substituiu = false;
+    foreach ($listaAtual as $idx => $existente) {
+        if (!is_array($existente)) {
+            continue;
+        }
+        $mesmaData = isset($existente['data']) && (string)$existente['data'] === $data;
+        $mesmaPraca = isset($existente['praca']) && (string)$existente['praca'] === $praca;
+        $mesmaLoteria = isset($existente['loteria']) && (string)$existente['loteria'] === $loteria;
+        if ($mesmaData && $mesmaPraca && $mesmaLoteria) {
+            if ($idEntrada <= 0 && isset($existente['id']) && is_numeric($existente['id'])) {
+                $novoItem['id'] = (int)$existente['id'];
+            }
+            $listaAtual[$idx] = $novoItem;
+            $substituiu = true;
+            break;
+        }
+    }
+
+    if (!$substituiu) {
+        $listaAtual[] = $novoItem;
+    }
+
+    $resultados = $listaAtual;
+}
 
 if ($updatedAt <= 0 || $resultados === null) {
     responder(422, [
@@ -226,7 +281,6 @@ if ($updatedAt <= 0 || $resultados === null) {
     ]);
 }
 
-$estadoAtual = lerEstado($filePath);
 $agoraMs = (int)round(microtime(true) * 1000);
 $updatedAtAtual = isset($estadoAtual['updatedAt']) ? (int)$estadoAtual['updatedAt'] : 0;
 $updatedAtFinal = max($updatedAt, $updatedAtAtual + 1, $agoraMs);

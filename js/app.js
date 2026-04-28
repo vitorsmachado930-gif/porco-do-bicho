@@ -2140,6 +2140,20 @@ async function fetchComTimeout(url, opcoes, timeoutMs) {
   }
 }
 
+async function extrairErroResposta(resp, fallback) {
+  let detalhe = "";
+  try {
+    const payload = await resp.json();
+    if (payload && typeof payload.error === "string") {
+      detalhe = payload.error.trim();
+    }
+  } catch (_err) {
+    detalhe = "";
+  }
+  if (!detalhe) return fallback;
+  return `${fallback} ${detalhe}`;
+}
+
 async function buscarEstadoResultadosRemotos() {
   const url = `${RESULTADOS_SYNC_API_URL}?t=${Date.now()}`;
   const resp = await fetchComTimeout(
@@ -2195,9 +2209,52 @@ async function enviarEstadoResultadosRemotos(timestamp) {
   );
 
   if (!resp.ok) {
-    throw new Error(`Falha no envio remoto (${resp.status}).`);
+    throw new Error(await extrairErroResposta(resp, `Falha no envio remoto (${resp.status}).`));
   }
 
+  const payloadResp = await resp.json();
+  const updatedAtRemoto = Number(payloadResp && payloadResp.updatedAt);
+  if (Number.isFinite(updatedAtRemoto) && updatedAtRemoto > 0) {
+    return Math.floor(updatedAtRemoto);
+  }
+  return ts;
+}
+
+async function enviarResultadoIndividualRemoto(item, timestamp) {
+  const ts = Number.isFinite(timestamp) && timestamp > 0 ? Math.floor(timestamp) : Date.now();
+  const resultado = item && typeof item === "object" ? item : null;
+  if (!resultado) throw new Error("Resultado inválido para sincronização.");
+
+  const payload = {
+    updatedAt: ts,
+    resultado
+  };
+
+  const resp = await fetchComTimeout(
+    RESULTADOS_SYNC_API_URL,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-App-Client": "porcodobicho-web"
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store"
+    },
+    10000
+  );
+
+  if (!resp.ok) {
+    throw new Error(await extrairErroResposta(resp, `Falha no envio remoto (${resp.status}).`));
+  }
+
+  const payloadResp = await resp.json();
+  const updatedAtRemoto = Number(payloadResp && payloadResp.updatedAt);
+  if (Number.isFinite(updatedAtRemoto) && updatedAtRemoto > 0) {
+    return Math.floor(updatedAtRemoto);
+  }
   return ts;
 }
 
@@ -2303,6 +2360,22 @@ async function publicarResultadosRemotosAgora(tentativas = 2) {
       salvarAtualizacaoDadosLocal(tsEnviado);
       sincronizacaoResultadosAtiva = true;
       ultimoErroSyncResultados = "";
+      return true;
+    } catch (err) {
+      ultimoErroSyncResultados = err && err.message ? String(err.message) : "Falha de comunicação.";
+    }
+  }
+  return false;
+}
+
+async function publicarResultadoIndividualRemoto(item, tentativas = 2) {
+  const maxTentativas = Math.max(1, Number(tentativas) || 1);
+  for (let i = 0; i < maxTentativas; i++) {
+    try {
+      const tsLocal = Date.now();
+      const tsEnviado = await enviarResultadoIndividualRemoto(item, tsLocal);
+      salvarAtualizacaoDadosLocal(tsEnviado);
+      sincronizacaoResultadosAtiva = true;
       return true;
     } catch (err) {
       ultimoErroSyncResultados = err && err.message ? String(err.message) : "Falha de comunicação.";
@@ -4720,7 +4793,8 @@ async function salvar() {
   }
 
   salvarDados();
-  const sincronizado = await publicarResultadosRemotosAgora(3);
+  const sincronizadoIndividual = await publicarResultadoIndividualRemoto(novoItem, 3);
+  const sincronizado = sincronizadoIndividual ? true : await publicarResultadosRemotosAgora(2);
   dataSelecionada = data;
   aplicarLimitesDeData();
   atualizarEstadoNavegacao();
