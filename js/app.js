@@ -1197,42 +1197,136 @@ function obterReferenciasPremiacaoDestaque(dataISO) {
     .sort(compararPorHorario);
 }
 
+function montarPalpitePremiadoPorResultado(tipo, resultadoItem, rand) {
+  const item = resultadoItem && typeof resultadoItem === "object" ? resultadoItem : null;
+  const listaResultados = item && Array.isArray(item.resultados) ? item.resultados : [];
+  if (listaResultados.length === 0) return "";
+
+  const gruposResultado = listaResultados
+    .map((r) => String(r && r.grupo ? r.grupo : "").padStart(2, "0"))
+    .filter(Boolean);
+  const gruposUnicos = [...new Set(gruposResultado)];
+  const numerosResultado = listaResultados
+    .map((r) => extrairDigitos(r && r.numero ? r.numero : "").padStart(4, "0").slice(-4))
+    .filter(Boolean);
+
+  if (tipo === "grupo") {
+    if (gruposUnicos.length === 0) return "";
+    return gruposUnicos[sortearInteiro(rand, gruposUnicos.length)];
+  }
+
+  if (tipo === "dupla_grupo") {
+    if (gruposUnicos.length < 2) return "";
+    const copia = gruposUnicos.slice();
+    const g1 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    const g2 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    return `${g1}-${g2}`;
+  }
+
+  if (tipo === "terno_grupo") {
+    if (gruposUnicos.length < 3) return "";
+    const copia = gruposUnicos.slice();
+    const g1 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    const g2 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    const g3 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    return `${g1}-${g2}-${g3}`;
+  }
+
+  if (tipo === "milhar") {
+    if (numerosResultado.length === 0) return "";
+    return numerosResultado[sortearInteiro(rand, numerosResultado.length)];
+  }
+
+  if (tipo === "centena") {
+    if (numerosResultado.length === 0) return "";
+    const numero = numerosResultado[sortearInteiro(rand, numerosResultado.length)];
+    return numero.slice(-3);
+  }
+
+  if (tipo === "dezena") {
+    if (numerosResultado.length === 0) return "";
+    const numero = numerosResultado[sortearInteiro(rand, numerosResultado.length)];
+    return numero.slice(-2);
+  }
+
+  return "";
+}
+
+function sortearValorPremiacaoFaixa(rand, minimo, maximo) {
+  const min = Number(minimo);
+  const max = Number(maximo);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max < min) return 0;
+  const bruto = min + rand() * (max - min);
+  return Number(bruto.toFixed(2));
+}
+
 function gerarPremiacoesDestaqueDoDia(dataISO) {
   const data = normalizarDataISO(dataISO) || hojeISO();
   const filtroPraca = obterPracaFiltroAtual();
-  const vencedoras = sanitizarApostas(apostas)
-    .filter((aposta) => {
-      if (aposta.data !== data) return false;
-      if (!loteriaAptaParaPremiacaoDestaque(data, aposta.loteria)) return false;
-      if (filtroPraca !== "TODAS" && aposta.praca !== filtroPraca) return false;
-      const resultado = resultadoDaAposta(aposta);
-      return Boolean(resultado && resultado.status === "GANHOU");
+  const referenciasApuradas = obterResultadosDisponiveis()
+    .filter((item) => {
+      if (item.data !== data) return false;
+      if (!loteriaAptaParaPremiacaoDestaque(data, item.loteria)) return false;
+      if (filtroPraca !== "TODAS" && item.praca !== filtroPraca) return false;
+      return Array.isArray(item.resultados) && item.resultados.length > 0;
     })
-    .map((aposta) => {
-      const resultado = resultadoDaAposta(aposta);
-      const premioApurado = aposta.premioCreditado
-        ? normalizarValorNaoNegativo(aposta.premioCreditadoValor)
-        : normalizarValorNaoNegativo(resultado.retorno);
-      return {
-        aposta,
-        resultado,
-        premioApurado
-      };
-    })
-    .sort((a, b) => {
-      if (b.premioApurado !== a.premioApurado) return b.premioApurado - a.premioApurado;
-      return String(b.aposta.createdAt || "").localeCompare(String(a.aposta.createdAt || ""), "pt-BR");
-    })
-    .slice(0, 8);
+    .sort(compararPorHorario);
 
-  return vencedoras.map(({ aposta, premioApurado }) => ({
-    tipo: aposta.tipo,
-    tipoLabel: TIPOS_APOSTA[aposta.tipo] || aposta.tipo,
-    palpite: formatarPalpiteParaBilhete(aposta),
-    valorAposta: Number(normalizarValorMoeda(aposta.valor) || 0),
-    premio: premioApurado,
-    referenciaTexto: `${aposta.praca} | ${aposta.loteria}`
-  }));
+  if (referenciasApuradas.length === 0) return [];
+
+  const tiposAtivos = tiposPremiacaoDestaqueAtivos(data);
+  const rand = criarGeradorDeterministico(
+    `${data}|${filtroPraca}|premiacoes-destaque-apuradas`
+  );
+  const cards = [];
+  const TOTAL_BILHETES_DIA = 2;
+  const referenciasPool = referenciasApuradas.slice();
+  const faixasPremio = [
+    { min: 300, max: 900 },
+    { min: 4000, max: 12000 }
+  ];
+
+  for (let i = 0; i < TOTAL_BILHETES_DIA; i++) {
+    const referencia =
+      referenciasPool.length > 0
+        ? referenciasPool.splice(sortearInteiro(rand, referenciasPool.length), 1)[0]
+        : referenciasApuradas[sortearInteiro(rand, referenciasApuradas.length)];
+    if (!referencia) continue;
+
+    const tiposTentativa = tiposAtivos.slice();
+    let tipoEscolhido = "";
+    let palpiteEscolhido = "";
+    while (tiposTentativa.length > 0 && !palpiteEscolhido) {
+      const idxTipo = sortearInteiro(rand, tiposTentativa.length);
+      const tipo = tiposTentativa.splice(idxTipo, 1)[0];
+      const palpite = montarPalpitePremiadoPorResultado(tipo, referencia, rand);
+      if (!palpite) continue;
+      tipoEscolhido = tipo;
+      palpiteEscolhido = palpite;
+    }
+
+    if (!tipoEscolhido || !palpiteEscolhido) continue;
+
+    const faixa = faixasPremio[i] || faixasPremio[0];
+    const premio = sortearValorPremiacaoFaixa(rand, faixa.min, faixa.max);
+    const valorAposta =
+      VALORES_APOSTA_DESTAQUE[sortearInteiro(rand, VALORES_APOSTA_DESTAQUE.length)] || 2;
+    const apostaDestaque = {
+      tipo: tipoEscolhido,
+      palpite: palpiteEscolhido
+    };
+
+    cards.push({
+      tipo: tipoEscolhido,
+      tipoLabel: TIPOS_APOSTA[tipoEscolhido] || tipoEscolhido,
+      palpite: formatarPalpiteParaBilhete(apostaDestaque),
+      valorAposta,
+      premio,
+      referenciaTexto: `${referencia.praca} | ${referencia.loteria}`
+    });
+  }
+
+  return cards;
 }
 
 function haResultadoApuradoElegivelNoDia(dataISO) {
