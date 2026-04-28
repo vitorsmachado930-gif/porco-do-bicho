@@ -33,6 +33,11 @@ let apostas = [];
 let resultados = [];
 let usuarioAtual = null;
 let modoEdicaoPerfil = false;
+let saldoPerfilAnterior = null;
+let timeoutAnimacaoSaldoPerfil = null;
+let ultimoPainelSyncPerfil = 0;
+let intervaloSyncPerfil = null;
+let totalPremiosCreditadosPerfilAnterior = null;
 
 function lerJSONStorage(chave, fallback) {
   try {
@@ -115,6 +120,26 @@ function formatarHorarioBR(dataHora) {
   const d = new Date(dataHora);
   if (Number.isNaN(d.getTime())) return "--:--";
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function obterHorarioLoteria(loteria) {
+  const match = String(loteria || "").match(/(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const horas = Number(match[1]);
+  const minutos = Number(match[2]);
+  if (!Number.isInteger(horas) || !Number.isInteger(minutos)) return null;
+  if (horas < 0 || horas > 23 || minutos < 0 || minutos > 59) return null;
+  return { horas, minutos };
+}
+
+function loteriaJaCorreuNaData(dataISO, loteria) {
+  const data = normalizarDataISO(dataISO);
+  const horario = obterHorarioLoteria(loteria);
+  if (!data || !horario) return false;
+
+  const sorteio = new Date(`${data}T00:00:00`);
+  sorteio.setHours(horario.horas, horario.minutos, 0, 0);
+  return Date.now() >= sorteio.getTime();
 }
 
 function extrairDigitos(valor) {
@@ -361,6 +386,11 @@ function sanitizarApostas(arr) {
       const usuarioId = Number(raw.usuarioId);
       const usuarioLogin = normalizarLoginUsuario(raw.usuarioLogin);
       const bilheteIdRaw = String(raw.bilheteId || "").trim();
+      const premioCreditado = Boolean(raw.premioCreditado || raw.premioPago);
+      const premioCreditadoValor = normalizarValorNaoNegativo(
+        raw.premioCreditadoValor ?? raw.premioPagoValor
+      );
+      const premioCreditadoEm = String(raw.premioCreditadoEm || raw.premioPagoEm || "").trim();
       if (!Number.isFinite(id)) return null;
       if (!data || !praca || !loteria || !tipo || !palpite) return null;
       const bilheteId =
@@ -377,7 +407,10 @@ function sanitizarApostas(arr) {
         premio,
         createdAt,
         usuarioId: Number.isFinite(usuarioId) ? usuarioId : null,
-        usuarioLogin
+        usuarioLogin,
+        premioCreditado,
+        premioCreditadoValor: premioCreditado ? premioCreditadoValor : 0,
+        premioCreditadoEm: premioCreditado ? premioCreditadoEm : ""
       };
     })
     .filter(Boolean);
@@ -528,8 +561,137 @@ function atualizarResumoUsuario() {
     resumo.innerText = "Faça login na Home para acessar seu perfil.";
     return;
   }
-  resumo.innerText =
-    `Login: @${usuarioAtual.login} | Saldo atual: ${formatarMoedaBR(usuarioAtual.saldo)}`;
+  resumo.innerText = `Login: @${usuarioAtual.login}`;
+}
+
+function limparAnimacaoSaldoPerfil() {
+  const card = document.getElementById("perfilSaldoCard");
+  const aviso = document.getElementById("perfilSaldoAnimacao");
+  if (card) card.classList.remove("saldo-premiado");
+  if (aviso) aviso.innerText = "";
+  if (timeoutAnimacaoSaldoPerfil) {
+    clearTimeout(timeoutAnimacaoSaldoPerfil);
+    timeoutAnimacaoSaldoPerfil = null;
+  }
+}
+
+function dispararAnimacaoSaldoPremiado(aumento) {
+  const card = document.getElementById("perfilSaldoCard");
+  const aviso = document.getElementById("perfilSaldoAnimacao");
+  if (!card || !aviso) return;
+
+  const valorAumento = normalizarValorNaoNegativo(aumento);
+  limparAnimacaoSaldoPerfil();
+  void card.offsetWidth;
+  card.classList.add("saldo-premiado");
+  aviso.innerText = `Premiação creditada: +${formatarMoedaBR(valorAumento)}`;
+  timeoutAnimacaoSaldoPerfil = window.setTimeout(() => {
+    limparAnimacaoSaldoPerfil();
+  }, 2400);
+}
+
+function totalPremiosCreditadosDoUsuarioAtual() {
+  if (!usuarioAtual) return 0;
+  const usuarioId = Number(usuarioAtual.id);
+  const usuarioLogin = normalizarLoginUsuario(usuarioAtual.login);
+  return apostas.reduce((acc, item) => {
+    if (!item || !item.premioCreditado) return acc;
+    const ehDoUsuario =
+      (Number.isFinite(usuarioId) && Number(item.usuarioId) === usuarioId) ||
+      normalizarLoginUsuario(item.usuarioLogin) === usuarioLogin;
+    if (!ehDoUsuario) return acc;
+    return acc + normalizarValorNaoNegativo(item.premioCreditadoValor);
+  }, 0);
+}
+
+function atualizarCardSaldoPerfil(opcoes) {
+  const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
+  const animarSeSubiu = cfg.animarSeSubiu !== false;
+  const saldoEl = document.getElementById("perfilSaldoAtual");
+  const card = document.getElementById("perfilSaldoCard");
+  if (!saldoEl || !card) return;
+
+  if (!usuarioAtual) {
+    saldoPerfilAnterior = null;
+    totalPremiosCreditadosPerfilAnterior = null;
+    saldoEl.innerText = "R$ 0,00";
+    limparAnimacaoSaldoPerfil();
+    return;
+  }
+
+  const saldoAtual = normalizarValorNaoNegativo(usuarioAtual.saldo);
+  const totalPremiosAtual = normalizarValorNaoNegativo(totalPremiosCreditadosDoUsuarioAtual());
+  saldoEl.innerText = formatarMoedaBR(saldoAtual);
+
+  if (
+    saldoPerfilAnterior === null ||
+    totalPremiosCreditadosPerfilAnterior === null ||
+    !animarSeSubiu
+  ) {
+    saldoPerfilAnterior = saldoAtual;
+    totalPremiosCreditadosPerfilAnterior = totalPremiosAtual;
+    return;
+  }
+
+  const aumentoPremio = Number(
+    (totalPremiosAtual - totalPremiosCreditadosPerfilAnterior).toFixed(2)
+  );
+  saldoPerfilAnterior = saldoAtual;
+  totalPremiosCreditadosPerfilAnterior = totalPremiosAtual;
+  if (aumentoPremio > 0) {
+    dispararAnimacaoSaldoPremiado(aumentoPremio);
+  }
+}
+
+function valorTimestampPainelLocal() {
+  const bruto = Number(localStorage.getItem(PAINEL_UPDATED_AT_KEY));
+  if (!Number.isFinite(bruto) || bruto <= 0) return 0;
+  return Math.floor(bruto);
+}
+
+function sincronizarPerfilComStorage(forcar) {
+  const tsAtual = valorTimestampPainelLocal();
+  const precisaSincronizar = Boolean(forcar) || tsAtual !== ultimoPainelSyncPerfil;
+  if (!precisaSincronizar) return;
+  ultimoPainelSyncPerfil = tsAtual;
+
+  const sessaoId = Number(localStorage.getItem(USUARIO_SESSAO_KEY));
+  usuarios = sanitizarUsuarios(lerJSONStorage(USUARIOS_KEY, []));
+  apostas = sanitizarApostas(lerJSONStorage(APOSTAS_KEY, []));
+  resultados = sanitizarResultados(lerJSONStorage(STORAGE_KEY, []));
+  usuarioAtual = Number.isFinite(sessaoId) ? usuarios.find((u) => u.id === sessaoId) || null : null;
+
+  atualizarResumoUsuario();
+  atualizarCardSaldoPerfil({ animarSeSubiu: true });
+  atualizarCardBonusIndicacaoPerfil();
+  if (!modoEdicaoPerfil) {
+    preencherCamposPerfil();
+  }
+  configurarFiltroDataApostas();
+  mostrarApostasPerfil();
+  atualizarControlesEdicaoPerfil();
+}
+
+function configurarSincronizacaoPerfilTempoReal() {
+  window.addEventListener("storage", (event) => {
+    const chave = String(event && event.key || "");
+    if (
+      chave === USUARIOS_KEY ||
+      chave === APOSTAS_KEY ||
+      chave === STORAGE_KEY ||
+      chave === USUARIO_SESSAO_KEY ||
+      chave === PAINEL_UPDATED_AT_KEY
+    ) {
+      sincronizarPerfilComStorage(true);
+    }
+  });
+
+  if (intervaloSyncPerfil) {
+    clearInterval(intervaloSyncPerfil);
+  }
+  intervaloSyncPerfil = window.setInterval(() => {
+    sincronizarPerfilComStorage(false);
+  }, 1500);
 }
 
 function atualizarStatusBonusPerfil(texto, erro) {
@@ -644,6 +806,7 @@ function converterBonusIndicacaoPerfil() {
   localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
 
   atualizarResumoUsuario();
+  atualizarCardSaldoPerfil({ animarSeSubiu: false });
   atualizarCardBonusIndicacaoPerfil();
   atualizarStatusBonusPerfil(
     `Conversão concluída: +${formatarMoedaBR(valorConversao)} no saldo.`,
@@ -769,6 +932,7 @@ function salvarDadosPerfil() {
   salvarJSONStorage(USUARIOS_KEY, usuarios);
   localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
   atualizarResumoUsuario();
+  atualizarCardSaldoPerfil({ animarSeSubiu: false });
   definirModoEdicaoPerfil(false);
   atualizarStatusPerfil("Dados do perfil salvos com sucesso.", false);
 }
@@ -957,6 +1121,7 @@ function montarCardBilhete(grupo) {
   const apostasBilhete = Array.isArray(grupo.apostas) ? grupo.apostas : [];
   const statusBilhete = resumoStatusBilhete(apostasBilhete);
   const dataRef = formatarDataBR(grupo && grupo.data);
+  const aposHorarioBilhete = loteriaJaCorreuNaData(grupo && grupo.data, grupo && grupo.loteria);
   const valorTotal = apostasBilhete.reduce(
     (acc, item) => acc + Number(normalizarValorMoeda(item.valor)),
     0
@@ -965,6 +1130,14 @@ function montarCardBilhete(grupo) {
     (acc, item) => acc + Number(normalizarValorMoeda(item.premio || item.valor)),
     0
   );
+  const premioTotalApurado = apostasBilhete.reduce((acc, item) => {
+    const conf = resultadoDaAposta(item);
+    if (conf.status !== "GANHOU") return acc;
+    const premio = normalizarValorNaoNegativo(
+      item.premioCreditado ? item.premioCreditadoValor : item.premio
+    );
+    return acc + premio;
+  }, 0);
   const horarioRef = formatarHorarioBR(apostasBilhete[0] && apostasBilhete[0].createdAt);
 
   const linhasApostas = apostasBilhete
@@ -973,15 +1146,31 @@ function montarCardBilhete(grupo) {
       const palpite = formatarPalpiteBilhete(item);
       const valor = formatarMoedaBR(item.valor);
       const premio = formatarMoedaBR(item.premio || item.valor);
+      const conf = resultadoDaAposta(item);
+      const premioApurado = formatarMoedaBR(
+        item.premioCreditado ? item.premioCreditadoValor : item.premio
+      );
+      const classeLinhaPremiada = conf.status === "GANHOU" ? " ganhou" : "";
+      const classePalpitePremiado = conf.status === "GANHOU" ? "palpite-premiado" : "";
+      const detalhePremiacao = !aposHorarioBilhete
+        ? ` | Potencial: ${escaparHTML(premio)}`
+        : conf.status === "GANHOU"
+          ? ` | Prêmio: ${escaparHTML(premioApurado)}`
+          : "";
       return (
-        `<div class="bilhete-linha-aposta">` +
-        `${escaparHTML(tipoLabel)}: <b>${escaparHTML(palpite)}</b> | ` +
-        `Valor: ${escaparHTML(valor)} | ` +
-        `Potencial: ${escaparHTML(premio)}` +
+        `<div class="bilhete-linha-aposta${classeLinhaPremiada}">` +
+        `${escaparHTML(tipoLabel)}: <b class="${classePalpitePremiado}">${escaparHTML(palpite)}</b> | ` +
+        `Valor: ${escaparHTML(valor)}${detalhePremiacao}` +
         `</div>`
       );
     })
     .join("");
+
+  const linhaPotencialOuPremio = !aposHorarioBilhete
+    ? `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho potencial total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotal))}</b></div>`
+    : premioTotalApurado > 0
+      ? `<div class="bilhete-resumo-total bilhete-resumo-potencial">Prêmio total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotalApurado))}</b></div>`
+      : "";
 
   return (
     `<div class="aposta-item">` +
@@ -989,7 +1178,7 @@ function montarCardBilhete(grupo) {
     `<div>Bilhete criado às <b>${escaparHTML(horarioRef)}</b> | ${apostasBilhete.length} aposta(s)</div>` +
     linhasApostas +
     `<div class="bilhete-resumo-total">Total apostado: <b>${escaparHTML(formatarMoedaBR(valorTotal))}</b></div>` +
-    `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho potencial total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotal))}</b></div>` +
+    linhaPotencialOuPremio +
     `Status: <span class="status-aposta ${statusBilhete.classe}">${statusBilhete.status}</span> | ${statusBilhete.detalhe}` +
     `</div>`
   );
@@ -1077,13 +1266,16 @@ function irHojeApostasPerfil() {
 
 function initPerfil() {
   carregarEstado();
+  ultimoPainelSyncPerfil = valorTimestampPainelLocal();
   configurarMascaraTelefonePerfil();
   atualizarResumoUsuario();
+  atualizarCardSaldoPerfil({ animarSeSubiu: false });
   atualizarCardBonusIndicacaoPerfil();
   atualizarStatusBonusPerfil("", false);
   preencherCamposPerfil();
   configurarFiltroDataApostas();
   mostrarApostasPerfil();
+  configurarSincronizacaoPerfilTempoReal();
 
   const btnEditar = document.getElementById("btnEditarPerfil");
   if (btnEditar) {
@@ -1128,3 +1320,9 @@ function initPerfil() {
 }
 
 window.addEventListener("load", initPerfil);
+window.addEventListener("beforeunload", () => {
+  if (intervaloSyncPerfil) {
+    clearInterval(intervaloSyncPerfil);
+    intervaloSyncPerfil = null;
+  }
+});

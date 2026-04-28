@@ -29,6 +29,48 @@
   font-size: 14px;
 }
 
+.perfil-saldo-card {
+  margin: 0 0 12px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #2a4155;
+  background: linear-gradient(135deg, #10202d 0%, #0c1721 100%);
+  display: grid;
+  gap: 3px;
+}
+
+.perfil-saldo-card span {
+  color: #9fb3c8;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.perfil-saldo-card strong {
+  color: #00e676;
+  font-size: 30px;
+  line-height: 1;
+  text-shadow: 0 0 10px #00e67644;
+}
+
+#perfilSaldoAnimacao {
+  min-height: 15px;
+  font-size: 12px;
+  color: #8ea6bc;
+  font-weight: 700;
+}
+
+.perfil-saldo-card.saldo-premiado {
+  border-color: #00e676;
+  box-shadow: 0 0 0 1px #00e67666, 0 0 18px #00e67633;
+  animation: saldoPremiadoPulse 1.2s ease 2;
+}
+
+.perfil-saldo-card.saldo-premiado #perfilSaldoAnimacao {
+  color: #00e676;
+}
+
 .card-perfil label {
   display: block;
   margin: 10px 0 4px;
@@ -220,6 +262,17 @@
   border: 1px solid #20394c;
 }
 
+.bilhete-linha-aposta.ganhou {
+  border-color: #00e67666;
+  background: #123123;
+}
+
+.bilhete-linha-aposta .palpite-premiado {
+  color: #00e676;
+  font-weight: 800;
+  text-shadow: 0 0 10px #00e67666;
+}
+
 .bilhete-resumo-total {
   margin-top: 6px;
   color: #b8d1e6;
@@ -260,6 +313,21 @@
   color: #9fd5ff;
   text-transform: uppercase;
   letter-spacing: 0.2px;
+}
+
+@keyframes saldoPremiadoPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 1px #00e67622, 0 0 0 #00e67600;
+  }
+  45% {
+    transform: scale(1.015);
+    box-shadow: 0 0 0 1px #00e67688, 0 0 24px #00e67644;
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 1px #00e67622, 0 0 0 #00e67600;
+  }
 }
 
 @media (max-width: 640px) {

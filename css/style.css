@@ -970,6 +970,12 @@ button:disabled {
   font-weight: 700;
 }
 
+.palpite-premiado {
+  color: #00e676;
+  font-weight: 800;
+  text-shadow: 0 0 10px #00e67666;
+}
+
 .btn-inline {
   width: auto;
   margin-top: 0;

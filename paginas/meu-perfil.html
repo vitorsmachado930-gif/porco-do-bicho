@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/perfil.css?v=20260427-5">
+  <link rel="stylesheet" href="../css/perfil.css?v=20260427-7">
 </head>
 <body>
   <header class="topo-pagina">
@@ -21,6 +21,11 @@
     <article class="card-pagina card-perfil">
       <h1>Informações Pessoais</h1>
       <p id="perfilResumoUsuario" class="perfil-resumo-usuario"></p>
+      <div id="perfilSaldoCard" class="perfil-saldo-card">
+        <span>Saldo Atual</span>
+        <strong id="perfilSaldoAtual">R$ 0,00</strong>
+        <small id="perfilSaldoAnimacao" aria-live="polite"></small>
+      </div>
 
       <label for="perfilNome">Nome</label>
       <input id="perfilNome" type="text" placeholder="Seu nome completo" maxlength="80">
@@ -92,6 +97,6 @@
     Porco do Bicho • Área de perfil • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/perfil.js?v=20260427-9"></script>
+  <script src="../js/perfil.js?v=20260427-12"></script>
 </body>
 </html>
