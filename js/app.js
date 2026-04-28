@@ -546,6 +546,10 @@ function criarUsuarioTesteFixo(rawExistente) {
   };
 }
 
+function criarUsuarioTestePadrao() {
+  return criarUsuarioTesteFixo(USUARIO_TESTE_FIXO);
+}
+
 function normalizarUsuarioItem(raw, index) {
   if (!raw || typeof raw !== "object") return null;
 
@@ -608,21 +612,21 @@ function normalizarUsuarioItem(raw, index) {
 
 function sanitizarUsuarios(arr) {
   const base = Array.isArray(arr) ? arr : [];
-  const usuarioTesteExistente = base.find(
-    (item) => normalizarLoginUsuario(item && item.login) === USUARIO_TESTE_FIXO.login
-  );
-  const usuarioFixo = criarUsuarioTesteFixo(usuarioTesteExistente);
-  const usados = new Set([usuarioFixo.login]);
-  const sane = [usuarioFixo];
+  const usados = new Set();
+  const sane = [];
 
   base.forEach((item, index) => {
     const normalizado = normalizarUsuarioItem(item, index);
     if (!normalizado) return;
-    if (normalizado.login === usuarioFixo.login) return;
+    if (normalizado.login === "admin") return;
     if (usados.has(normalizado.login)) return;
     usados.add(normalizado.login);
     sane.push(normalizado);
   });
+
+  if (sane.length === 0) {
+    sane.push(criarUsuarioTestePadrao());
+  }
 
   const idsPromotores = new Set(
     sane.filter((item) => item.role === PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
@@ -651,8 +655,6 @@ function sanitizarUsuarios(arr) {
     }
     resetarControleDiarioBonusIndicacao(item, hojeISO());
   });
-  usuarioFixo.bloqueado = false;
-
   return sane;
 }
 
@@ -4111,13 +4113,16 @@ function sairUsuarioCabecalho() {
 function preencherCredenciaisTesteNoFormulario() {
   const loginUsuario = document.getElementById("loginUsuario");
   const senhaUsuario = document.getElementById("senhaUsuario");
+  const usuarioTeste = usuarios.find((item) => Number(item.id) === Number(USUARIO_TESTE_FIXO.id)) || null;
+  const loginPadrao = usuarioTeste ? String(usuarioTeste.login || "").trim() : USUARIO_TESTE_FIXO.login;
+  const senhaPadrao = usuarioTeste ? String(usuarioTeste.senha || "") : USUARIO_TESTE_FIXO.senha;
 
   if (loginUsuario && !String(loginUsuario.value || "").trim()) {
-    loginUsuario.value = USUARIO_TESTE_FIXO.login;
+    loginUsuario.value = loginPadrao || USUARIO_TESTE_FIXO.login;
   }
 
   if (senhaUsuario && !String(senhaUsuario.value || "").trim()) {
-    senhaUsuario.value = USUARIO_TESTE_FIXO.senha;
+    senhaUsuario.value = senhaPadrao || USUARIO_TESTE_FIXO.senha;
   }
 }
 
@@ -4135,8 +4140,13 @@ function limparCamposUsuario() {
   if (cadastroLogin) cadastroLogin.value = "";
   if (cadastroSenha) cadastroSenha.value = "";
   if (cadastroIndicador) cadastroIndicador.value = "";
-  if (loginUsuario) loginUsuario.value = USUARIO_TESTE_FIXO.login;
-  if (senhaUsuario) senhaUsuario.value = USUARIO_TESTE_FIXO.senha;
+  const usuarioTeste = usuarios.find((item) => Number(item.id) === Number(USUARIO_TESTE_FIXO.id)) || null;
+  if (loginUsuario) {
+    loginUsuario.value = usuarioTeste ? String(usuarioTeste.login || "").trim() : USUARIO_TESTE_FIXO.login;
+  }
+  if (senhaUsuario) {
+    senhaUsuario.value = usuarioTeste ? String(usuarioTeste.senha || "") : USUARIO_TESTE_FIXO.senha;
+  }
   if (recuperarLogin) recuperarLogin.value = "";
   if (recuperarSenha) recuperarSenha.value = "";
 }
@@ -4268,14 +4278,6 @@ function redefinirSenhaUsuario() {
   if (login === "admin") {
     atualizarStatusUsuario("A conta admin usa senha fixa: 1965917.", false);
     mostrarConfirmacaoApostaRapida("A conta admin usa senha fixa: 1965917.", "erro");
-    const recuperarSenha = document.getElementById("recuperarSenha");
-    if (recuperarSenha) recuperarSenha.value = "";
-    return;
-  }
-
-  if (login === USUARIO_TESTE_FIXO.login) {
-    atualizarStatusUsuario("A conta de teste usa senha fixa: 102030.", false);
-    mostrarConfirmacaoApostaRapida("A conta de teste usa senha fixa: 102030.", "erro");
     const recuperarSenha = document.getElementById("recuperarSenha");
     if (recuperarSenha) recuperarSenha.value = "";
     return;
@@ -5925,22 +5927,6 @@ function salvarEdicaoUsuarioAdmin() {
   if (novoSaldoApostador === null) {
     atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "Saldo apostador inválido.", true);
     return;
-  }
-
-  if (alvo.id === USUARIO_TESTE_FIXO.id) {
-    if (
-      novoLogin !== USUARIO_TESTE_FIXO.login ||
-      novoPerfil !== PAPEL_USUARIO_APOSTADOR ||
-      novaSenha ||
-      novoBloqueado
-    ) {
-      atualizarStatusAdminSaldo(
-        "statusEdicaoUsuarioAdmin",
-        "Usuário Teste possui login/senha/perfil/status fixos.",
-        true
-      );
-      return;
-    }
   }
 
   if (novoPerfil === PAPEL_USUARIO_APOSTADOR && eraPromotor) {
