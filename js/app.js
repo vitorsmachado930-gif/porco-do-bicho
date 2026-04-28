@@ -1199,32 +1199,51 @@ function obterReferenciasPremiacaoDestaque(dataISO) {
 
 function gerarPremiacoesDestaqueDoDia(dataISO) {
   const data = normalizarDataISO(dataISO) || hojeISO();
-  const rand = criarGeradorDeterministico(
-    `${data}|${obterPracaFiltroAtual()}|premiacoes-destaque`
-  );
-  const referencias = obterReferenciasPremiacaoDestaque(data);
-  if (referencias.length === 0) return [];
-  const tiposAtivos = tiposPremiacaoDestaqueAtivos(data);
+  const filtroPraca = obterPracaFiltroAtual();
+  const vencedoras = sanitizarApostas(apostas)
+    .filter((aposta) => {
+      if (aposta.data !== data) return false;
+      if (!loteriaAptaParaPremiacaoDestaque(data, aposta.loteria)) return false;
+      if (filtroPraca !== "TODAS" && aposta.praca !== filtroPraca) return false;
+      const resultado = resultadoDaAposta(aposta);
+      return Boolean(resultado && resultado.status === "GANHOU");
+    })
+    .map((aposta) => {
+      const resultado = resultadoDaAposta(aposta);
+      const premioApurado = aposta.premioCreditado
+        ? normalizarValorNaoNegativo(aposta.premioCreditadoValor)
+        : normalizarValorNaoNegativo(resultado.retorno);
+      return {
+        aposta,
+        resultado,
+        premioApurado
+      };
+    })
+    .sort((a, b) => {
+      if (b.premioApurado !== a.premioApurado) return b.premioApurado - a.premioApurado;
+      return String(b.aposta.createdAt || "").localeCompare(String(a.aposta.createdAt || ""), "pt-BR");
+    })
+    .slice(0, 8);
 
-  return tiposAtivos.map((tipo, index) => {
-    const valorAposta =
-      VALORES_APOSTA_DESTAQUE[sortearInteiro(rand, VALORES_APOSTA_DESTAQUE.length)] || 2;
-    const premio = Number(calcularPremiacaoFicticia(tipo, valorAposta.toFixed(2)));
-    const palpite = montarPalpiteDestaque(tipo, rand);
-    const tipoLabel = TIPOS_APOSTA[tipo] || tipo;
-    const referencia =
-      referencias.length > 0
-        ? referencias[(index + sortearInteiro(rand, referencias.length)) % referencias.length]
-        : null;
+  return vencedoras.map(({ aposta, premioApurado }) => ({
+    tipo: aposta.tipo,
+    tipoLabel: TIPOS_APOSTA[aposta.tipo] || aposta.tipo,
+    palpite: formatarPalpiteParaBilhete(aposta),
+    valorAposta: Number(normalizarValorMoeda(aposta.valor) || 0),
+    premio: premioApurado,
+    referenciaTexto: `${aposta.praca} | ${aposta.loteria}`
+  }));
+}
 
-    return {
-      tipo,
-      tipoLabel,
-      palpite,
-      valorAposta,
-      premio,
-      referenciaTexto: referencia ? `${referencia.praca} | ${referencia.loteria}` : ""
-    };
+function haResultadoApuradoElegivelNoDia(dataISO) {
+  const data = normalizarDataISO(dataISO);
+  if (!data) return false;
+  const filtroPraca = obterPracaFiltroAtual();
+  return obterResultadosDisponiveis().some((item) => {
+    if (item.data !== data) return false;
+    if (!loteriaAptaParaPremiacaoDestaque(data, item.loteria)) return false;
+    if (filtroPraca !== "TODAS" && item.praca !== filtroPraca) return false;
+    return Array.isArray(item.resultados) && item.resultados.length > 0;
   });
 }
 
@@ -1251,9 +1270,13 @@ function mostrarPremiacoesDestaque() {
   if (cards.length === 0) {
     const aviso = document.createElement("p");
     aviso.className = "premiacao-destaque-vazio";
-    aviso.innerText = data === hojeISO()
-      ? "Premiações serão exibidas após o primeiro horário encerrado do dia."
-      : "Sem horários elegíveis para exibir premiações nesta data.";
+    if (!haResultadoApuradoElegivelNoDia(data)) {
+      aviso.innerText = data === hojeISO()
+        ? "Premiações serão exibidas após o primeiro horário encerrado do dia."
+        : "Sem horários elegíveis para exibir premiações nesta data.";
+    } else {
+      aviso.innerText = "Ainda não há bilhetes premiados apurados para destaque nesta data.";
+    }
     listaEl.appendChild(aviso);
     return;
   }
