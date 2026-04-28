@@ -4008,30 +4008,35 @@ function configurarCronometroAposta() {
 
 function atualizarPreviewBicho(index) {
   const numeroInput = document.getElementById("n" + index);
-  const grupoInput = document.getElementById("g" + index);
-  if (!numeroInput || !grupoInput) return;
+  const grupoEl = document.getElementById("g" + index);
+  if (!numeroInput || !grupoEl) return;
 
   const digitos = extrairDigitos(numeroInput.value).slice(-4);
   numeroInput.value = digitos;
 
   if (digitos.length < 4) {
-    grupoInput.value = digitos.length ? "Digite 4 dígitos" : "";
-    grupoInput.dataset.grupo = "";
-    grupoInput.dataset.animal = "";
+    const texto = digitos.length ? "Digite 4 dígitos" : "--";
+    if ("value" in grupoEl) grupoEl.value = texto;
+    else grupoEl.textContent = texto;
+    grupoEl.dataset.grupo = "";
+    grupoEl.dataset.animal = "";
     return;
   }
 
   const auto = calcularBichoPorNumero(digitos);
   if (!auto) {
-    grupoInput.value = "";
-    grupoInput.dataset.grupo = "";
-    grupoInput.dataset.animal = "";
+    if ("value" in grupoEl) grupoEl.value = "--";
+    else grupoEl.textContent = "--";
+    grupoEl.dataset.grupo = "";
+    grupoEl.dataset.animal = "";
     return;
   }
 
-  grupoInput.value = `${String(auto.grupo).padStart(2, "0")} - ${capitalizar(auto.animal)}`;
-  grupoInput.dataset.grupo = String(auto.grupo);
-  grupoInput.dataset.animal = auto.animal;
+  const textoGrupo = `${String(auto.grupo).padStart(2, "0")} - ${capitalizar(auto.animal)}`;
+  if ("value" in grupoEl) grupoEl.value = textoGrupo;
+  else grupoEl.textContent = textoGrupo;
+  grupoEl.dataset.grupo = String(auto.grupo);
+  grupoEl.dataset.animal = auto.animal;
 }
 
 function configurarAutoBichoInputs() {
@@ -4770,7 +4775,9 @@ async function salvar() {
     if (grupoInput) {
       grupoInput.dataset.grupo = String(auto.grupo);
       grupoInput.dataset.animal = auto.animal;
-      grupoInput.value = `${String(auto.grupo).padStart(2, "0")} - ${capitalizar(auto.animal)}`;
+      const textoGrupo = `${String(auto.grupo).padStart(2, "0")} - ${capitalizar(auto.animal)}`;
+      if ("value" in grupoInput) grupoInput.value = textoGrupo;
+      else grupoInput.textContent = textoGrupo;
     }
 
     resultados.push({
@@ -6615,10 +6622,15 @@ function limparCamposResultado() {
   const loteria = document.getElementById("loteria");
   if (loteria) loteria.value = "";
   for (let i = 1; i <= 5; i++) {
-    document.getElementById("n" + i).value = "";
-    document.getElementById("g" + i).value = "";
-    document.getElementById("g" + i).dataset.grupo = "";
-    document.getElementById("g" + i).dataset.animal = "";
+    const numeroEl = document.getElementById("n" + i);
+    const grupoEl = document.getElementById("g" + i);
+    if (numeroEl) numeroEl.value = "";
+    if (grupoEl) {
+      if ("value" in grupoEl) grupoEl.value = "--";
+      else grupoEl.textContent = "--";
+      grupoEl.dataset.grupo = "";
+      grupoEl.dataset.animal = "";
+    }
   }
 }
 

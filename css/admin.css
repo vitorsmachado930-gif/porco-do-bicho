@@ -197,6 +197,23 @@
   text-align: center;
 }
 
+#painelAdmin .grupo-bicho-auto {
+  width: 100%;
+  margin: 0;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid #274053;
+  background: #0f1a24;
+  color: #d8e9f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  padding: 0 8px;
+}
+
 #painelAdmin .linha-numero-bicho input[id^="n"] {
   text-align: center;
   letter-spacing: 1px;
