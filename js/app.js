@@ -162,6 +162,7 @@ let aplicandoResultadosRemotos = false;
 let sincronizacaoResultadosTimer = null;
 let pushResultadosRemotosTimer = null;
 let inicializandoSincronizacaoResultados = false;
+let ultimoErroSyncResultados = "";
 let sincronizacaoPainelAtiva = false;
 let aplicandoPainelRemoto = false;
 let sincronizacaoPainelTimer = null;
@@ -2149,7 +2150,8 @@ async function buscarEstadoResultadosRemotos() {
       method: "GET",
       headers: {
         Accept: "application/json",
-        "X-Requested-With": "XMLHttpRequest"
+        "X-Requested-With": "XMLHttpRequest",
+        "X-App-Client": "porcodobicho-web"
       },
       cache: "no-store"
     },
@@ -2185,7 +2187,8 @@ async function enviarEstadoResultadosRemotos(timestamp) {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "X-Requested-With": "XMLHttpRequest"
+        "X-Requested-With": "XMLHttpRequest",
+        "X-App-Client": "porcodobicho-web"
       },
       body: JSON.stringify(payload),
       cache: "no-store"
@@ -2294,15 +2297,17 @@ async function sincronizarResultadosRemotos(modo) {
 
 async function publicarResultadosRemotosAgora(tentativas = 2) {
   const maxTentativas = Math.max(1, Number(tentativas) || 1);
+  ultimoErroSyncResultados = "";
   for (let i = 0; i < maxTentativas; i++) {
     try {
       const tsLocal = Date.now();
       const tsEnviado = await enviarEstadoResultadosRemotos(tsLocal);
       salvarAtualizacaoDadosLocal(tsEnviado);
       sincronizacaoResultadosAtiva = true;
+      ultimoErroSyncResultados = "";
       return true;
-    } catch (_err) {
-      // tenta novamente
+    } catch (err) {
+      ultimoErroSyncResultados = err && err.message ? String(err.message) : "Falha de comunicação.";
     }
   }
   return false;
@@ -2344,7 +2349,8 @@ async function buscarEstadoPainelRemoto() {
       method: "GET",
       headers: {
         Accept: "application/json",
-        "X-Requested-With": "XMLHttpRequest"
+        "X-Requested-With": "XMLHttpRequest",
+        "X-App-Client": "porcodobicho-web"
       },
       cache: "no-store"
     },
@@ -2383,7 +2389,8 @@ async function enviarEstadoPainelRemoto(timestamp) {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "X-Requested-With": "XMLHttpRequest"
+        "X-Requested-With": "XMLHttpRequest",
+        "X-App-Client": "porcodobicho-web"
       },
       body: JSON.stringify(payload),
       cache: "no-store"
@@ -4729,7 +4736,7 @@ async function salvar() {
     mostrarConfirmacaoApostaRapida("Resultado salvo e sincronizado com sucesso.");
   } else {
     mostrarConfirmacaoApostaRapida(
-      "Resultado salvo localmente. Sincronização pendente: atualize e tente salvar novamente.",
+      `Resultado salvo localmente. Sincronização pendente (${ultimoErroSyncResultados || "sem conexão remota"}).`,
       "erro"
     );
   }

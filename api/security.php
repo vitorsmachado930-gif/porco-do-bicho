@@ -86,7 +86,13 @@ function apiEnviarCabecalhosSeguranca(): void
     }
 
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Accept, X-Requested-With');
+    header('Access-Control-Allow-Headers: Content-Type, Accept, X-Requested-With, X-App-Client');
+}
+
+function apiValidarClienteAplicacao(): bool
+{
+    $cliente = isset($_SERVER['HTTP_X_APP_CLIENT']) ? trim((string)$_SERVER['HTTP_X_APP_CLIENT']) : '';
+    return hash_equals('porcodobicho-web', $cliente);
 }
 
 function apiValidarOrigemEscrita(): bool

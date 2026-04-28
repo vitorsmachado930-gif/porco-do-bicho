@@ -175,17 +175,10 @@ if ($method !== 'POST') {
     ]);
 }
 
-if (!apiValidarOrigemEscrita()) {
+if (!apiValidarClienteAplicacao() && (!apiValidarOrigemEscrita() || !apiValidarRequisicaoAjax())) {
     responder(403, [
         'ok' => false,
-        'error' => 'Origem nao permitida.'
-    ]);
-}
-
-if (!apiValidarRequisicaoAjax()) {
-    responder(403, [
-        'ok' => false,
-        'error' => 'Requisicao invalida.'
+        'error' => 'Cliente nao autorizado.'
     ]);
 }
 
