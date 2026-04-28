@@ -194,6 +194,7 @@ function sanitizarUsuarios(arr) {
       const indicadosTotal = normalizarContadorNaoNegativo(raw.indicadosTotal);
       const telefone = String(raw.telefone || "").trim();
       const chavePix = String(raw.chavePix || "").trim().slice(0, 120);
+      const bloqueado = Boolean(raw.bloqueado || raw.blocked || raw.suspenso);
 
       if (!Number.isFinite(id)) return null;
       if (nome.length < 2) return null;
@@ -233,7 +234,8 @@ function sanitizarUsuarios(arr) {
         bonusIndicacaoConvertidoHojeData: role === PAPEL_USUARIO_PROMOTOR ? "" : (bonusIndicacaoConvertidoHojeData || ""),
         indicadosTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : indicadosTotal,
         telefone,
-        chavePix
+        chavePix,
+        bloqueado
       };
     })
     .filter(Boolean);
@@ -337,6 +339,10 @@ function carregarEstado() {
     return;
   }
   usuarioAtual = usuarios.find((u) => u.id === sessaoId) || null;
+  if (usuarioAtual && usuarioAtual.bloqueado) {
+    localStorage.removeItem(USUARIO_SESSAO_KEY);
+    usuarioAtual = null;
+  }
 }
 
 function atualizarStatusPromotor(texto, erro) {
@@ -648,7 +654,8 @@ function cadastrarApostadorBasePromotor() {
     bonusIndicacaoConvertidoHojeData: "",
     indicadosTotal: 0,
     telefone: "",
-    chavePix: ""
+    chavePix: "",
+    bloqueado: false
   });
 
   salvarJSONStorage(USUARIOS_KEY, usuarios);

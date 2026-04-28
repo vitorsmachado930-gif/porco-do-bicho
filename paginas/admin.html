@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/style.css?v=20260427-11">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/admin.css?v=20260427-14">
+  <link rel="stylesheet" href="../css/admin.css?v=20260427-16">
 </head>
 <body>
   <header class="topo-pagina">
@@ -156,6 +156,70 @@
         <div id="listaSaldosAdmin" class="lista-admin-scroll"></div>
       </div>
 
+      <h3>Editar Usuário/Promotor</h3>
+      <div class="painel-admin-listas">
+        <div class="painel-admin-bloco">
+          <h4>Dados de Cadastro e Perfil</h4>
+          <label class="rotulo-edicao-admin" for="editarUsuarioAdmin">Usuário/Promotor</label>
+          <select id="editarUsuarioAdmin">
+            <option value="">Selecione usuário ou promotor</option>
+          </select>
+          <small class="dica-edicao-admin">Escolha quem será editado.</small>
+
+          <label class="rotulo-edicao-admin" for="editarNomeUsuarioAdmin">Nome</label>
+          <input id="editarNomeUsuarioAdmin" type="text" placeholder="Nome completo">
+          <small class="dica-edicao-admin">Altera o nome exibido no sistema.</small>
+
+          <label class="rotulo-edicao-admin" for="editarLoginUsuarioAdmin">Login</label>
+          <input id="editarLoginUsuarioAdmin" type="text" placeholder="login_usuario">
+          <small class="dica-edicao-admin">Altera o login de acesso (único, sem repetir).</small>
+
+          <label class="rotulo-edicao-admin" for="editarSenhaUsuarioAdmin">Senha</label>
+          <input id="editarSenhaUsuarioAdmin" type="password" placeholder="Nova senha (opcional)">
+          <small class="dica-edicao-admin">Preencha somente se quiser trocar a senha.</small>
+
+          <label class="rotulo-edicao-admin" for="editarPerfilUsuarioAdmin">Perfil</label>
+          <select id="editarPerfilUsuarioAdmin">
+            <option value="apostador">Apostador</option>
+            <option value="promotor">Promotor</option>
+          </select>
+          <small class="dica-edicao-admin">Define se o cadastro é apostador ou promotor.</small>
+
+          <label class="rotulo-edicao-admin" for="editarStatusAcessoUsuarioAdmin">Status de Acesso</label>
+          <select id="editarStatusAcessoUsuarioAdmin">
+            <option value="ativo">Ativo</option>
+            <option value="bloqueado">Bloqueado</option>
+          </select>
+          <small class="dica-edicao-admin">Bloqueado não consegue fazer login na plataforma.</small>
+
+          <div id="blocoBaseEdicaoUsuarioAdmin">
+            <label class="rotulo-edicao-admin" for="editarPromotorBaseUsuarioAdmin">Base do Apostador</label>
+            <select id="editarPromotorBaseUsuarioAdmin">
+              <option value="">Base do Admin</option>
+            </select>
+            <small class="dica-edicao-admin">Escolhe em qual base o apostador ficará.</small>
+          </div>
+
+          <div id="blocoComissaoEdicaoUsuarioAdmin" style="display:none;">
+            <label class="rotulo-edicao-admin" for="editarComissaoUsuarioAdmin">Comissão do Promotor (%)</label>
+            <input id="editarComissaoUsuarioAdmin" type="number" min="0" max="100" step="0.01" placeholder="% comissão do promotor">
+            <small class="dica-edicao-admin">Percentual sobre depósitos da base do promotor.</small>
+          </div>
+
+          <label class="rotulo-edicao-admin" for="editarSaldoPrincipalUsuarioAdmin">Saldo Principal (R$)</label>
+          <input id="editarSaldoPrincipalUsuarioAdmin" type="number" min="0" step="0.01" placeholder="Saldo principal (R$)">
+          <small class="dica-edicao-admin">Saldo usado para apostas do usuário/promotor.</small>
+
+          <div id="blocoSaldoApostadorEdicaoUsuarioAdmin" style="display:none;">
+            <label class="rotulo-edicao-admin" for="editarSaldoApostadorUsuarioAdmin">Saldo Apostador (Promotor)</label>
+            <input id="editarSaldoApostadorUsuarioAdmin" type="number" min="0" step="0.01" placeholder="Saldo apostador (promotor)">
+            <small class="dica-edicao-admin">Saldo que o promotor repassa para apostadores da base.</small>
+          </div>
+          <button type="button" onclick="salvarEdicaoUsuarioAdmin()">Salvar Cadastro/Perfil</button>
+          <p id="statusEdicaoUsuarioAdmin"></p>
+        </div>
+      </div>
+
       <div class="admin-operacao-grid">
         <section class="painel-admin-bloco admin-operacao-bloco bloco-resultado-admin">
           <h3>Cadastrar Resultado</h3>
@@ -276,6 +340,6 @@
     Porco do Bicho • Painel Admin • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/app.js?v=20260427-17"></script>
+  <script src="../js/app.js?v=20260427-19"></script>
 </body>
 </html>

@@ -97,7 +97,8 @@ const USUARIO_TESTE_FIXO = Object.freeze({
   bonusIndicacaoConvertidoHojeData: "",
   indicadosTotal: 0,
   telefone: "",
-  chavePix: ""
+  chavePix: "",
+  bloqueado: false
 });
 
 const CAMPOS_MULTIPLICADOR = [
@@ -484,7 +485,8 @@ function criarUsuarioTesteFixo(rawExistente) {
     bonusIndicacaoConvertidoHojeData: bonusConvertidoHojeData || "",
     indicadosTotal: 0,
     telefone: normalizarTelefoneUsuario(raw.telefone),
-    chavePix: normalizarChavePixUsuario(raw.chavePix)
+    chavePix: normalizarChavePixUsuario(raw.chavePix),
+    bloqueado: false
   };
 }
 
@@ -511,6 +513,7 @@ function normalizarUsuarioItem(raw, index) {
   const indicadosTotal = normalizarContadorNaoNegativo(raw.indicadosTotal);
   const telefone = normalizarTelefoneUsuario(raw.telefone);
   const chavePix = normalizarChavePixUsuario(raw.chavePix);
+  const bloqueado = Boolean(raw.bloqueado || raw.blocked || raw.suspenso);
 
   if (nome.length < 2) return null;
   if (!/^[a-z0-9._-]{3,24}$/.test(login)) return null;
@@ -542,7 +545,8 @@ function normalizarUsuarioItem(raw, index) {
     bonusIndicacaoConvertidoHojeData: role === PAPEL_USUARIO_PROMOTOR ? "" : bonusIndicacaoConvertidoHojeData,
     indicadosTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : indicadosTotal,
     telefone,
-    chavePix
+    chavePix,
+    bloqueado
   };
 }
 
@@ -591,6 +595,7 @@ function sanitizarUsuarios(arr) {
     }
     resetarControleDiarioBonusIndicacao(item, hojeISO());
   });
+  usuarioFixo.bloqueado = false;
 
   return sane;
 }
@@ -1877,7 +1882,8 @@ function serializarPainelParaHash(listaUsuarios, listaApostas) {
     bonusIndicacaoConvertidoHojeData: normalizarDataBonusIndicacao(item.bonusIndicacaoConvertidoHojeData),
     indicadosTotal: normalizarContadorNaoNegativo(item.indicadosTotal),
     telefone: normalizarTelefoneUsuario(item.telefone),
-    chavePix: normalizarChavePixUsuario(item.chavePix)
+    chavePix: normalizarChavePixUsuario(item.chavePix),
+    bloqueado: Boolean(item.bloqueado)
   }));
 
   usuariosSane.sort((a, b) =>
@@ -2378,6 +2384,11 @@ function carregarSessaoUsuario() {
   const encontrado = usuarios.find((u) => u.id === id) || null;
   if (!encontrado) {
     localStorage.removeItem(USUARIO_SESSAO_KEY);
+    return null;
+  }
+  if (encontrado.bloqueado) {
+    localStorage.removeItem(USUARIO_SESSAO_KEY);
+    return null;
   }
 
   return encontrado;
@@ -3866,6 +3877,11 @@ function sincronizarUsuarioAtualComLista() {
     salvarSessaoUsuario();
     return null;
   }
+  if (usuarios[idx].bloqueado) {
+    usuarioAtual = null;
+    salvarSessaoUsuario();
+    return null;
+  }
   usuarioAtual = usuarios[idx];
   return usuarioAtual;
 }
@@ -4162,7 +4178,8 @@ function cadastrarUsuario() {
     bonusIndicacaoConvertidoHojeData: "",
     indicadosTotal: 0,
     telefone: "",
-    chavePix: ""
+    chavePix: "",
+    bloqueado: false
   };
 
   usuarios.unshift(novoUsuario);
@@ -4263,6 +4280,11 @@ function entrarUsuario() {
   if (!encontrado) {
     atualizarStatusUsuario("Login ou senha inválidos.", true);
     mostrarConfirmacaoApostaRapida("Login ou senha inválidos.", "erro");
+    return;
+  }
+  if (encontrado.bloqueado) {
+    atualizarStatusUsuario("Usuário bloqueado pelo admin. Entre em contato para liberar o acesso.", true);
+    mostrarConfirmacaoApostaRapida("Usuário bloqueado pelo admin.", "erro");
     return;
   }
 
@@ -5308,7 +5330,8 @@ function criarPromotorAdmin() {
     bonusIndicacaoConvertidoHojeData: "",
     indicadosTotal: 0,
     telefone: "",
-    chavePix: ""
+    chavePix: "",
+    bloqueado: false
   });
   salvarUsuarios();
 
@@ -5514,6 +5537,7 @@ function atualizarGestaoSaldosAdmin(usuariosOrdenados) {
             ? `Base: @${(listaUsuarios.find((u) => u.id === item.promotorId) || {}).login || "-"}`
             : "Base: Admin"
           : "Base própria";
+        const acesso = item.bloqueado ? "Bloqueado" : "Ativo";
         const saldoPrincipal = formatarMoedaBR(item.saldo);
         const saldoPool = usuarioEhPromotor(item)
           ? ` | Saldo apostador: <b>${formatarMoedaBR(item.saldoApostador)}</b>`
@@ -5521,7 +5545,7 @@ function atualizarGestaoSaldosAdmin(usuariosOrdenados) {
         return (
           `<div class="item-admin-linha">` +
           `<b>${item.nome}</b> (@${item.login})<br>` +
-          `Perfil: <b>${tipo}</b> | ${base}<br>` +
+          `Perfil: <b>${tipo}</b> | ${base} | Acesso: <b>${acesso}</b><br>` +
           `Saldo principal: <b>${saldoPrincipal}</b>${saldoPool}` +
           `</div>`
         );
@@ -5657,6 +5681,303 @@ function configurarEventosGestaoSaldoAdmin() {
   });
 }
 
+function atualizarVisibilidadeCamposEdicaoUsuarioAdmin() {
+  const selectPerfil = document.getElementById("editarPerfilUsuarioAdmin");
+  const blocoBase = document.getElementById("blocoBaseEdicaoUsuarioAdmin");
+  const blocoComissao = document.getElementById("blocoComissaoEdicaoUsuarioAdmin");
+  const blocoSaldoApostador = document.getElementById("blocoSaldoApostadorEdicaoUsuarioAdmin");
+  if (!selectPerfil) return;
+
+  const perfilSelecionado = normalizarPapelUsuario(selectPerfil.value);
+  const exibirPromotor = perfilSelecionado === PAPEL_USUARIO_PROMOTOR;
+  if (blocoBase) blocoBase.style.display = exibirPromotor ? "none" : "";
+  if (blocoComissao) blocoComissao.style.display = exibirPromotor ? "" : "none";
+  if (blocoSaldoApostador) blocoSaldoApostador.style.display = exibirPromotor ? "" : "none";
+}
+
+function atualizarGestaoEdicaoUsuarioAdmin(usuariosOrdenados) {
+  const selectUsuario = document.getElementById("editarUsuarioAdmin");
+  const inputNome = document.getElementById("editarNomeUsuarioAdmin");
+  const inputLogin = document.getElementById("editarLoginUsuarioAdmin");
+  const inputSenha = document.getElementById("editarSenhaUsuarioAdmin");
+  const selectPerfil = document.getElementById("editarPerfilUsuarioAdmin");
+  const selectStatusAcesso = document.getElementById("editarStatusAcessoUsuarioAdmin");
+  const selectBase = document.getElementById("editarPromotorBaseUsuarioAdmin");
+  const inputComissao = document.getElementById("editarComissaoUsuarioAdmin");
+  const inputSaldo = document.getElementById("editarSaldoPrincipalUsuarioAdmin");
+  const inputSaldoApostador = document.getElementById("editarSaldoApostadorUsuarioAdmin");
+  if (
+    !selectUsuario ||
+    !inputNome ||
+    !inputLogin ||
+    !inputSenha ||
+    !selectPerfil ||
+    !selectStatusAcesso ||
+    !selectBase ||
+    !inputComissao ||
+    !inputSaldo ||
+    !inputSaldoApostador
+  ) {
+    return;
+  }
+
+  const listaUsuarios = Array.isArray(usuariosOrdenados) ? usuariosOrdenados : sanitizarUsuarios(usuarios);
+  const promotores = listaUsuarios.filter((item) => usuarioEhPromotor(item));
+
+  const valorAtualUsuario = String(selectUsuario.value || "");
+  selectUsuario.innerHTML = '<option value="">Selecione usuário ou promotor</option>';
+  listaUsuarios.forEach((item) => {
+    const opt = document.createElement("option");
+    opt.value = String(item.id);
+    opt.innerText = `${usuarioEhPromotor(item) ? "Promotor" : "Apostador"}: ${item.nome} (@${item.login})`;
+    selectUsuario.appendChild(opt);
+  });
+  if (valorAtualUsuario && listaUsuarios.some((item) => String(item.id) === valorAtualUsuario)) {
+    selectUsuario.value = valorAtualUsuario;
+  }
+
+  const valorAtualBase = String(selectBase.value || "");
+  selectBase.innerHTML = '<option value="">Base do Admin</option>';
+  promotores.forEach((promotor) => {
+    const opt = document.createElement("option");
+    opt.value = String(promotor.id);
+    opt.innerText = `${promotor.nome} (@${promotor.login})`;
+    selectBase.appendChild(opt);
+  });
+  if (
+    valorAtualBase &&
+    (valorAtualBase === "" || promotores.some((item) => String(item.id) === valorAtualBase))
+  ) {
+    selectBase.value = valorAtualBase;
+  }
+
+  const usuarioSelecionado =
+    listaUsuarios.find((item) => String(item.id) === String(selectUsuario.value || "")) || null;
+  if (!usuarioSelecionado) {
+    inputNome.value = "";
+    inputLogin.value = "";
+    inputSenha.value = "";
+    selectPerfil.value = PAPEL_USUARIO_APOSTADOR;
+    selectStatusAcesso.value = "ativo";
+    selectBase.value = "";
+    inputComissao.value = String(COMISSAO_PROMOTOR_PADRAO);
+    inputSaldo.value = "";
+    inputSaldoApostador.value = "0";
+    atualizarVisibilidadeCamposEdicaoUsuarioAdmin();
+    return;
+  }
+
+  inputNome.value = String(usuarioSelecionado.nome || "");
+  inputLogin.value = String(usuarioSelecionado.login || "");
+  inputSenha.value = "";
+  selectPerfil.value = usuarioEhPromotor(usuarioSelecionado)
+    ? PAPEL_USUARIO_PROMOTOR
+    : PAPEL_USUARIO_APOSTADOR;
+  selectStatusAcesso.value = usuarioSelecionado.bloqueado ? "bloqueado" : "ativo";
+  selectBase.value = usuarioEhApostador(usuarioSelecionado)
+    ? String(normalizarPromotorId(usuarioSelecionado.promotorId) || "")
+    : "";
+  inputComissao.value = String(normalizarPercentualComissao(usuarioSelecionado.comissaoPercentual));
+  inputSaldo.value = String(normalizarSaldoUsuario(usuarioSelecionado.saldo));
+  inputSaldoApostador.value = usuarioEhPromotor(usuarioSelecionado)
+    ? String(normalizarValorNaoNegativo(usuarioSelecionado.saldoApostador))
+    : "0";
+  atualizarVisibilidadeCamposEdicaoUsuarioAdmin();
+}
+
+function salvarEdicaoUsuarioAdmin() {
+  if (!logado) {
+    atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "Faça login no admin para editar usuários.", true);
+    return;
+  }
+
+  const selectUsuario = document.getElementById("editarUsuarioAdmin");
+  const inputNome = document.getElementById("editarNomeUsuarioAdmin");
+  const inputLogin = document.getElementById("editarLoginUsuarioAdmin");
+  const inputSenha = document.getElementById("editarSenhaUsuarioAdmin");
+  const selectPerfil = document.getElementById("editarPerfilUsuarioAdmin");
+  const selectStatusAcesso = document.getElementById("editarStatusAcessoUsuarioAdmin");
+  const selectBase = document.getElementById("editarPromotorBaseUsuarioAdmin");
+  const inputComissao = document.getElementById("editarComissaoUsuarioAdmin");
+  const inputSaldo = document.getElementById("editarSaldoPrincipalUsuarioAdmin");
+  const inputSaldoApostador = document.getElementById("editarSaldoApostadorUsuarioAdmin");
+  if (
+    !selectUsuario ||
+    !inputNome ||
+    !inputLogin ||
+    !inputSenha ||
+    !selectPerfil ||
+    !selectStatusAcesso ||
+    !selectBase ||
+    !inputComissao ||
+    !inputSaldo ||
+    !inputSaldoApostador
+  ) {
+    return;
+  }
+
+  const usuarioId = Number(selectUsuario.value);
+  if (!Number.isFinite(usuarioId)) {
+    atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "Selecione um usuário ou promotor.", true);
+    return;
+  }
+
+  const idx = usuarios.findIndex((item) => item.id === usuarioId);
+  if (idx === -1) {
+    atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "Usuário não encontrado.", true);
+    return;
+  }
+
+  const alvo = usuarios[idx];
+  const eraPromotor = usuarioEhPromotor(alvo);
+  const novoNome = String(inputNome.value || "").trim();
+  const novoLogin = normalizarLoginUsuario(inputLogin.value);
+  const novaSenha = String(inputSenha.value || "");
+  const novoPerfil = normalizarPapelUsuario(selectPerfil.value);
+  const novoBloqueado = String(selectStatusAcesso.value || "") === "bloqueado";
+  const novoSaldo = parseNumeroNaoNegativo(inputSaldo.value);
+  const novoSaldoApostador = parseNumeroNaoNegativo(inputSaldoApostador.value);
+  const novaComissao = normalizarPercentualComissao(inputComissao.value);
+  const novaBasePromotorId = normalizarPromotorId(selectBase.value);
+
+  if (novoNome.length < 2) {
+    atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "Nome inválido.", true);
+    return;
+  }
+  if (!/^[a-z0-9._-]{3,24}$/.test(novoLogin)) {
+    atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "Login inválido.", true);
+    return;
+  }
+  if (novoLogin === "admin") {
+    atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "O login admin é reservado.", true);
+    return;
+  }
+  if (
+    usuarios.some((item) => item.id !== alvo.id && normalizarLoginUsuario(item.login) === novoLogin)
+  ) {
+    atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "Este login já está em uso.", true);
+    return;
+  }
+  if (novaSenha && novaSenha.length < 4) {
+    atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "A nova senha precisa ter 4+ caracteres.", true);
+    return;
+  }
+  if (novoSaldo === null) {
+    atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "Saldo principal inválido.", true);
+    return;
+  }
+  if (novoSaldoApostador === null) {
+    atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "Saldo apostador inválido.", true);
+    return;
+  }
+
+  if (alvo.id === USUARIO_TESTE_FIXO.id) {
+    if (
+      novoLogin !== USUARIO_TESTE_FIXO.login ||
+      novoPerfil !== PAPEL_USUARIO_APOSTADOR ||
+      novaSenha ||
+      novoBloqueado
+    ) {
+      atualizarStatusAdminSaldo(
+        "statusEdicaoUsuarioAdmin",
+        "Usuário Teste possui login/senha/perfil/status fixos.",
+        true
+      );
+      return;
+    }
+  }
+
+  if (novoPerfil === PAPEL_USUARIO_APOSTADOR && eraPromotor) {
+    const totalBase = usuarios.filter(
+      (item) => usuarioEhApostador(item) && normalizarPromotorId(item.promotorId) === alvo.id
+    ).length;
+    if (totalBase > 0) {
+      atualizarStatusAdminSaldo(
+        "statusEdicaoUsuarioAdmin",
+        "Este promotor possui apostadores vinculados. Mova a base antes de trocar o perfil.",
+        true
+      );
+      return;
+    }
+  }
+
+  if (novoPerfil === PAPEL_USUARIO_APOSTADOR && novaBasePromotorId) {
+    const promotorBase = usuarios.find(
+      (item) => item.id === novaBasePromotorId && usuarioEhPromotor(item)
+    ) || null;
+    if (!promotorBase) {
+      atualizarStatusAdminSaldo("statusEdicaoUsuarioAdmin", "Promotor da base inválido.", true);
+      return;
+    }
+  }
+
+  alvo.nome = novoNome;
+  alvo.login = novoLogin;
+  alvo.bloqueado = novoBloqueado;
+  if (novaSenha) {
+    alvo.senha = novaSenha;
+  }
+  alvo.saldo = normalizarSaldoUsuario(novoSaldo);
+
+  if (novoPerfil === PAPEL_USUARIO_PROMOTOR) {
+    alvo.role = PAPEL_USUARIO_PROMOTOR;
+    alvo.promotorId = null;
+    alvo.comissaoPercentual = normalizarPercentualComissao(novaComissao);
+    alvo.comissaoSaldo = normalizarValorNaoNegativo(alvo.comissaoSaldo);
+    alvo.comissaoTotal = normalizarValorNaoNegativo(alvo.comissaoTotal);
+    alvo.saldoApostador = normalizarValorNaoNegativo(novoSaldoApostador);
+    alvo.indicadorId = null;
+    alvo.bonusIndicacaoSaldo = 0;
+    alvo.bonusIndicacaoTotal = 0;
+    alvo.bonusIndicacaoConvertidoTotal = 0;
+    alvo.bonusIndicacaoConvertidoHoje = 0;
+    alvo.bonusIndicacaoConvertidoHojeData = "";
+    alvo.indicadosTotal = 0;
+  } else {
+    alvo.role = PAPEL_USUARIO_APOSTADOR;
+    alvo.promotorId = novaBasePromotorId || null;
+    alvo.comissaoPercentual = 0;
+    alvo.comissaoSaldo = 0;
+    alvo.comissaoTotal = 0;
+    alvo.saldoApostador = 0;
+    if (normalizarIndicadorId(alvo.indicadorId) === alvo.id) {
+      alvo.indicadorId = null;
+    }
+    resetarControleDiarioBonusIndicacao(alvo, hojeISO());
+  }
+
+  usuarios[idx] = alvo;
+  if (usuarioAtual && usuarioAtual.id === alvo.id) {
+    usuarioAtual = alvo.bloqueado ? null : alvo;
+    salvarSessaoUsuario();
+  }
+
+  salvarUsuarios();
+  atualizarStatusAdminSaldo(
+    "statusEdicaoUsuarioAdmin",
+    `Usuário @${alvo.login} atualizado com sucesso.`,
+    false
+  );
+  mostrarConfirmacaoApostaRapida("Cadastro/perfil atualizado pelo admin.");
+  if (inputSenha) inputSenha.value = "";
+  mostrarPainelAdmin();
+}
+
+function configurarEventosGestaoEdicaoUsuarioAdmin() {
+  const selectUsuario = document.getElementById("editarUsuarioAdmin");
+  const selectPerfil = document.getElementById("editarPerfilUsuarioAdmin");
+  if (selectUsuario) {
+    selectUsuario.addEventListener("change", () => {
+      atualizarGestaoEdicaoUsuarioAdmin(sanitizarUsuarios(usuarios));
+    });
+  }
+  if (selectPerfil) {
+    selectPerfil.addEventListener("change", () => {
+      atualizarVisibilidadeCamposEdicaoUsuarioAdmin();
+    });
+  }
+}
+
 function mostrarPainelAdmin() {
   const resumo = document.getElementById("resumoPainelAdmin");
   const listaUsuariosAdmin = document.getElementById("listaUsuariosAdmin");
@@ -5706,6 +6027,7 @@ function mostrarPainelAdmin() {
     }
     atualizarGestaoPromotoresAdmin([], []);
     atualizarGestaoSaldosAdmin([]);
+    atualizarGestaoEdicaoUsuarioAdmin([]);
     return;
   }
 
@@ -5791,6 +6113,7 @@ function mostrarPainelAdmin() {
           : promotor
             ? ` | Base: <b>@${promotor.login}</b>`
             : " | Base: <b>Admin</b>";
+        const statusAcesso = user.bloqueado ? "Bloqueado" : "Ativo";
         const depositoTotal = normalizarValorNaoNegativo(user.totalDepositos);
         const linhaSaldoApostador = usuarioEhPromotor(user)
           ? ` | Saldo apostador: <b>${formatarMoedaBR(user.saldoApostador)}</b>`
@@ -5799,6 +6122,7 @@ function mostrarPainelAdmin() {
           `<div class="item-admin-linha">` +
           `<b>${user.nome}</b> (@${user.login})<br>` +
           `Perfil: <b>${papel}</b>${baseLinha}<br>` +
+          `Acesso: <b>${statusAcesso}</b><br>` +
           `Cadastro: ${dataCadastroUsuario(user)}<br>` +
           `Saldo: <b>${formatarMoedaBR(user.saldo)}</b>${linhaSaldoApostador}<br>` +
           `Depósitos: <b>${formatarMoedaBR(depositoTotal)}</b><br>` +
@@ -5811,6 +6135,7 @@ function mostrarPainelAdmin() {
 
   atualizarGestaoPromotoresAdmin(usuariosOrdenados, apostasComResultado);
   atualizarGestaoSaldosAdmin(usuariosOrdenados);
+  atualizarGestaoEdicaoUsuarioAdmin(usuariosOrdenados);
 
   if (apostasDaData.length === 0) {
     listaApostasAdmin.innerHTML =
@@ -6007,6 +6332,7 @@ async function init() {
   configurarCamposAposta();
   configurarEventosGestaoPromotorAdmin();
   configurarEventosGestaoSaldoAdmin();
+  configurarEventosGestaoEdicaoUsuarioAdmin();
   configurarMascaraValorDepositoUsuario();
   configurarCronometroAposta();
   preencherCamposMultiplicadores();
@@ -6080,6 +6406,7 @@ window.salvarComissaoPromotorAdmin = salvarComissaoPromotorAdmin;
 window.vincularApostadorPromotorAdmin = vincularApostadorPromotorAdmin;
 window.recarregarSaldoAdmin = recarregarSaldoAdmin;
 window.salvarEdicaoSaldoAdmin = salvarEdicaoSaldoAdmin;
+window.salvarEdicaoUsuarioAdmin = salvarEdicaoUsuarioAdmin;
 
 window.addEventListener("load", () => {
   init();
