@@ -5838,26 +5838,28 @@ function atualizarGestaoSaldosAdmin(usuariosOrdenados) {
   const listaUsuarios = Array.isArray(usuariosOrdenados) ? usuariosOrdenados : sanitizarUsuarios(usuarios);
 
   const promotores = listaUsuarios.filter((item) => usuarioEhPromotor(item));
-  const apostadoresBaseAdmin = listaUsuarios.filter(
-    (item) => usuarioEhApostador(item) && !normalizarPromotorId(item.promotorId)
-  );
+  const apostadores = listaUsuarios.filter((item) => usuarioEhApostador(item));
 
   if (selectRecarga) {
     const valorAtual = String(selectRecarga.value || "");
-    selectRecarga.innerHTML = '<option value="">Selecione promotor ou apostador da base admin</option>';
+    selectRecarga.innerHTML = '<option value="">Selecione promotor ou apostador</option>';
     promotores.forEach((item) => {
       const opt = document.createElement("option");
       opt.value = String(item.id);
       opt.innerText = `Promotor: ${item.nome} (@${item.login})`;
       selectRecarga.appendChild(opt);
     });
-    apostadoresBaseAdmin.forEach((item) => {
+    apostadores.forEach((item) => {
       const opt = document.createElement("option");
       opt.value = String(item.id);
-      opt.innerText = `Apostador Base Admin: ${item.nome} (@${item.login})`;
+      const promotorBase = normalizarPromotorId(item.promotorId);
+      const baseTexto = promotorBase
+        ? `Base @${(listaUsuarios.find((u) => u.id === promotorBase) || {}).login || "-"}`
+        : "Base Admin";
+      opt.innerText = `Apostador (${baseTexto}): ${item.nome} (@${item.login})`;
       selectRecarga.appendChild(opt);
     });
-    if (valorAtual && [...promotores, ...apostadoresBaseAdmin].some((item) => String(item.id) === valorAtual)) {
+    if (valorAtual && [...promotores, ...apostadores].some((item) => String(item.id) === valorAtual)) {
       selectRecarga.value = valorAtual;
     }
   }
@@ -5954,17 +5956,21 @@ function recarregarSaldoAdmin() {
       `Recarga concluída no saldo apostador de @${alvo.login}: +${formatarMoedaBR(valor)}.`,
       false
     );
-  } else if (usuarioEhApostador(alvo) && !normalizarPromotorId(alvo.promotorId)) {
+  } else if (usuarioEhApostador(alvo)) {
     alvo.saldo = normalizarSaldoUsuario(normalizarSaldoUsuario(alvo.saldo) + valor);
+    const promotorBase = normalizarPromotorId(alvo.promotorId);
+    const baseTexto = promotorBase
+      ? `da base @${(usuarios.find((u) => u.id === promotorBase) || {}).login || "-"}`
+      : "da base admin";
     atualizarStatusAdminSaldo(
       "statusRecargaAdmin",
-      `Recarga concluída para apostador da base admin @${alvo.login}: +${formatarMoedaBR(valor)}.`,
+      `Recarga concluída para apostador ${baseTexto} @${alvo.login}: +${formatarMoedaBR(valor)}.`,
       false
     );
   } else {
     atualizarStatusAdminSaldo(
       "statusRecargaAdmin",
-      "Recarga direta permitida apenas para promotores e apostadores da base admin.",
+      "Recarga direta permitida apenas para promotores e apostadores.",
       true
     );
     return;
