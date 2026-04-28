@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/style.css?v=20260427-11">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/admin.css?v=20260428-17">
+  <link rel="stylesheet" href="../css/admin.css?v=20260428-18">
 </head>
 <body>
   <header class="topo-pagina">
@@ -29,12 +29,16 @@
 
     <div class="card" id="painelAdmin" style="display:none;">
       <h3>Dashboard</h3>
-      <div class="dashboard-filtro-admin">
-        <input id="dashDataReferencia" type="date" aria-label="Data do dashboard">
+      <div class="dashboard-filtro-admin" id="dashboardFiltroAdmin">
         <select id="dashModoApuracao" aria-label="Modo do dashboard">
-          <option value="dia">Dia individual</option>
-          <option value="anterior_total">Somatório anterior total</option>
+          <option value="hoje">Hoje</option>
+          <option value="intervalo">Somatório de data até data</option>
         </select>
+        <div class="dashboard-data-intervalo">
+          <input id="dashDataInicio" type="date" aria-label="Data inicial do dashboard">
+          <span>até</span>
+          <input id="dashDataFim" type="date" aria-label="Data final do dashboard">
+        </div>
         <button id="btnDashHoje" type="button">Hoje</button>
       </div>
       <div class="dashboard-admin-grid">
@@ -348,6 +352,6 @@
     Porco do Bicho • Painel Admin • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/app.js?v=20260428-20"></script>
+  <script src="../js/app.js?v=20260428-21"></script>
 </body>
 </html>

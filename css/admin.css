@@ -28,16 +28,35 @@
 
 .dashboard-filtro-admin {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 180px 1fr auto;
   gap: 8px;
-  width: min(100%, 560px);
+  width: min(100%, 660px);
   margin: 4px auto 8px;
+  align-items: center;
 }
 
 .dashboard-filtro-admin input,
 .dashboard-filtro-admin select,
 .dashboard-filtro-admin button {
   margin: 0;
+}
+
+.dashboard-data-intervalo {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 6px;
+}
+
+.dashboard-data-intervalo span {
+  color: #9fb3c8;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.dashboard-filtro-admin.is-hoje .dashboard-data-intervalo {
+  opacity: 0.55;
 }
 
 .dashboard-filtro-admin button {
@@ -234,6 +253,15 @@
   .dashboard-filtro-admin {
     grid-template-columns: 1fr;
     width: min(100%, 288px);
+  }
+
+  .dashboard-data-intervalo {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .dashboard-data-intervalo span {
+    text-align: center;
   }
 
   .dashboard-filtro-admin button {

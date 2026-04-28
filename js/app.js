@@ -139,8 +139,9 @@ const PRACAS_ORDENADAS = Object.keys(SEQUENCIAS_POR_PRACA);
 
 let logado = false;
 let dataSelecionada = hojeISO();
-let dashboardDataReferencia = hojeISO();
-let dashboardModoApuracao = "dia";
+let dashboardDataInicio = hojeISO();
+let dashboardDataFim = hojeISO();
+let dashboardModoApuracao = "hoje";
 let multiplicadoresAposta = { ...PREMIO_FICTICIO_MULTIPLICADOR };
 let limitesAposta = { ...LIMITES_APOSTA_PADRAO };
 let lista = carregarDados();
@@ -211,10 +212,10 @@ function formatarDataBR(dataISO) {
 }
 
 function normalizarModoDashboardAdmin(valor) {
-  return String(valor || "").trim() === "anterior_total" ? "anterior_total" : "dia";
+  return String(valor || "").trim() === "intervalo" ? "intervalo" : "hoje";
 }
 
-function normalizarDashboardDataReferencia(valor) {
+function normalizarDashboardData(valor) {
   const hoje = hojeISO();
   const data = normalizarDataISO(valor);
   if (!data) return hoje;
@@ -223,23 +224,43 @@ function normalizarDashboardDataReferencia(valor) {
 }
 
 function sincronizarControlesDashboardAdmin() {
-  const inputData = document.getElementById("dashDataReferencia");
+  const filtro = document.getElementById("dashboardFiltroAdmin");
+  const inputInicio = document.getElementById("dashDataInicio");
+  const inputFim = document.getElementById("dashDataFim");
   const selectModo = document.getElementById("dashModoApuracao");
   const btnHoje = document.getElementById("btnDashHoje");
-  const dataNormalizada = normalizarDashboardDataReferencia(dashboardDataReferencia);
   const modoNormalizado = normalizarModoDashboardAdmin(dashboardModoApuracao);
-  dashboardDataReferencia = dataNormalizada;
+  let inicioNormalizado = normalizarDashboardData(dashboardDataInicio);
+  let fimNormalizado = normalizarDashboardData(dashboardDataFim);
+  if (inicioNormalizado > fimNormalizado) {
+    const troca = inicioNormalizado;
+    inicioNormalizado = fimNormalizado;
+    fimNormalizado = troca;
+  }
+
+  dashboardDataInicio = inicioNormalizado;
+  dashboardDataFim = fimNormalizado;
   dashboardModoApuracao = modoNormalizado;
 
-  if (inputData) {
-    inputData.value = dataNormalizada;
-    inputData.max = hojeISO();
+  if (inputInicio) {
+    inputInicio.value = inicioNormalizado;
+    inputInicio.max = hojeISO();
+  }
+  if (inputFim) {
+    inputFim.value = fimNormalizado;
+    inputFim.max = hojeISO();
   }
   if (selectModo) {
     selectModo.value = modoNormalizado;
   }
+  if (filtro) {
+    filtro.classList.toggle("is-hoje", modoNormalizado === "hoje");
+  }
   if (btnHoje) {
-    btnHoje.disabled = dataNormalizada === hojeISO();
+    btnHoje.disabled =
+      modoNormalizado === "hoje" &&
+      inicioNormalizado === hojeISO() &&
+      fimNormalizado === hojeISO();
   }
 }
 
@@ -6014,14 +6035,24 @@ function configurarEventosGestaoEdicaoUsuarioAdmin() {
 }
 
 function configurarEventosDashboardAdmin() {
-  const inputData = document.getElementById("dashDataReferencia");
+  const inputInicio = document.getElementById("dashDataInicio");
+  const inputFim = document.getElementById("dashDataFim");
   const selectModo = document.getElementById("dashModoApuracao");
   const btnHoje = document.getElementById("btnDashHoje");
 
-  if (inputData && !inputData.dataset.dashboardBind) {
-    inputData.dataset.dashboardBind = "1";
-    inputData.addEventListener("change", () => {
-      dashboardDataReferencia = normalizarDashboardDataReferencia(inputData.value);
+  if (inputInicio && !inputInicio.dataset.dashboardBind) {
+    inputInicio.dataset.dashboardBind = "1";
+    inputInicio.addEventListener("change", () => {
+      dashboardDataInicio = normalizarDashboardData(inputInicio.value);
+      sincronizarControlesDashboardAdmin();
+      mostrarPainelAdmin();
+    });
+  }
+
+  if (inputFim && !inputFim.dataset.dashboardBind) {
+    inputFim.dataset.dashboardBind = "1";
+    inputFim.addEventListener("change", () => {
+      dashboardDataFim = normalizarDashboardData(inputFim.value);
       sincronizarControlesDashboardAdmin();
       mostrarPainelAdmin();
     });
@@ -6039,7 +6070,10 @@ function configurarEventosDashboardAdmin() {
   if (btnHoje && !btnHoje.dataset.dashboardBind) {
     btnHoje.dataset.dashboardBind = "1";
     btnHoje.addEventListener("click", () => {
-      dashboardDataReferencia = hojeISO();
+      const hoje = hojeISO();
+      dashboardModoApuracao = "hoje";
+      dashboardDataInicio = hoje;
+      dashboardDataFim = hoje;
       sincronizarControlesDashboardAdmin();
       mostrarPainelAdmin();
     });
@@ -6053,7 +6087,8 @@ function mostrarPainelAdmin() {
   const listaUsuariosAdmin = document.getElementById("listaUsuariosAdmin");
   const listaApostasAdmin = document.getElementById("listaApostasAdmin");
   const listaApostasPremiadasAdmin = document.getElementById("listaApostasPremiadasAdmin");
-  const dashDataInput = document.getElementById("dashDataReferencia");
+  const dashDataInicioInput = document.getElementById("dashDataInicio");
+  const dashDataFimInput = document.getElementById("dashDataFim");
   const dashModoSelect = document.getElementById("dashModoApuracao");
   const dashUsuariosTotal = document.getElementById("dashUsuariosTotal");
   const dashBilhetesTotal = document.getElementById("dashBilhetesTotal");
@@ -6066,10 +6101,15 @@ function mostrarPainelAdmin() {
   const dashInfoFinanceiro = document.getElementById("dashInfoFinanceiro");
   if (!resumo || !listaUsuariosAdmin || !listaApostasAdmin) return;
 
-  if (dashDataInput) {
-    dashboardDataReferencia = normalizarDashboardDataReferencia(dashDataInput.value || dashboardDataReferencia);
+  if (dashDataInicioInput) {
+    dashboardDataInicio = normalizarDashboardData(dashDataInicioInput.value || dashboardDataInicio);
   } else {
-    dashboardDataReferencia = normalizarDashboardDataReferencia(dashboardDataReferencia);
+    dashboardDataInicio = normalizarDashboardData(dashboardDataInicio);
+  }
+  if (dashDataFimInput) {
+    dashboardDataFim = normalizarDashboardData(dashDataFimInput.value || dashboardDataFim);
+  } else {
+    dashboardDataFim = normalizarDashboardData(dashboardDataFim);
   }
   if (dashModoSelect) {
     dashboardModoApuracao = normalizarModoDashboardAdmin(dashModoSelect.value || dashboardModoApuracao);
@@ -6139,15 +6179,16 @@ function mostrarPainelAdmin() {
   const apostasParaDashboard = apostasComResultado.filter(({ item }) => {
     const dataItem = normalizarDataISO(item.data);
     if (!dataItem) return false;
-    if (dashboardModoApuracao === "anterior_total") {
-      return dataItem < dashboardDataReferencia;
+    if (dashboardModoApuracao === "intervalo") {
+      return dataItem >= dashboardDataInicio && dataItem <= dashboardDataFim;
     }
-    return dataItem === dashboardDataReferencia;
+    const hoje = hojeISO();
+    return dataItem === hoje;
   });
   const periodoDashboard =
-    dashboardModoApuracao === "anterior_total"
-      ? `Somatório anterior até ${formatarDataBR(dashboardDataReferencia)}`
-      : `Dia ${formatarDataBR(dashboardDataReferencia)}`;
+    dashboardModoApuracao === "intervalo"
+      ? `Somatório de ${formatarDataBR(dashboardDataInicio)} até ${formatarDataBR(dashboardDataFim)}`
+      : `Hoje (${formatarDataBR(hojeISO())})`;
 
   const totalBilhetes = new Set(
     apostasParaDashboard.map(({ item }) => {
@@ -6457,8 +6498,9 @@ async function init() {
   }
   atualizarVisibilidadeAdmin();
   dataSelecionada = hojeISO();
-  dashboardDataReferencia = hojeISO();
-  dashboardModoApuracao = "dia";
+  dashboardDataInicio = hojeISO();
+  dashboardDataFim = hojeISO();
+  dashboardModoApuracao = "hoje";
   aplicarLimitesDeData();
   atualizarEstadoNavegacao();
   atualizarResumoData();
