@@ -36,8 +36,8 @@ jobs:
             **/.github/**
             **/node_modules/**
             **/.DS_Store
-            storage/resultados_sync.json
-            storage/backups/**
+            storage/**
+            .ftp-deploy-sync-state*.json
 
       # Some Hostinger accounts serve addon domains from /domains/<domain>/public_html
       # instead of /public_html. We deploy there too to keep both targets in sync.
@@ -62,8 +62,8 @@ jobs:
             **/.github/**
             **/node_modules/**
             **/.DS_Store
-            storage/resultados_sync.json
-            storage/backups/**
+            storage/**
+            .ftp-deploy-sync-state*.json
 
       - name: Validate at least one deploy target succeeded
         if: always()
