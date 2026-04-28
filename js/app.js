@@ -2150,8 +2150,14 @@ async function extrairErroResposta(resp, fallback) {
   } catch (_err) {
     detalhe = "";
   }
-  if (!detalhe) return fallback;
-  return `${fallback} ${detalhe}`;
+  const origem = resp && typeof resp.url === "string" ? resp.url : "";
+  const allow = resp && typeof resp.headers?.get === "function" ? resp.headers.get("allow") : "";
+  const base = detalhe ? `${fallback} ${detalhe}` : fallback;
+  if (!origem && !allow) return base;
+  const extras = [];
+  if (origem) extras.push(`URL: ${origem}`);
+  if (allow) extras.push(`Allow: ${allow}`);
+  return `${base} (${extras.join(" | ")})`;
 }
 
 async function buscarEstadoResultadosRemotos() {
