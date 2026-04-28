@@ -139,6 +139,8 @@ const PRACAS_ORDENADAS = Object.keys(SEQUENCIAS_POR_PRACA);
 
 let logado = false;
 let dataSelecionada = hojeISO();
+let dashboardDataReferencia = hojeISO();
+let dashboardModoApuracao = "dia";
 let multiplicadoresAposta = { ...PREMIO_FICTICIO_MULTIPLICADOR };
 let limitesAposta = { ...LIMITES_APOSTA_PADRAO };
 let lista = carregarDados();
@@ -206,6 +208,39 @@ function formatarDataBR(dataISO) {
   const [ano, mes, dia] = String(dataISO).split("-");
   if (!ano || !mes || !dia) return dataISO;
   return `${dia}/${mes}/${ano.slice(-2)}`;
+}
+
+function normalizarModoDashboardAdmin(valor) {
+  return String(valor || "").trim() === "anterior_total" ? "anterior_total" : "dia";
+}
+
+function normalizarDashboardDataReferencia(valor) {
+  const hoje = hojeISO();
+  const data = normalizarDataISO(valor);
+  if (!data) return hoje;
+  if (data > hoje) return hoje;
+  return data;
+}
+
+function sincronizarControlesDashboardAdmin() {
+  const inputData = document.getElementById("dashDataReferencia");
+  const selectModo = document.getElementById("dashModoApuracao");
+  const btnHoje = document.getElementById("btnDashHoje");
+  const dataNormalizada = normalizarDashboardDataReferencia(dashboardDataReferencia);
+  const modoNormalizado = normalizarModoDashboardAdmin(dashboardModoApuracao);
+  dashboardDataReferencia = dataNormalizada;
+  dashboardModoApuracao = modoNormalizado;
+
+  if (inputData) {
+    inputData.value = dataNormalizada;
+    inputData.max = hojeISO();
+  }
+  if (selectModo) {
+    selectModo.value = modoNormalizado;
+  }
+  if (btnHoje) {
+    btnHoje.disabled = dataNormalizada === hojeISO();
+  }
 }
 
 function normalizarDataHoraISO(valor) {
@@ -5978,11 +6013,48 @@ function configurarEventosGestaoEdicaoUsuarioAdmin() {
   }
 }
 
+function configurarEventosDashboardAdmin() {
+  const inputData = document.getElementById("dashDataReferencia");
+  const selectModo = document.getElementById("dashModoApuracao");
+  const btnHoje = document.getElementById("btnDashHoje");
+
+  if (inputData && !inputData.dataset.dashboardBind) {
+    inputData.dataset.dashboardBind = "1";
+    inputData.addEventListener("change", () => {
+      dashboardDataReferencia = normalizarDashboardDataReferencia(inputData.value);
+      sincronizarControlesDashboardAdmin();
+      mostrarPainelAdmin();
+    });
+  }
+
+  if (selectModo && !selectModo.dataset.dashboardBind) {
+    selectModo.dataset.dashboardBind = "1";
+    selectModo.addEventListener("change", () => {
+      dashboardModoApuracao = normalizarModoDashboardAdmin(selectModo.value);
+      sincronizarControlesDashboardAdmin();
+      mostrarPainelAdmin();
+    });
+  }
+
+  if (btnHoje && !btnHoje.dataset.dashboardBind) {
+    btnHoje.dataset.dashboardBind = "1";
+    btnHoje.addEventListener("click", () => {
+      dashboardDataReferencia = hojeISO();
+      sincronizarControlesDashboardAdmin();
+      mostrarPainelAdmin();
+    });
+  }
+
+  sincronizarControlesDashboardAdmin();
+}
+
 function mostrarPainelAdmin() {
   const resumo = document.getElementById("resumoPainelAdmin");
   const listaUsuariosAdmin = document.getElementById("listaUsuariosAdmin");
   const listaApostasAdmin = document.getElementById("listaApostasAdmin");
   const listaApostasPremiadasAdmin = document.getElementById("listaApostasPremiadasAdmin");
+  const dashDataInput = document.getElementById("dashDataReferencia");
+  const dashModoSelect = document.getElementById("dashModoApuracao");
   const dashUsuariosTotal = document.getElementById("dashUsuariosTotal");
   const dashBilhetesTotal = document.getElementById("dashBilhetesTotal");
   const dashApostasTotal = document.getElementById("dashApostasTotal");
@@ -5993,6 +6065,18 @@ function mostrarPainelAdmin() {
   const dashSaidaTotal = document.getElementById("dashSaidaTotal");
   const dashInfoFinanceiro = document.getElementById("dashInfoFinanceiro");
   if (!resumo || !listaUsuariosAdmin || !listaApostasAdmin) return;
+
+  if (dashDataInput) {
+    dashboardDataReferencia = normalizarDashboardDataReferencia(dashDataInput.value || dashboardDataReferencia);
+  } else {
+    dashboardDataReferencia = normalizarDashboardDataReferencia(dashboardDataReferencia);
+  }
+  if (dashModoSelect) {
+    dashboardModoApuracao = normalizarModoDashboardAdmin(dashModoSelect.value || dashboardModoApuracao);
+  } else {
+    dashboardModoApuracao = normalizarModoDashboardAdmin(dashboardModoApuracao);
+  }
+  sincronizarControlesDashboardAdmin();
 
   const fmtInt = (valor) => Number(valor || 0).toLocaleString("pt-BR");
   const preencherDashboard = (dados) => {
@@ -6052,23 +6136,35 @@ function mostrarPainelAdmin() {
 
   const apostasDaData = apostasComResultado.filter(({ item }) => item.data === dataSelecionada);
   const premiadasDaData = apostasDaData.filter(({ resultado }) => resultado.status === "GANHOU");
+  const apostasParaDashboard = apostasComResultado.filter(({ item }) => {
+    const dataItem = normalizarDataISO(item.data);
+    if (!dataItem) return false;
+    if (dashboardModoApuracao === "anterior_total") {
+      return dataItem < dashboardDataReferencia;
+    }
+    return dataItem === dashboardDataReferencia;
+  });
+  const periodoDashboard =
+    dashboardModoApuracao === "anterior_total"
+      ? `Somatório anterior até ${formatarDataBR(dashboardDataReferencia)}`
+      : `Dia ${formatarDataBR(dashboardDataReferencia)}`;
 
   const totalBilhetes = new Set(
-    apostasOrdenadas.map((item) => {
+    apostasParaDashboard.map(({ item }) => {
       const bruto = String(item.bilheteId || "").trim();
       if (bruto) return bruto;
       return `${item.data}|${item.praca}|${item.loteria}|${item.usuarioLogin}|${item.id}`;
     })
   ).size;
-  const totalApostas = apostasOrdenadas.length;
-  const valorTotalApostado = apostasOrdenadas.reduce(
-    (acc, item) => acc + Number(normalizarValorMoeda(item.valor) || 0),
+  const totalApostas = apostasParaDashboard.length;
+  const valorTotalApostado = apostasParaDashboard.reduce(
+    (acc, { item }) => acc + Number(normalizarValorMoeda(item.valor) || 0),
     0
   );
-  const totalPremiadas = apostasComResultado.filter(
+  const totalPremiadas = apostasParaDashboard.filter(
     ({ resultado }) => resultado.status === "GANHOU"
   ).length;
-  const premiacaoApuradaTotal = apostasComResultado.reduce((acc, { resultado }) => {
+  const premiacaoApuradaTotal = apostasParaDashboard.reduce((acc, { resultado }) => {
     if (resultado.status !== "GANHOU") return acc;
     return acc + Number(resultado.retorno || 0);
   }, 0);
@@ -6087,13 +6183,14 @@ function mostrarPainelAdmin() {
   });
   if (dashInfoFinanceiro) {
     dashInfoFinanceiro.innerText =
-      "Entrada = valor total apostado. Saída = premiação apurada das apostas vencedoras.";
+      `${periodoDashboard}. Entrada = valor total apostado. Saída = premiação apurada das apostas vencedoras.`;
   }
 
   resumo.innerText =
+    `Dashboard: ${periodoDashboard} | ` +
     `Cadastros: ${usuariosOrdenados.length} | ` +
-    `Bilhetes totais: ${fmtInt(totalBilhetes)} | ` +
-    `Apostas totais: ${fmtInt(totalApostas)} | ` +
+    `Bilhetes no período: ${fmtInt(totalBilhetes)} | ` +
+    `Apostas no período: ${fmtInt(totalApostas)} | ` +
     `Apostas em ${formatarDataBR(dataSelecionada)}: ${fmtInt(apostasDaData.length)} | ` +
     `Premiadas na data: ${fmtInt(premiadasDaData.length)}`;
 
@@ -6333,6 +6430,7 @@ async function init() {
   configurarEventosGestaoPromotorAdmin();
   configurarEventosGestaoSaldoAdmin();
   configurarEventosGestaoEdicaoUsuarioAdmin();
+  configurarEventosDashboardAdmin();
   configurarMascaraValorDepositoUsuario();
   configurarCronometroAposta();
   preencherCamposMultiplicadores();
@@ -6359,6 +6457,8 @@ async function init() {
   }
   atualizarVisibilidadeAdmin();
   dataSelecionada = hojeISO();
+  dashboardDataReferencia = hojeISO();
+  dashboardModoApuracao = "dia";
   aplicarLimitesDeData();
   atualizarEstadoNavegacao();
   atualizarResumoData();

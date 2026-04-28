@@ -26,6 +26,25 @@
   margin: 8px 0 6px 0;
 }
 
+.dashboard-filtro-admin {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  width: min(100%, 560px);
+  margin: 4px auto 8px;
+}
+
+.dashboard-filtro-admin input,
+.dashboard-filtro-admin select,
+.dashboard-filtro-admin button {
+  margin: 0;
+}
+
+.dashboard-filtro-admin button {
+  width: auto;
+  min-width: 90px;
+}
+
 .dashboard-admin-card {
   background: #0f1a24;
   border: 1px solid #2a4155;
@@ -210,6 +229,16 @@
 
   .dashboard-admin-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboard-filtro-admin {
+    grid-template-columns: 1fr;
+    width: min(100%, 288px);
+  }
+
+  .dashboard-filtro-admin button {
+    min-width: 0;
+    width: 100%;
   }
 
   .dashboard-admin-card strong {
