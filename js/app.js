@@ -1252,21 +1252,12 @@ function montarPalpitePremiadoPorResultado(tipo, resultadoItem, rand) {
   return "";
 }
 
-function sortearValorPremiacaoFaixa(rand, minimo, maximo) {
-  const min = Number(minimo);
-  const max = Number(maximo);
-  if (!Number.isFinite(min) || !Number.isFinite(max) || max < min) return 0;
-  const bruto = min + rand() * (max - min);
-  return Number(bruto.toFixed(2));
-}
-
 function gerarPremiacoesDestaqueDoDia(dataISO) {
   const data = normalizarDataISO(dataISO) || hojeISO();
   const filtroPraca = obterPracaFiltroAtual();
   const referenciasApuradas = obterResultadosDisponiveis()
     .filter((item) => {
       if (item.data !== data) return false;
-      if (!loteriaAptaParaPremiacaoDestaque(data, item.loteria)) return false;
       if (filtroPraca !== "TODAS" && item.praca !== filtroPraca) return false;
       return Array.isArray(item.resultados) && item.resultados.length > 0;
     })
@@ -1279,51 +1270,42 @@ function gerarPremiacoesDestaqueDoDia(dataISO) {
     `${data}|${filtroPraca}|premiacoes-destaque-apuradas`
   );
   const cards = [];
-  const TOTAL_BILHETES_DIA = 2;
-  const referenciasPool = referenciasApuradas.slice();
-  const faixasPremio = [
-    { min: 300, max: 900 },
-    { min: 4000, max: 12000 }
-  ];
+  const BILHETES_POR_LOTERIA_APURADA = 2;
 
-  for (let i = 0; i < TOTAL_BILHETES_DIA; i++) {
-    const referencia =
-      referenciasPool.length > 0
-        ? referenciasPool.splice(sortearInteiro(rand, referenciasPool.length), 1)[0]
-        : referenciasApuradas[sortearInteiro(rand, referenciasApuradas.length)];
-    if (!referencia) continue;
+  for (let i = 0; i < referenciasApuradas.length; i++) {
+    const referencia = referenciasApuradas[i];
+    for (let j = 0; j < BILHETES_POR_LOTERIA_APURADA; j++) {
+      const tiposTentativa = tiposAtivos.slice();
+      let tipoEscolhido = "";
+      let palpiteEscolhido = "";
+      while (tiposTentativa.length > 0 && !palpiteEscolhido) {
+        const idxTipo = sortearInteiro(rand, tiposTentativa.length);
+        const tipo = tiposTentativa.splice(idxTipo, 1)[0];
+        const palpite = montarPalpitePremiadoPorResultado(tipo, referencia, rand);
+        if (!palpite) continue;
+        tipoEscolhido = tipo;
+        palpiteEscolhido = palpite;
+      }
 
-    const tiposTentativa = tiposAtivos.slice();
-    let tipoEscolhido = "";
-    let palpiteEscolhido = "";
-    while (tiposTentativa.length > 0 && !palpiteEscolhido) {
-      const idxTipo = sortearInteiro(rand, tiposTentativa.length);
-      const tipo = tiposTentativa.splice(idxTipo, 1)[0];
-      const palpite = montarPalpitePremiadoPorResultado(tipo, referencia, rand);
-      if (!palpite) continue;
-      tipoEscolhido = tipo;
-      palpiteEscolhido = palpite;
+      if (!tipoEscolhido || !palpiteEscolhido) continue;
+
+      const valorAposta =
+        VALORES_APOSTA_DESTAQUE[sortearInteiro(rand, VALORES_APOSTA_DESTAQUE.length)] || 2;
+      const premio = Number(calcularPremiacaoFicticia(tipoEscolhido, valorAposta.toFixed(2)));
+      const apostaDestaque = {
+        tipo: tipoEscolhido,
+        palpite: palpiteEscolhido
+      };
+
+      cards.push({
+        tipo: tipoEscolhido,
+        tipoLabel: TIPOS_APOSTA[tipoEscolhido] || tipoEscolhido,
+        palpite: formatarPalpiteParaBilhete(apostaDestaque),
+        valorAposta,
+        premio,
+        referenciaTexto: `${referencia.praca} | ${referencia.loteria}`
+      });
     }
-
-    if (!tipoEscolhido || !palpiteEscolhido) continue;
-
-    const faixa = faixasPremio[i] || faixasPremio[0];
-    const premio = sortearValorPremiacaoFaixa(rand, faixa.min, faixa.max);
-    const valorAposta =
-      VALORES_APOSTA_DESTAQUE[sortearInteiro(rand, VALORES_APOSTA_DESTAQUE.length)] || 2;
-    const apostaDestaque = {
-      tipo: tipoEscolhido,
-      palpite: palpiteEscolhido
-    };
-
-    cards.push({
-      tipo: tipoEscolhido,
-      tipoLabel: TIPOS_APOSTA[tipoEscolhido] || tipoEscolhido,
-      palpite: formatarPalpiteParaBilhete(apostaDestaque),
-      valorAposta,
-      premio,
-      referenciaTexto: `${referencia.praca} | ${referencia.loteria}`
-    });
   }
 
   return cards;
@@ -1335,7 +1317,6 @@ function haResultadoApuradoElegivelNoDia(dataISO) {
   const filtroPraca = obterPracaFiltroAtual();
   return obterResultadosDisponiveis().some((item) => {
     if (item.data !== data) return false;
-    if (!loteriaAptaParaPremiacaoDestaque(data, item.loteria)) return false;
     if (filtroPraca !== "TODAS" && item.praca !== filtroPraca) return false;
     return Array.isArray(item.resultados) && item.resultados.length > 0;
   });
