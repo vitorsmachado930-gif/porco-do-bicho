@@ -234,17 +234,12 @@ if ($updatedAt <= 0 || $resultados === null) {
 }
 
 $estadoAtual = lerEstado($filePath);
-if ($estadoAtual['updatedAt'] > $updatedAt) {
-    responder(409, [
-        'ok' => false,
-        'error' => 'Conflito de sincronizacao.',
-        'updatedAt' => $estadoAtual['updatedAt'],
-        'resultados' => $estadoAtual['resultados']
-    ]);
-}
+$agoraMs = (int)round(microtime(true) * 1000);
+$updatedAtAtual = isset($estadoAtual['updatedAt']) ? (int)$estadoAtual['updatedAt'] : 0;
+$updatedAtFinal = max($updatedAt, $updatedAtAtual + 1, $agoraMs);
 
 $novoEstado = [
-    'updatedAt' => $updatedAt,
+    'updatedAt' => $updatedAtFinal,
     'resultados' => $resultados
 ];
 
@@ -268,7 +263,7 @@ try {
 
 responder(200, [
     'ok' => true,
-    'updatedAt' => $updatedAt,
+    'updatedAt' => $updatedAtFinal,
     'backup' => [
         'status' => $backupStatus,
         'arquivo' => $backupArquivo,

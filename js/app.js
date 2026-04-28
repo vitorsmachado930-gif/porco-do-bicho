@@ -2258,36 +2258,54 @@ async function sincronizarResultadosRemotos(modo) {
       }
       aplicarEstadoResultadosRemotos(estadoRemoto);
       mostrar();
-      return;
+      return true;
     }
 
     if (atualizadoLocal > atualizadoRemoto) {
       const tsEnviado = await enviarEstadoResultadosRemotos(atualizadoLocal);
       salvarAtualizacaoDadosLocal(tsEnviado);
-      return;
+      return true;
     }
 
-    if (hashLocal === hashRemoto) return;
+    if (hashLocal === hashRemoto) return true;
 
     if (modo === "bootstrap" && lista.length > 0 && estadoRemoto.resultados.length === 0) {
       const tsBootstrap = Date.now();
       const tsEnviado = await enviarEstadoResultadosRemotos(tsBootstrap);
       salvarAtualizacaoDadosLocal(tsEnviado);
-      return;
+      return true;
     }
 
     if (modo === "push") {
       const tsPush = Date.now();
       const tsEnviado = await enviarEstadoResultadosRemotos(tsPush);
       salvarAtualizacaoDadosLocal(tsEnviado);
-      return;
+      return true;
     }
 
     aplicarEstadoResultadosRemotos(estadoRemoto);
     mostrar();
+    return true;
   } catch (_err) {
     // Falha remota: o app segue funcionando com armazenamento local.
+    return false;
   }
+}
+
+async function publicarResultadosRemotosAgora(tentativas = 2) {
+  const maxTentativas = Math.max(1, Number(tentativas) || 1);
+  for (let i = 0; i < maxTentativas; i++) {
+    try {
+      const tsLocal = Date.now();
+      const tsEnviado = await enviarEstadoResultadosRemotos(tsLocal);
+      salvarAtualizacaoDadosLocal(tsEnviado);
+      sincronizacaoResultadosAtiva = true;
+      return true;
+    } catch (_err) {
+      // tenta novamente
+    }
+  }
+  return false;
 }
 
 async function inicializarSincronizacaoResultadosRemotos() {
@@ -4616,7 +4634,7 @@ function logoutAdmin() {
   mostrar();
 }
 
-function salvar() {
+async function salvar() {
   if (!logado) {
     mostrarConfirmacaoApostaRapida("Faça login antes de salvar.", "erro");
     return;
@@ -4700,13 +4718,21 @@ function salvar() {
   }
 
   salvarDados();
+  const sincronizado = await publicarResultadosRemotosAgora(3);
   dataSelecionada = data;
   aplicarLimitesDeData();
   atualizarEstadoNavegacao();
   atualizarResumoData();
   mostrar();
   limparCamposResultado();
-  mostrarConfirmacaoApostaRapida("Resultado salvo com sucesso.");
+  if (sincronizado) {
+    mostrarConfirmacaoApostaRapida("Resultado salvo e sincronizado com sucesso.");
+  } else {
+    mostrarConfirmacaoApostaRapida(
+      "Resultado salvo localmente. Sincronização pendente: atualize e tente salvar novamente.",
+      "erro"
+    );
+  }
 }
 
 function contextoAtualFormularioAposta() {
