@@ -211,6 +211,15 @@ function formatarDataBR(dataISO) {
   return `${dia}/${mes}/${ano.slice(-2)}`;
 }
 
+function obterUltimaDataComResultadoApurado() {
+  const datas = sanitizarLista(lista)
+    .filter((item) => Array.isArray(item.resultados) && item.resultados.length > 0)
+    .map((item) => normalizarDataISO(item.data))
+    .filter(Boolean)
+    .sort((a, b) => String(b).localeCompare(String(a), "pt-BR"));
+  return datas.length > 0 ? datas[0] : "";
+}
+
 function normalizarModoDashboardAdmin(valor) {
   return String(valor || "").trim() === "intervalo" ? "intervalo" : "hoje";
 }
@@ -6588,7 +6597,7 @@ async function init() {
       atualizarStatusUsuario(`Conectado como ${usuarioAtual.nome} (@${usuarioAtual.login}).`, false);
     }
   } else {
-    atualizarStatusUsuario("Cadastre-se ou faça login para apostar.", false);
+    atualizarStatusUsuario("Cadastre-se ou faça login para apostar. Para consultar resultados e destaques, não precisa login.", false);
   }
   atualizarVisibilidadeAdmin();
   dataSelecionada = hojeISO();
@@ -6600,6 +6609,23 @@ async function init() {
   atualizarResumoData();
   await inicializarSincronizacaoResultadosRemotos();
   await inicializarSincronizacaoPainelRemoto();
+
+  const temResultadoNaDataAtual = sanitizarLista(lista).some(
+    (item) =>
+      item.data === dataSelecionada &&
+      Array.isArray(item.resultados) &&
+      item.resultados.length > 0
+  );
+  if (!temResultadoNaDataAtual) {
+    const ultimaDataApurada = obterUltimaDataComResultadoApurado();
+    if (ultimaDataApurada && ultimaDataApurada !== dataSelecionada) {
+      dataSelecionada = ultimaDataApurada;
+      aplicarLimitesDeData();
+      atualizarEstadoNavegacao();
+      atualizarResumoData();
+    }
+  }
+
   mostrar();
 }
 

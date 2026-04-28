@@ -115,6 +115,7 @@
 <div class="container">
   <div class="card">
     <h3>Resultados</h3>
+    <p><small>Consulta pública: não é necessário login para ver loterias apuradas e bilhetes premiados em destaque.</small></p>
     <div class="filtro-data">
       <button id="btnDiaAnterior" class="btn-nav" onclick="voltarDia()">◀</button>
       <input id="filtroData" type="date" onchange="selecionarData(this.value)">
@@ -139,6 +140,7 @@
       <h3>Premiações do dia em destaque</h3>
       <span id="dataPremiacoesDestaque" class="data-premiacoes-destaque">--/--/--</span>
     </div>
+    <p><small>Os destaques aparecem automaticamente conforme os resultados apurados.</small></p>
     <div id="listaPremiacoesDestaque" class="lista-premiacoes-destaque"></div>
   </div>
 
@@ -323,6 +325,6 @@
   </div>
 </footer>
 
-<script src="js/app.js?v=20260428-24"></script>
+<script src="js/app.js?v=20260428-26"></script>
 </body>
 </html>
