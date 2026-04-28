@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/style.css?v=20260427-11">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/promotor.css?v=20260427-1">
+  <link rel="stylesheet" href="../css/promotor.css?v=20260428-2">
 </head>
 <body>
   <header class="topo-pagina">
@@ -80,6 +80,16 @@
         </section>
 
         <section class="painel-admin-bloco">
+          <h4>Registrar Depósito do Apostador</h4>
+          <select id="depositoApostadorPromotor">
+            <option value="">Selecione o apostador da base</option>
+          </select>
+          <input id="depositoValorPromotor" type="number" min="0.01" step="0.01" placeholder="Valor do depósito (R$)">
+          <button type="button" onclick="registrarDepositoApostadorPromotor()">Registrar Depósito</button>
+          <p id="statusDepositoPromotor"></p>
+        </section>
+
+        <section class="painel-admin-bloco">
           <h4>Repassar Saldo ao Apostador</h4>
           <select id="repasseApostadorPromotor">
             <option value="">Selecione o apostador da base</option>
@@ -96,6 +106,6 @@
     Porco do Bicho • Painel do Promotor.
   </footer>
 
-  <script src="../js/promotor.js?v=20260427-5"></script>
+  <script src="../js/promotor.js?v=20260428-6"></script>
 </body>
 </html>

@@ -359,8 +359,15 @@ function atualizarStatusRepassePromotor(texto, erro) {
   el.innerText = texto || "";
 }
 
-function atualizarSelecaoRepassePromotor(base) {
-  const select = document.getElementById("repasseApostadorPromotor");
+function atualizarStatusDepositoPromotor(texto, erro) {
+  const el = document.getElementById("statusDepositoPromotor");
+  if (!el) return;
+  el.style.color = erro ? "#ff6b6b" : "#9fb3c8";
+  el.innerText = texto || "";
+}
+
+function atualizarSelectApostadoresPromotor(id, base) {
+  const select = document.getElementById(id);
   if (!select) return;
   const listaBase = Array.isArray(base) ? base : [];
   const valorAtual = String(select.value || "");
@@ -374,6 +381,18 @@ function atualizarSelecaoRepassePromotor(base) {
   if (valorAtual && listaBase.some((apostador) => String(apostador.id) === valorAtual)) {
     select.value = valorAtual;
   }
+}
+
+function atualizarSelecoesApostadoresPromotor(base) {
+  atualizarSelectApostadoresPromotor("depositoApostadorPromotor", base);
+  atualizarSelectApostadoresPromotor("repasseApostadorPromotor", base);
+}
+
+function calcularComissaoPromotor(valorDeposito, percentualComissao) {
+  const base = normalizarValorNaoNegativo(valorDeposito);
+  const pct = normalizarValorNaoNegativo(percentualComissao);
+  if (base <= 0 || pct <= 0) return 0;
+  return Number(((base * pct) / 100).toFixed(2));
 }
 
 function gruposDoPalpite(palpite) {
@@ -512,7 +531,7 @@ function renderPainelPromotor() {
     avisoEl.style.display = "block";
     painelEl.style.display = "none";
     avisoEl.innerText = "Faça login na Home como promotor para acessar este painel.";
-    atualizarSelecaoRepassePromotor([]);
+    atualizarSelecoesApostadoresPromotor([]);
     return;
   }
 
@@ -520,7 +539,7 @@ function renderPainelPromotor() {
     avisoEl.style.display = "block";
     painelEl.style.display = "none";
     avisoEl.innerText = "Seu usuário não possui perfil de promotor.";
-    atualizarSelecaoRepassePromotor([]);
+    atualizarSelecoesApostadoresPromotor([]);
     return;
   }
 
@@ -529,7 +548,7 @@ function renderPainelPromotor() {
     avisoEl.style.display = "block";
     painelEl.style.display = "none";
     avisoEl.innerText = "Promotor não encontrado. Faça login novamente.";
-    atualizarSelecaoRepassePromotor([]);
+    atualizarSelecoesApostadoresPromotor([]);
     return;
   }
   usuarioAtual = usuarios[idxPromotor];
@@ -575,7 +594,7 @@ function renderPainelPromotor() {
     `Promotor: ${usuarioAtual.nome} (@${usuarioAtual.login}) | Comissão por depósito: ${formatarPercentual(usuarioAtual.comissaoPercentual)}`;
   resumoBaseEl.innerText =
     `${totais.totalApostadores} apostador(es) na sua base | Depósitos: ${formatarMoedaBR(totais.totalDepositos)} | Apostas: ${totais.totalApostas}`;
-  atualizarSelecaoRepassePromotor(base);
+  atualizarSelecoesApostadoresPromotor(base);
 
   if (base.length === 0) {
     listaEl.innerHTML = "<p>Nenhum apostador vinculado à sua base ainda.</p>";
@@ -668,6 +687,76 @@ function cadastrarApostadorBasePromotor() {
   renderPainelPromotor();
 }
 
+function registrarDepositoApostadorPromotor() {
+  if (!usuarioAtual || usuarioAtual.role !== PAPEL_USUARIO_PROMOTOR) {
+    atualizarStatusDepositoPromotor("Somente promotores podem registrar depósito da base.", true);
+    return;
+  }
+
+  const idxPromotor = usuarios.findIndex(
+    (u) => Number(u.id) === Number(usuarioAtual.id) && u.role === PAPEL_USUARIO_PROMOTOR
+  );
+  if (idxPromotor === -1) {
+    atualizarStatusDepositoPromotor("Promotor não encontrado. Faça login novamente.", true);
+    return;
+  }
+
+  const selectApostador = document.getElementById("depositoApostadorPromotor");
+  const inputValor = document.getElementById("depositoValorPromotor");
+  if (!selectApostador || !inputValor) return;
+
+  const apostadorId = Number(selectApostador.value);
+  if (!Number.isFinite(apostadorId)) {
+    atualizarStatusDepositoPromotor("Selecione um apostador da sua base.", true);
+    return;
+  }
+
+  const valor = parseNumeroPositivo(inputValor.value);
+  if (!valor) {
+    atualizarStatusDepositoPromotor("Informe um valor válido para depósito.", true);
+    return;
+  }
+
+  const idxApostador = usuarios.findIndex(
+    (u) =>
+      Number(u.id) === apostadorId &&
+      u.role !== PAPEL_USUARIO_PROMOTOR &&
+      Number(u.promotorId) === Number(usuarioAtual.id)
+  );
+  if (idxApostador === -1) {
+    atualizarStatusDepositoPromotor("Apostador inválido para depósito.", true);
+    return;
+  }
+
+  usuarios[idxApostador].saldo = normalizarValorNaoNegativo(
+    normalizarValorNaoNegativo(usuarios[idxApostador].saldo) + valor
+  );
+  usuarios[idxApostador].totalDepositos = normalizarValorNaoNegativo(
+    normalizarValorNaoNegativo(usuarios[idxApostador].totalDepositos) + valor
+  );
+
+  const comissao = calcularComissaoPromotor(valor, usuarios[idxPromotor].comissaoPercentual);
+  if (comissao > 0) {
+    usuarios[idxPromotor].comissaoSaldo = normalizarValorNaoNegativo(
+      normalizarValorNaoNegativo(usuarios[idxPromotor].comissaoSaldo) + comissao
+    );
+    usuarios[idxPromotor].comissaoTotal = normalizarValorNaoNegativo(
+      normalizarValorNaoNegativo(usuarios[idxPromotor].comissaoTotal) + comissao
+    );
+  }
+
+  usuarioAtual = usuarios[idxPromotor];
+  salvarJSONStorage(USUARIOS_KEY, usuarios);
+  localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
+
+  inputValor.value = "";
+  atualizarStatusDepositoPromotor(
+    `Depósito registrado: ${formatarMoedaBR(valor)} para @${usuarios[idxApostador].login}. Comissão: ${formatarMoedaBR(comissao)}.`,
+    false
+  );
+  renderPainelPromotor();
+}
+
 function repassarSaldoApostadorPromotor() {
   if (!usuarioAtual || usuarioAtual.role !== PAPEL_USUARIO_PROMOTOR) {
     atualizarStatusRepassePromotor("Somente promotores podem repassar saldo aos apostadores.", true);
@@ -743,11 +832,13 @@ function sairPromotor() {
 function initPromotor() {
   carregarEstado();
   atualizarStatusPromotor("", false);
+  atualizarStatusDepositoPromotor("", false);
   atualizarStatusRepassePromotor("", false);
   renderPainelPromotor();
 }
 
 window.cadastrarApostadorBasePromotor = cadastrarApostadorBasePromotor;
+window.registrarDepositoApostadorPromotor = registrarDepositoApostadorPromotor;
 window.repassarSaldoApostadorPromotor = repassarSaldoApostadorPromotor;
 window.sairPromotor = sairPromotor;
 window.addEventListener("load", initPromotor);

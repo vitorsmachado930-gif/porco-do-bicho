@@ -103,6 +103,12 @@
   font-size: 13px;
 }
 
+#statusDepositoPromotor {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
 @media (max-width: 640px) {
   .topo-promotor strong {
     font-size: 12px;
