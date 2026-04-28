@@ -542,17 +542,13 @@ function renderPainelPromotor() {
       acc.totalDepositos += Number(apostador.totalDepositos || 0);
       acc.totalApostas += resumo.apostas;
       acc.totalApostado += resumo.apostado;
-      acc.totalGanhos += resumo.ganhos;
-      acc.totalPerdas += resumo.perdas;
       return acc;
     },
     {
       totalApostadores: 0,
       totalDepositos: 0,
       totalApostas: 0,
-      totalApostado: 0,
-      totalGanhos: 0,
-      totalPerdas: 0
+      totalApostado: 0
     }
   );
 
@@ -566,8 +562,6 @@ function renderPainelPromotor() {
   setTexto("dashPromotorDepositos", formatarMoedaBR(totais.totalDepositos));
   setTexto("dashPromotorApostas", String(totais.totalApostas));
   setTexto("dashPromotorApostado", formatarMoedaBR(totais.totalApostado));
-  setTexto("dashPromotorGanhos", formatarMoedaBR(totais.totalGanhos));
-  setTexto("dashPromotorPerdas", formatarMoedaBR(totais.totalPerdas));
   setTexto("dashPromotorComissaoSaldo", formatarMoedaBR(usuarioAtual.comissaoSaldo));
   setTexto("dashPromotorComissaoTotal", formatarMoedaBR(usuarioAtual.comissaoTotal));
 
@@ -590,7 +584,7 @@ function renderPainelPromotor() {
         `<strong>${escaparHTML(apostador.nome)}</strong> (@${escaparHTML(apostador.login)})<br>` +
         `Saldo: <b>${formatarMoedaBR(apostador.saldo)}</b> | Depósitos: <b>${formatarMoedaBR(apostador.totalDepositos)}</b><br>` +
         `Apostas: <b>${resumo.apostas}</b> | Apostado: <b>${formatarMoedaBR(resumo.apostado)}</b><br>` +
-        `Ganhos: <b>${formatarMoedaBR(resumo.ganhos)}</b> | Perdidas: <b>${formatarMoedaBR(resumo.perdas)}</b> | Pendentes: <b>${resumo.pendentes}</b>` +
+        `Pendentes: <b>${resumo.pendentes}</b>` +
         `</div>`
       );
     })

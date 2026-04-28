@@ -1374,6 +1374,61 @@ function resultadoDaAposta(aposta) {
   };
 }
 
+function localizarIndiceUsuarioDaAposta(aposta) {
+  if (!aposta || typeof aposta !== "object") return -1;
+  const usuarioId = Number(aposta.usuarioId);
+  const usuarioLogin = normalizarLoginUsuario(aposta.usuarioLogin);
+
+  let idx = -1;
+  if (Number.isFinite(usuarioId)) {
+    idx = usuarios.findIndex((item) => Number(item.id) === usuarioId);
+  }
+  if (idx === -1 && usuarioLogin) {
+    idx = usuarios.findIndex((item) => normalizarLoginUsuario(item.login) === usuarioLogin);
+  }
+  if (idx !== -1) {
+    aposta.usuarioId = usuarios[idx].id;
+    aposta.usuarioLogin = usuarios[idx].login;
+  }
+  return idx;
+}
+
+function creditarPremiacoesPendentes() {
+  if (!Array.isArray(apostas) || apostas.length === 0) return;
+
+  let houveCredito = false;
+  apostas.forEach((aposta) => {
+    if (!aposta || aposta.premioCreditado) return;
+
+    const resultado = resultadoDaAposta(aposta);
+    if (!resultado || resultado.status !== "GANHOU") return;
+
+    const idxUsuario = localizarIndiceUsuarioDaAposta(aposta);
+    if (idxUsuario === -1) return;
+
+    const retornoAposta = Number(normalizarValorMoeda(aposta.premio) || 0);
+    const retornoResultado = normalizarValorNaoNegativo(resultado.retorno);
+    const retorno = normalizarValorNaoNegativo(
+      retornoAposta > 0 ? retornoAposta : retornoResultado
+    );
+    usuarios[idxUsuario].saldo = normalizarSaldoUsuario(
+      normalizarSaldoUsuario(usuarios[idxUsuario].saldo) + retorno
+    );
+
+    aposta.premioCreditado = true;
+    aposta.premioCreditadoValor = retorno;
+    aposta.premioCreditadoEm = new Date().toISOString();
+    houveCredito = true;
+  });
+
+  if (!houveCredito) return;
+
+  salvarUsuarios();
+  salvarSessaoUsuario();
+  salvarApostas();
+  atualizarCarteiraUsuarioAposta();
+}
+
 function parseGruposPalpite(valor, quantidade) {
   const encontrados = (String(valor || "").match(/\d{1,2}/g) || [])
     .map((n) => Number(n))
@@ -1510,6 +1565,14 @@ function normalizarApostaItem(raw, index) {
   const usuarioLogin = normalizarLoginUsuario(raw.usuarioLogin);
   const bilheteIdRaw = String(raw.bilheteId || "").trim();
   const bilheteId = bilheteIdRaw || gerarBilheteIdAposta(data, praca, loteria, usuarioId, usuarioLogin);
+  const premioCreditado = Boolean(raw.premioCreditado || raw.premioPago);
+  const premioCreditadoValor = normalizarValorNaoNegativo(
+    raw.premioCreditadoValor ?? raw.premioPagoValor
+  );
+  const premioCreditadoEm =
+    normalizarDataHoraISO(raw.premioCreditadoEm) ||
+    normalizarDataHoraISO(raw.premioPagoEm) ||
+    "";
 
   return {
     id,
@@ -1523,7 +1586,10 @@ function normalizarApostaItem(raw, index) {
     createdAt,
     usuarioId,
     usuarioLogin,
-    bilheteId
+    bilheteId,
+    premioCreditado,
+    premioCreditadoValor: premioCreditado ? premioCreditadoValor : 0,
+    premioCreditadoEm: premioCreditado ? premioCreditadoEm : ""
   };
 }
 
@@ -1830,7 +1896,10 @@ function serializarPainelParaHash(listaUsuarios, listaApostas) {
     premio: item.premio,
     createdAt: item.createdAt,
     usuarioId: item.usuarioId,
-    usuarioLogin: item.usuarioLogin
+    usuarioLogin: item.usuarioLogin,
+    premioCreditado: Boolean(item.premioCreditado),
+    premioCreditadoValor: normalizarValorNaoNegativo(item.premioCreditadoValor),
+    premioCreditadoEm: normalizarDataHoraISO(item.premioCreditadoEm) || ""
   }));
 
   apostasSane.sort((a, b) => {
@@ -5817,6 +5886,7 @@ function excluirApostaPorId(id) {
 }
 
 function mostrar() {
+  creditarPremiacoesPendentes();
   const container = document.getElementById("resultados");
   if (!container) return;
 
