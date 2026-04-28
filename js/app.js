@@ -4817,6 +4817,64 @@ async function salvar() {
   }
 }
 
+async function limparResultadoSelecionadoAdmin() {
+  if (!logado) {
+    mostrarConfirmacaoApostaRapida("Faça login antes de limpar resultado.", "erro");
+    return;
+  }
+
+  const praca = String(document.getElementById("praca")?.value || "").trim();
+  const dataInput = String(document.getElementById("dataResultado")?.value || "").trim();
+  const data = normalizarDataISO(dataInput);
+  const loteria = normalizarNomeLoteriaPorData(
+    praca,
+    String(document.getElementById("loteria")?.value || "").trim(),
+    data
+  );
+
+  if (!praca || !PRACAS_ORDENADAS.includes(praca)) {
+    mostrarConfirmacaoApostaRapida("Selecione a praça.", "erro");
+    return;
+  }
+  if (!data) {
+    mostrarConfirmacaoApostaRapida("Escolha uma data válida.", "erro");
+    return;
+  }
+  if (!loteria) {
+    mostrarConfirmacaoApostaRapida("Selecione a loteria para limpar.", "erro");
+    return;
+  }
+
+  const idx = lista.findIndex(
+    (item) => item.data === data && item.praca === praca && item.loteria === loteria
+  );
+  if (idx === -1) {
+    mostrarConfirmacaoApostaRapida("Nenhum resultado cadastrado para esta loteria/data.", "erro");
+    return;
+  }
+
+  if (!confirm(`Limpar resultado de ${praca} | ${loteria} em ${formatarDataBR(data)}?`)) return;
+
+  lista.splice(idx, 1);
+  salvarDados();
+  const sincronizado = await publicarResultadosRemotosAgora(3);
+  dataSelecionada = data;
+  aplicarLimitesDeData();
+  atualizarEstadoNavegacao();
+  atualizarResumoData();
+  mostrar();
+  limparCamposResultado();
+
+  if (sincronizado) {
+    mostrarConfirmacaoApostaRapida("Resultado removido e sincronizado com sucesso.");
+  } else {
+    mostrarConfirmacaoApostaRapida(
+      "Resultado removido localmente. Sincronização pendente. Tente novamente em instantes.",
+      "erro"
+    );
+  }
+}
+
 function contextoAtualFormularioAposta() {
   const data = hojeISO();
   const praca = String(document.getElementById("pracaAposta").value || "").trim();
@@ -6750,6 +6808,7 @@ window.abrirCadastroUsuario = abrirCadastroUsuario;
 window.abrirRecuperacaoSenha = abrirRecuperacaoSenha;
 window.voltarLoginUsuario = voltarLoginUsuario;
 window.salvar = salvar;
+window.limparResultadoSelecionadoAdmin = limparResultadoSelecionadoAdmin;
 window.salvarMultiplicadores = salvarMultiplicadores;
 window.restaurarMultiplicadoresPadrao = restaurarMultiplicadoresPadrao;
 window.salvarLimitesAposta = salvarLimitesAposta;
