@@ -62,6 +62,71 @@ a {
   height: auto;
 }
 
+.melhores-cotacoes-wrap {
+  width: 100%;
+  background: #081018;
+}
+
+.melhores-cotacoes-conteudo {
+  width: min(100%, 920px);
+  margin: 0 auto;
+  padding: 0 20px 12px;
+  box-sizing: border-box;
+}
+
+.melhores-cotacoes-titulo {
+  margin: 2px 0 8px;
+  color: #9fd5ff;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.melhores-cotacoes-card {
+  border: 1px solid #00e67644;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #102030 0%, #0f1a24 100%);
+  padding: 10px 12px;
+  overflow: hidden;
+  display: grid;
+  gap: 0;
+}
+
+.melhores-cotacoes-janela {
+  display: flex;
+  overflow: hidden;
+  gap: 0;
+}
+
+.melhores-cotacoes-faixa {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  min-width: max-content;
+  white-space: nowrap;
+  color: #e8f3ff;
+  font-size: 13px;
+  animation: cotacoesRolando 20s linear infinite;
+  padding-right: 10px;
+}
+
+.melhores-cotacoes-sep {
+  color: #00e676;
+  font-weight: 700;
+}
+
+@keyframes cotacoesRolando {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
 .topo {
   width: 100%;
   box-sizing: border-box;
@@ -1573,6 +1638,27 @@ body.admin-logado .acao-admin {
 
   .banner-topo-img {
     border-radius: 6px;
+  }
+
+  .melhores-cotacoes-conteudo {
+    width: min(100%, 460px);
+    padding: 0 12px 10px;
+  }
+
+  .melhores-cotacoes-card {
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+
+  .melhores-cotacoes-titulo {
+    font-size: 13px;
+    margin: 0 0 7px;
+  }
+
+  .melhores-cotacoes-faixa {
+    font-size: 12px;
+    gap: 8px;
+    animation-duration: 18s;
   }
 
   .aviso-bingo-breve {
