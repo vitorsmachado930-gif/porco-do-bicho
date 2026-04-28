@@ -35,6 +35,10 @@ function apiOriginPermitida(string $origin): bool
         return false;
     }
 
+    if (preg_match('#^https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?$#i', $origin) === 1) {
+        return true;
+    }
+
     foreach (apiAllowedOrigins() as $permitida) {
         if (strcasecmp($origin, $permitida) === 0) {
             return true;
