@@ -3989,6 +3989,10 @@ function configurarCamposAposta() {
 
   if (tipoInput) {
     tipoInput.addEventListener("change", () => {
+      const tipoSelecionado = obterTipoApostaSelecionadoNoFormulario();
+      if (tipoSelecionado) {
+        direcionarEtapaLoteria = false;
+      }
       atualizarModoCampoPalpiteAposta();
       atualizarPreviewPremiacaoAposta();
     });
@@ -4351,6 +4355,9 @@ function abrirDeposito() {
 function abrirApostasAgora() {
   if (!usuarioAtual || secaoApostasEncerrada) return;
   painelApostaExpandido = true;
+  if (apostasBilheteRascunho.length === 0) {
+    direcionarEtapaLoteria = false;
+  }
   atualizarVisibilidadeApostas();
   atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
   const tipoInput = document.getElementById("tipoAposta");
@@ -5232,7 +5239,7 @@ function adicionarApostaAoBilhete() {
   }
 
   apostasBilheteRascunho.push(leitura.linha);
-  direcionarEtapaLoteria = false;
+  direcionarEtapaLoteria = true;
   renderizarBilheteRascunhoAposta();
   limparCamposAposta({
     manterLoteria: true
