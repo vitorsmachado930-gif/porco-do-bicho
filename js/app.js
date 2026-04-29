@@ -4357,17 +4357,17 @@ function atualizarBloqueioBotoesApostaPorSaldo(saldoAtual) {
   const btnSalvar = document.querySelector("#cardApostas > button[onclick=\"salvarAposta()\"]");
 
   if (btnAposteAgora) {
-    btnAposteAgora.disabled = saldoInsuficiente;
+    btnAposteAgora.classList.toggle("botao-bloqueado-saldo", saldoInsuficiente);
     btnAposteAgora.title = saldoInsuficiente
       ? "Saldo insuficiente para apostar."
       : "Clique para iniciar sua aposta.";
   }
   if (btnConfirma) {
-    btnConfirma.disabled = saldoInsuficiente;
+    btnConfirma.classList.toggle("botao-bloqueado-saldo", saldoInsuficiente);
     btnConfirma.title = saldoInsuficiente ? "Saldo insuficiente para apostar." : "";
   }
   if (btnSalvar) {
-    btnSalvar.disabled = saldoInsuficiente;
+    btnSalvar.classList.toggle("botao-bloqueado-saldo", saldoInsuficiente);
     btnSalvar.title = saldoInsuficiente ? "Saldo insuficiente para apostar." : "";
   }
 
@@ -4414,7 +4414,7 @@ function abrirApostasAgora() {
   if (!usuarioAtual || secaoApostasEncerrada) return;
   const saldoAtual = normalizarSaldoUsuario(usuarioAtual.saldo);
   if (saldoAtual <= 0) {
-    mostrarConfirmacaoApostaRapida("Saldo insuficiente. Faça uma recarga para apostar.", "erro");
+    mostrarConfirmacaoApostaRapida("Saldo insuficiente. Faça uma recarga", "erro");
     return;
   }
   painelApostaExpandido = true;
@@ -5283,7 +5283,7 @@ function adicionarApostaAoBilhete() {
     return;
   }
   if (normalizarSaldoUsuario(usuarioSincronizado.saldo) <= 0) {
-    mostrarConfirmacaoApostaRapida("Saldo insuficiente. Faça uma recarga para apostar.", "erro");
+    mostrarConfirmacaoApostaRapida("Saldo insuficiente. Faça uma recarga", "erro");
     return;
   }
 
@@ -5327,7 +5327,7 @@ function salvarAposta() {
     return;
   }
   if (normalizarSaldoUsuario(usuarioSincronizado.saldo) <= 0) {
-    mostrarConfirmacaoApostaRapida("Saldo insuficiente. Faça uma recarga para apostar.", "erro");
+    mostrarConfirmacaoApostaRapida("Saldo insuficiente. Faça uma recarga", "erro");
     return;
   }
 

@@ -1072,6 +1072,11 @@ button:disabled {
   animation: ctaApostaPulso 1.8s ease-in-out infinite;
 }
 
+.botao-bloqueado-saldo {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
 #cardApostas.modo-aposta-cta .btn-aposte-agora-cta {
   display: block;
 }
