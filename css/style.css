@@ -1030,6 +1030,7 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .loterias-aposta-bloco.loterias-aposta-bloco-destaque,
   .loterias-aposta-lista-destaque .loteria-aposta-opcao.sugerida-passo,
+  .btn-aposte-agora-cta,
   #cardApostas .etapa-aposta-ativa,
   #cardApostas > button[onclick="salvarAposta()"].botao-salvar-aposta-pronto {
     animation: none;
@@ -1045,6 +1046,55 @@ button:disabled {
   width: min(100%, 320px);
   margin: 4px auto;
   text-align: center;
+}
+
+.btn-aposte-agora-cta {
+  display: none;
+  width: min(100%, 320px);
+  margin: 10px auto 8px;
+  padding: 11px 14px;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  color: #052312;
+  background: linear-gradient(180deg, #00f07a 0%, #00c853 100%);
+  border: 1px solid #00e676;
+  box-shadow: 0 8px 20px #00e67644;
+  animation: ctaApostaPulso 1.8s ease-in-out infinite;
+}
+
+#cardApostas.modo-aposta-cta .btn-aposte-agora-cta {
+  display: block;
+}
+
+#cardApostas.modo-aposta-cta .linha-praca-fixa,
+#cardApostas.modo-aposta-cta #tipoAposta,
+#cardApostas.modo-aposta-cta #subtipoDuplaGrupo,
+#cardApostas.modo-aposta-cta #subtipoTernoGrupo,
+#cardApostas.modo-aposta-cta #subtipoNumericoAposta,
+#cardApostas.modo-aposta-cta #palpiteGrupoContainer,
+#cardApostas.modo-aposta-cta #palpiteAposta,
+#cardApostas.modo-aposta-cta #valorAposta,
+#cardApostas.modo-aposta-cta #blocoPremiacaoAposta,
+#cardApostas.modo-aposta-cta .acoes-bilhete-aposta,
+#cardApostas.modo-aposta-cta #bilheteRascunhoAposta,
+#cardApostas.modo-aposta-cta .loterias-aposta-bloco,
+#cardApostas.modo-aposta-cta #infoLimitesAposta,
+#cardApostas.modo-aposta-cta #cronometroAposta,
+#cardApostas.modo-aposta-cta > button[onclick="salvarAposta()"] {
+  display: none !important;
+}
+
+@keyframes ctaApostaPulso {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 8px 20px #00e67633;
+  }
+  50% {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px #00e67666;
+  }
 }
 
 #cardApostas .linha-praca-fixa {

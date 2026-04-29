@@ -180,6 +180,7 @@ let apostasBilheteRascunho = [];
 let contextoBilheteRascunho = null;
 let loteriasApostaSelecionadas = [];
 let direcionarEtapaLoteria = false;
+let painelApostaExpandido = false;
 
 function hojeISO() {
   return dataLocalParaISO(new Date());
@@ -4347,6 +4348,26 @@ function abrirDeposito() {
   mostrarConfirmacaoApostaRapida("Recarga disponível somente no Painel Admin.", "erro");
 }
 
+function abrirApostasAgora() {
+  if (!usuarioAtual || secaoApostasEncerrada) return;
+  painelApostaExpandido = true;
+  atualizarVisibilidadeApostas();
+  atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
+  const tipoInput = document.getElementById("tipoAposta");
+  if (tipoInput) tipoInput.focus();
+}
+
+function atualizarModoCTADeApostas() {
+  const cardApostas = document.getElementById("cardApostas");
+  const btnAposteAgora = document.getElementById("btnAposteAgora");
+  const logadoUsuario = Boolean(usuarioAtual);
+  if (!cardApostas || !btnAposteAgora) return;
+
+  const mostrarCTA = logadoUsuario && !secaoApostasEncerrada && !painelApostaExpandido;
+  cardApostas.classList.toggle("modo-aposta-cta", mostrarCTA);
+  btnAposteAgora.style.display = mostrarCTA ? "block" : "none";
+}
+
 function abrirPainelLoginUsuario() {
   painelUsuarioAberto = true;
   definirModoUsuarioPublico("login");
@@ -4361,6 +4382,10 @@ function atualizarVisibilidadeApostas() {
   const avisoApostasEncerradas = document.getElementById("avisoApostasEncerradas");
   const logado = Boolean(usuarioAtual);
 
+  if (!logado) {
+    painelApostaExpandido = false;
+  }
+
   if (cardApostas) {
     cardApostas.style.display = logado && !secaoApostasEncerrada ? "block" : "none";
   }
@@ -4372,6 +4397,7 @@ function atualizarVisibilidadeApostas() {
   if (!usuarioAtual) {
     atualizarStatusDepositoUsuario("", false);
   }
+  atualizarModoCTADeApostas();
   atualizarCarteiraUsuarioAposta();
 }
 
@@ -4720,6 +4746,7 @@ function entrarUsuario() {
   usuarioAtual = encontrado;
   salvarSessaoUsuario();
   painelUsuarioAberto = false;
+  painelApostaExpandido = false;
   definirModoUsuarioPublico("login");
   atualizarVisibilidadeUsuario();
   if (usuarioEhPromotor(encontrado)) {
@@ -4739,6 +4766,7 @@ function sairUsuario() {
   usuarioAtual = null;
   salvarSessaoUsuario();
   painelUsuarioAberto = false;
+  painelApostaExpandido = false;
   limparBilheteRascunho({
     limparCampos: false
   });
@@ -7094,6 +7122,7 @@ window.irHomeCabecalho = irHomeCabecalho;
 window.abrirMeuPerfil = abrirMeuPerfil;
 window.abrirPainelPromotor = abrirPainelPromotor;
 window.abrirDeposito = abrirDeposito;
+window.abrirApostasAgora = abrirApostasAgora;
 window.criarUsuarioAdmin = criarUsuarioAdmin;
 window.criarPromotorAdmin = criarPromotorAdmin;
 window.salvarComissaoPromotorAdmin = salvarComissaoPromotorAdmin;
