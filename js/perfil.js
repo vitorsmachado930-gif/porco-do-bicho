@@ -1125,9 +1125,10 @@ function renderizarSecaoBilhetes(listaEl, titulo, itens) {
 
 function montarCardBilhete(grupo) {
   const apostasBilhete = Array.isArray(grupo.apostas) ? grupo.apostas : [];
+  const resultadosBilhete = apostasBilhete.map((item) => resultadoDaAposta(item));
   const statusBilhete = resumoStatusBilhete(apostasBilhete);
   const dataRef = formatarDataBR(grupo && grupo.data);
-  const aposHorarioBilhete = loteriaJaCorreuNaData(grupo && grupo.data, grupo && grupo.loteria);
+  const loteriaApuradaBilhete = resultadosBilhete.some((item) => item.status !== "PENDENTE");
   const valorTotal = apostasBilhete.reduce(
     (acc, item) => acc + Number(normalizarValorMoeda(item.valor)),
     0
@@ -1147,15 +1148,15 @@ function montarCardBilhete(grupo) {
   const horarioRef = formatarHorarioBR(apostasBilhete[0] && apostasBilhete[0].createdAt);
 
   const linhasApostas = apostasBilhete
-    .map((item) => {
+    .map((item, index) => {
       const tipoLabel = TIPOS_APOSTA[item.tipo] || item.tipo;
       const palpite = formatarPalpiteBilhete(item);
       const valor = formatarMoedaBR(item.valor);
-      const conf = resultadoDaAposta(item);
+      const conf = resultadosBilhete[index] || resultadoDaAposta(item);
       const premio = formatarMoedaBR(item.premio || item.valor);
       const classeLinhaPremiada = conf.status === "GANHOU" ? " ganhou" : "";
       const classePalpitePremiado = conf.status === "GANHOU" ? "palpite-premiado" : "";
-      const detalhePremiacao = !aposHorarioBilhete
+      const detalhePremiacao = !loteriaApuradaBilhete
         ? ` | Potencial: ${escaparHTML(premio)}`
         : "";
       return (
@@ -1167,7 +1168,7 @@ function montarCardBilhete(grupo) {
     })
     .join("");
 
-  const linhaPotencialOuPremio = !aposHorarioBilhete
+  const linhaPotencialOuPremio = !loteriaApuradaBilhete
     ? `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho potencial total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotal))}</b></div>`
     : `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho Total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotalApurado))}</b></div>`;
 
