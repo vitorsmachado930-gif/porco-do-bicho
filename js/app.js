@@ -179,6 +179,7 @@ let pushPainelRemotoTimer = null;
 let apostasBilheteRascunho = [];
 let contextoBilheteRascunho = null;
 let loteriasApostaSelecionadas = [];
+let direcionarEtapaLoteria = false;
 
 function hojeISO() {
   return dataLocalParaISO(new Date());
@@ -2884,7 +2885,10 @@ function atualizarResumoLoteriasAposta(listaDisponivel, encerrada) {
   const resumo = document.getElementById("loteriasApostaResumo");
   if (!resumo) return;
   const precisaEscolherLoteriaAgora =
-    !encerrada && apostasBilheteRascunho.length > 0 && loteriasApostaSelecionadas.length === 0;
+    !encerrada &&
+    direcionarEtapaLoteria &&
+    apostasBilheteRascunho.length > 0 &&
+    loteriasApostaSelecionadas.length === 0;
   resumo.classList.toggle("passo-loteria-destaque", precisaEscolherLoteriaAgora);
 
   if (encerrada) {
@@ -2936,7 +2940,10 @@ function atualizarAnimacaoPassoEscolhaLoteria(encerrada) {
   if (!bloco || !lista) return;
 
   const precisaEscolherLoteriaAgora =
-    !encerrada && apostasBilheteRascunho.length > 0 && loteriasApostaSelecionadas.length === 0;
+    !encerrada &&
+    direcionarEtapaLoteria &&
+    apostasBilheteRascunho.length > 0 &&
+    loteriasApostaSelecionadas.length === 0;
   const bilheteProntoParaSalvar =
     !encerrada && apostasBilheteRascunho.length > 0 && loteriasApostaSelecionadas.length > 0;
 
@@ -2954,7 +2961,11 @@ function atualizarAnimacaoPassoEscolhaLoteria(encerrada) {
 
   if (!tipoSelecionado) {
     if (quantidadeRascunho > 0 && loteriasSelecionadas === 0) {
-      if (bloco) bloco.classList.add("etapa-aposta-ativa");
+      if (direcionarEtapaLoteria) {
+        if (bloco) bloco.classList.add("etapa-aposta-ativa");
+      } else if (tipoInput) {
+        tipoInput.classList.add("etapa-aposta-ativa");
+      }
       return;
     }
     if (quantidadeRascunho > 0 && loteriasSelecionadas > 0) {
@@ -3010,6 +3021,9 @@ function alternarLoteriaApostaSelecionada(loteria, listaDisponivel, encerrada) {
   }
 
   loteriasApostaSelecionadas = atual;
+  if (loteriasApostaSelecionadas.length > 0) {
+    direcionarEtapaLoteria = false;
+  }
   renderizarLoteriasApostaSelecionaveis(listaDisponivel, encerrada);
   if (apostasBilheteRascunho.length > 0) {
     renderizarBilheteRascunhoAposta();
@@ -5139,6 +5153,7 @@ function limparBilheteRascunho(opcoes) {
   const cfg = opcoes && typeof opcoes === "object" ? opcoes : {};
   apostasBilheteRascunho = [];
   contextoBilheteRascunho = null;
+  direcionarEtapaLoteria = false;
   renderizarBilheteRascunhoAposta();
   if (cfg.limparCampos !== false) {
     limparCamposAposta({
@@ -5189,11 +5204,12 @@ function adicionarApostaAoBilhete() {
   }
 
   apostasBilheteRascunho.push(leitura.linha);
+  direcionarEtapaLoteria = false;
   renderizarBilheteRascunhoAposta();
   limparCamposAposta({
     manterLoteria: true
   });
-  mostrarConfirmacaoApostaRapida("Aposta adicionada ao bilhete.");
+  mostrarConfirmacaoApostaRapida("Aposta finalizada. Você pode criar outra ou encerrar o bilhete.");
 }
 
 function salvarAposta() {
@@ -5224,7 +5240,7 @@ function salvarAposta() {
     const leituraAtual = lerLinhaApostaDoFormulario();
     if (!leituraAtual.ok) {
       mostrarConfirmacaoApostaRapida(
-        "Há uma aposta preenchida. Clique em 'Adicionar ao bilhete' ou limpe os campos.",
+        "Há uma aposta preenchida. Clique em 'Confirma' ou limpe os campos.",
         "erro"
       );
       return;
@@ -5246,6 +5262,8 @@ function salvarAposta() {
 
   const loteriasSelecionadas = obterLoteriasApostaSelecionadas();
   if (loteriasSelecionadas.length === 0) {
+    direcionarEtapaLoteria = true;
+    atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
     mostrarConfirmacaoApostaRapida("Escolha a loteria do bilhete antes de salvar.", "erro");
     return;
   }
