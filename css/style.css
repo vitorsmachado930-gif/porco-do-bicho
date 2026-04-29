@@ -1191,6 +1191,11 @@ button:disabled {
   text-shadow: 0 0 10px #00e67666;
 }
 
+.valor-aposta-premiada {
+  color: #00e676;
+  font-weight: 800;
+}
+
 .btn-inline {
   width: auto;
   margin-top: 0;

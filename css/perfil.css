@@ -273,6 +273,11 @@
   text-shadow: 0 0 10px #00e67666;
 }
 
+.valor-aposta-premiada {
+  color: #00e676;
+  font-weight: 800;
+}
+
 .bilhete-resumo-total {
   margin-top: 6px;
   color: #b8d1e6;

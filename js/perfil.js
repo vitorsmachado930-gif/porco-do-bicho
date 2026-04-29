@@ -1156,13 +1156,17 @@ function montarCardBilhete(grupo) {
       const premio = formatarMoedaBR(item.premio || item.valor);
       const classeLinhaPremiada = conf.status === "GANHOU" ? " ganhou" : "";
       const classePalpitePremiado = conf.status === "GANHOU" ? "palpite-premiado" : "";
+      const valorRenderizado =
+        conf.status === "GANHOU"
+          ? `<span class="valor-aposta-premiada">${escaparHTML(valor)}</span>`
+          : escaparHTML(valor);
       const detalhePremiacao = !loteriaApuradaBilhete
         ? ` | Potencial: ${escaparHTML(premio)}`
         : "";
       return (
         `<div class="bilhete-linha-aposta${classeLinhaPremiada}">` +
         `${escaparHTML(tipoLabel)}: <b class="${classePalpitePremiado}">${escaparHTML(palpite)}</b> | ` +
-        `Valor: ${escaparHTML(valor)}${detalhePremiacao}` +
+        `Valor: ${valorRenderizado}${detalhePremiacao}` +
         `</div>`
       );
     })
@@ -1172,6 +1176,9 @@ function montarCardBilhete(grupo) {
     ? `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho potencial total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotal))}</b></div>`
     : `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho Total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotalApurado))}</b></div>`;
 
+  const rotuloStatusBilhete =
+    statusBilhete.status === "PERDEU" ? "PERDA" : statusBilhete.status;
+
   return (
     `<div class="aposta-item">` +
     `<strong>${escaparHTML(grupo.praca)} | ${escaparHTML(grupo.loteria)} | ${escaparHTML(dataRef)}</strong><br>` +
@@ -1179,7 +1186,7 @@ function montarCardBilhete(grupo) {
     linhasApostas +
     `<div class="bilhete-resumo-total">Total apostado: <b>${escaparHTML(formatarMoedaBR(valorTotal))}</b></div>` +
     linhaPotencialOuPremio +
-    `Status: <span class="status-aposta ${statusBilhete.classe}">${statusBilhete.status}</span> | ${statusBilhete.detalhe}` +
+    `Status: <span class="status-aposta ${statusBilhete.classe}">${rotuloStatusBilhete}</span> | ${statusBilhete.detalhe}` +
     `</div>`
   );
 }

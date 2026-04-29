@@ -5530,7 +5530,12 @@ function montarHtmlBilheteAposta(item, incluirAcoesAdmin) {
       ? `Prêmio: <span class="valor-potencial-destaque">${formatarMoedaBR(premioApuradoNum)}</span><br>`
       : ""
     : `Ganho potencial: <span class="valor-potencial-destaque">${premioTxt}</span><br>`;
-  const linhaResultado = `Status: <span class="status-aposta ${conf.classeStatus}">${conf.status}</span> | ${conf.detalhe}`;
+  const rotuloStatus = conf.status === "PERDEU" ? "PERDA" : conf.status;
+  const valorApostaRenderizado =
+    conf.status === "GANHOU"
+      ? `<span class="valor-aposta-premiada">${valorTxt}</span>`
+      : valorTxt;
+  const linhaResultado = `Status: <span class="status-aposta ${conf.classeStatus}">${rotuloStatus}</span> | ${conf.detalhe}`;
   const acoes = incluirAcoesAdmin
     ? `<div class="acoes-aposta acao-admin"><button class="btn-danger btn-inline" onclick="excluirApostaPorId(${item.id})">Excluir aposta</button></div>`
     : "";
@@ -5539,7 +5544,7 @@ function montarHtmlBilheteAposta(item, incluirAcoesAdmin) {
     <div class="aposta-item">
       <strong>${item.praca} | ${item.loteria}</strong><br>
       <div class="linha-horario-aposta">Aposta feita às <b>${horarioAposta}</b></div>
-      ${tipoLabel}: <b class="${palpiteClasse}">${palpiteBilhete}</b> | Valor: ${valorTxt}<br>
+      ${tipoLabel}: <b class="${palpiteClasse}">${palpiteBilhete}</b> | Valor: ${valorApostaRenderizado}<br>
       ${linhaPremiacao}
       ${linhaResultado}
       ${acoes}
