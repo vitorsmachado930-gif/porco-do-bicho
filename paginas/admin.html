@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/style.css?v=20260427-11">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/admin.css?v=20260428-19">
+  <link rel="stylesheet" href="../css/admin.css?v=20260429-20">
 </head>
 <body>
   <header class="topo-pagina">
@@ -101,6 +101,18 @@
 
       <h3>Gestão de Promotores</h3>
       <div class="painel-admin-listas">
+        <div class="painel-admin-bloco">
+          <h4>Cadastrar Usuário</h4>
+          <input id="usuarioNomeAdmin" type="text" placeholder="Nome do usuário">
+          <input id="usuarioLoginAdmin" type="text" placeholder="Login do usuário">
+          <input id="usuarioSenhaAdmin" type="password" placeholder="Senha do usuário">
+          <select id="usuarioBasePromotorAdmin">
+            <option value="">Base do Admin</option>
+          </select>
+          <button type="button" onclick="criarUsuarioAdmin()">Criar Usuário</button>
+          <p id="statusUsuarioAdmin"></p>
+        </div>
+
         <div class="painel-admin-bloco">
           <h4>Cadastrar Promotor</h4>
           <input id="promotorNomeAdmin" type="text" placeholder="Nome do promotor">
@@ -353,6 +365,6 @@
     Porco do Bicho • Painel Admin • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/app.js?v=20260428-40"></script>
+  <script src="../js/app.js?v=20260429-41"></script>
 </body>
 </html>

@@ -1174,9 +1174,7 @@ function montarCardBilhete(grupo) {
 
   const linhaPotencialOuPremio = !aposHorarioBilhete
     ? `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho potencial total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotal))}</b></div>`
-    : premioTotalApurado > 0
-      ? `<div class="bilhete-resumo-total bilhete-resumo-potencial">Prêmio total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotalApurado))}</b></div>`
-      : "";
+    : `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho Total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotalApurado))}</b></div>`;
 
   return (
     `<div class="aposta-item">` +

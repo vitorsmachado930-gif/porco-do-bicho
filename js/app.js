@@ -5507,6 +5507,7 @@ function calcularResumoApostasUsuario(usuario, apostasComResultado) {
 
 function atualizarGestaoPromotoresAdmin(usuariosOrdenados, apostasComResultado) {
   const listaPromotoresAdmin = document.getElementById("listaPromotoresAdmin");
+  const selectUsuarioBase = document.getElementById("usuarioBasePromotorAdmin");
   const inputNovoPercentual = document.getElementById("promotorPercentualAdmin");
   const selectPromotorComissao = document.getElementById("promotorComissaoAdmin");
   const selectPromotorVinculo = document.getElementById("promotorVinculoAdmin");
@@ -5541,6 +5542,20 @@ function atualizarGestaoPromotoresAdmin(usuariosOrdenados, apostasComResultado) 
 
   if (inputNovoPercentual && !String(inputNovoPercentual.value || "").trim()) {
     inputNovoPercentual.value = String(COMISSAO_PROMOTOR_PADRAO);
+  }
+
+  if (selectUsuarioBase) {
+    const valorAtual = String(selectUsuarioBase.value || "");
+    selectUsuarioBase.innerHTML = '<option value="">Base do Admin</option>';
+    promotores.forEach((promotor) => {
+      const opt = document.createElement("option");
+      opt.value = String(promotor.id);
+      opt.innerText = `${promotor.nome} (@${promotor.login})`;
+      selectUsuarioBase.appendChild(opt);
+    });
+    if (valorAtual && (valorAtual === "" || promotores.some((item) => String(item.id) === valorAtual))) {
+      selectUsuarioBase.value = valorAtual;
+    }
   }
 
   if (selectPromotorComissao) {
@@ -5644,6 +5659,95 @@ function atualizarGestaoPromotoresAdmin(usuariosOrdenados, apostasComResultado) 
 
     listaPromotoresAdmin.innerHTML = blocos.join("");
   }
+}
+
+function criarUsuarioAdmin() {
+  if (!logado) {
+    atualizarStatusAdminPromotor("statusUsuarioAdmin", "Faça login no admin para criar usuário.", true);
+    return;
+  }
+
+  const nomeInput = document.getElementById("usuarioNomeAdmin");
+  const loginInput = document.getElementById("usuarioLoginAdmin");
+  const senhaInput = document.getElementById("usuarioSenhaAdmin");
+  const baseInput = document.getElementById("usuarioBasePromotorAdmin");
+  if (!nomeInput || !loginInput || !senhaInput || !baseInput) return;
+
+  const nome = String(nomeInput.value || "").trim();
+  const login = normalizarLoginUsuario(loginInput.value);
+  const senha = String(senhaInput.value || "");
+  const basePromotorId = normalizarPromotorId(baseInput.value);
+
+  if (nome.length < 2) {
+    atualizarStatusAdminPromotor("statusUsuarioAdmin", "Informe o nome do usuário.", true);
+    return;
+  }
+  if (!/^[a-z0-9._-]{3,24}$/.test(login)) {
+    atualizarStatusAdminPromotor("statusUsuarioAdmin", "Login inválido para o usuário.", true);
+    return;
+  }
+  if (login === "admin") {
+    atualizarStatusAdminPromotor("statusUsuarioAdmin", "O login admin é reservado.", true);
+    return;
+  }
+  if (senha.length < 4) {
+    atualizarStatusAdminPromotor("statusUsuarioAdmin", "A senha do usuário precisa de 4+ caracteres.", true);
+    return;
+  }
+  if (usuarios.some((item) => item.login === login)) {
+    atualizarStatusAdminPromotor("statusUsuarioAdmin", "Este login já existe.", true);
+    return;
+  }
+
+  let promotorBase = null;
+  if (basePromotorId) {
+    promotorBase =
+      usuarios.find((item) => item.id === basePromotorId && usuarioEhPromotor(item)) || null;
+    if (!promotorBase) {
+      atualizarStatusAdminPromotor("statusUsuarioAdmin", "Promotor da base inválido.", true);
+      return;
+    }
+  }
+
+  usuarios.unshift({
+    id: Date.now(),
+    nome,
+    login,
+    senha,
+    saldo: SALDO_USUARIO_INICIAL,
+    role: PAPEL_USUARIO_APOSTADOR,
+    promotorId: promotorBase ? promotorBase.id : null,
+    comissaoPercentual: COMISSAO_PROMOTOR_PADRAO,
+    comissaoSaldo: 0,
+    comissaoTotal: 0,
+    totalDepositos: 0,
+    saldoApostador: 0,
+    indicadorId: null,
+    bonusIndicacaoSaldo: 0,
+    bonusIndicacaoTotal: 0,
+    bonusIndicacaoConvertidoTotal: 0,
+    bonusIndicacaoConvertidoHoje: 0,
+    bonusIndicacaoConvertidoHojeData: "",
+    indicadosTotal: 0,
+    telefone: "",
+    chavePix: "",
+    bloqueado: false
+  });
+  salvarUsuarios();
+
+  nomeInput.value = "";
+  loginInput.value = "";
+  senhaInput.value = "";
+  baseInput.value = "";
+  atualizarStatusAdminPromotor(
+    "statusUsuarioAdmin",
+    promotorBase
+      ? `Usuário criado com sucesso na base de @${promotorBase.login}.`
+      : "Usuário criado com sucesso na base do admin.",
+    false
+  );
+  mostrarConfirmacaoApostaRapida("Usuário cadastrado com sucesso.");
+  mostrarPainelAdmin();
 }
 
 function criarPromotorAdmin() {
@@ -6864,6 +6968,7 @@ window.irHomeCabecalho = irHomeCabecalho;
 window.abrirMeuPerfil = abrirMeuPerfil;
 window.abrirPainelPromotor = abrirPainelPromotor;
 window.abrirDeposito = abrirDeposito;
+window.criarUsuarioAdmin = criarUsuarioAdmin;
 window.criarPromotorAdmin = criarPromotorAdmin;
 window.salvarComissaoPromotorAdmin = salvarComissaoPromotorAdmin;
 window.vincularApostadorPromotorAdmin = vincularApostadorPromotorAdmin;
