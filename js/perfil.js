@@ -981,8 +981,11 @@ function cancelarEdicaoPerfil() {
 }
 
 function configurarFiltroDataApostas() {
-  const input = document.getElementById("perfilDataApostas");
-  if (!input) return;
+  const inputDia = document.getElementById("perfilDataApostas");
+  const inputInicio = document.getElementById("perfilDataApostasInicio");
+  const inputFim = document.getElementById("perfilDataApostasFim");
+  const modoData = document.getElementById("perfilModoDataApostas");
+  if (!inputDia) return;
 
   const usuarioId = usuarioAtual ? usuarioAtual.id : null;
   const login = usuarioAtual ? usuarioAtual.login : "";
@@ -996,11 +999,80 @@ function configurarFiltroDataApostas() {
     .sort((a, b) => String(a).localeCompare(String(b), "pt-BR"));
 
   const minPadrao = dataMinimaISO();
-  input.min = datasUsuario[0] || minPadrao;
-  input.max = hojeISO();
-  if (!normalizarDataISO(input.value)) {
-    input.value = hojeISO();
+  const min = datasUsuario[0] || minPadrao;
+  const max = hojeISO();
+
+  inputDia.min = min;
+  inputDia.max = max;
+  if (inputInicio) {
+    inputInicio.min = min;
+    inputInicio.max = max;
   }
+  if (inputFim) {
+    inputFim.min = min;
+    inputFim.max = max;
+  }
+
+  if (!normalizarDataISO(inputDia.value)) {
+    inputDia.value = max;
+  }
+  if (inputInicio && !normalizarDataISO(inputInicio.value)) {
+    inputInicio.value = max;
+  }
+  if (inputFim && !normalizarDataISO(inputFim.value)) {
+    inputFim.value = max;
+  }
+  if (modoData && String(modoData.value || "").trim() !== "periodo") {
+    modoData.value = "dia";
+  }
+}
+
+function atualizarVisibilidadeCamposDataApostasPerfil() {
+  const modoData = document.getElementById("perfilModoDataApostas");
+  const inputDia = document.getElementById("perfilDataApostas");
+  const inputInicio = document.getElementById("perfilDataApostasInicio");
+  const inputFim = document.getElementById("perfilDataApostasFim");
+  const modo = String(modoData && modoData.value || "dia").trim() === "periodo" ? "periodo" : "dia";
+
+  if (inputDia) inputDia.style.display = modo === "dia" ? "inline-block" : "none";
+  if (inputInicio) inputInicio.style.display = modo === "periodo" ? "inline-block" : "none";
+  if (inputFim) inputFim.style.display = modo === "periodo" ? "inline-block" : "none";
+}
+
+function obterPeriodoFiltroApostasPerfil() {
+  const modoData = document.getElementById("perfilModoDataApostas");
+  const inputDia = document.getElementById("perfilDataApostas");
+  const inputInicio = document.getElementById("perfilDataApostasInicio");
+  const inputFim = document.getElementById("perfilDataApostasFim");
+  const modo = String(modoData && modoData.value || "dia").trim() === "periodo" ? "periodo" : "dia";
+  const hoje = hojeISO();
+
+  if (modo === "periodo") {
+    let inicio = normalizarDataISO(inputInicio && inputInicio.value || "") || hoje;
+    let fim = normalizarDataISO(inputFim && inputFim.value || "") || inicio;
+    if (fim < inicio) {
+      const troca = inicio;
+      inicio = fim;
+      fim = troca;
+    }
+    if (inputInicio) inputInicio.value = inicio;
+    if (inputFim) inputFim.value = fim;
+    return {
+      modo,
+      inicio,
+      fim,
+      label: `${formatarDataBR(inicio)} até ${formatarDataBR(fim)}`
+    };
+  }
+
+  const dia = normalizarDataISO(inputDia && inputDia.value || "") || hoje;
+  if (inputDia) inputDia.value = dia;
+  return {
+    modo,
+    inicio: dia,
+    fim: dia,
+    label: formatarDataBR(dia)
+  };
 }
 
 function agruparApostasPorBilhete(listaApostas) {
@@ -1198,12 +1270,10 @@ function montarCardBilhete(grupo) {
 function mostrarApostasPerfil() {
   const lista = document.getElementById("perfilListaApostas");
   const resumo = document.getElementById("perfilApostasResumo");
-  const inputData = document.getElementById("perfilDataApostas");
   const filtro = obterFiltroApostasPerfil();
-  if (!lista || !resumo || !inputData) return;
-
-  const dataSelecionada = normalizarDataISO(inputData.value) || hojeISO();
-  inputData.value = dataSelecionada;
+  if (!lista || !resumo) return;
+  const periodo = obterPeriodoFiltroApostasPerfil();
+  atualizarVisibilidadeCamposDataApostasPerfil();
   lista.innerHTML = "";
 
   if (!usuarioAtual) {
@@ -1218,7 +1288,8 @@ function mostrarApostasPerfil() {
   const filtradas = apostas
     .filter((item) => {
       const ehDoUsuario = item.usuarioId === usuarioId || item.usuarioLogin === login;
-      return ehDoUsuario && item.data === dataSelecionada;
+      const dataAposta = normalizarDataISO(item.data);
+      return ehDoUsuario && dataAposta >= periodo.inicio && dataAposta <= periodo.fim;
     })
     .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || ""), "pt-BR"));
 
@@ -1242,12 +1313,12 @@ function mostrarApostasPerfil() {
           : "Todas as Apostas";
 
   resumo.innerText =
-    `${formatarDataBR(dataSelecionada)}: ` +
+    `${periodo.label}: ` +
     `${totalExibicao} bilhete(s) exibido(s) em "${labelFiltro}" | ${filtradas.length} aposta(s).`;
   atualizarResumoStatusDia(classificados.pendentes, classificados.premiados, classificados.perdidos);
 
   if (filtradas.length === 0) {
-    lista.innerHTML = "<p>Nenhuma aposta encontrada para esta data.</p>";
+    lista.innerHTML = "<p>Nenhuma aposta encontrada para o período selecionado.</p>";
     return;
   }
 
@@ -1269,9 +1340,17 @@ function mostrarApostasPerfil() {
 }
 
 function irHojeApostasPerfil() {
-  const input = document.getElementById("perfilDataApostas");
-  if (!input) return;
-  input.value = hojeISO();
+  const modoData = document.getElementById("perfilModoDataApostas");
+  const inputDia = document.getElementById("perfilDataApostas");
+  const inputInicio = document.getElementById("perfilDataApostasInicio");
+  const inputFim = document.getElementById("perfilDataApostasFim");
+  const hoje = hojeISO();
+
+  if (modoData) modoData.value = "dia";
+  if (inputDia) inputDia.value = hoje;
+  if (inputInicio) inputInicio.value = hoje;
+  if (inputFim) inputFim.value = hoje;
+  atualizarVisibilidadeCamposDataApostasPerfil();
   mostrarApostasPerfil();
 }
 
@@ -1309,6 +1388,21 @@ function initPerfil() {
   const inputData = document.getElementById("perfilDataApostas");
   if (inputData) {
     inputData.addEventListener("change", mostrarApostasPerfil);
+  }
+  const inputDataInicio = document.getElementById("perfilDataApostasInicio");
+  if (inputDataInicio) {
+    inputDataInicio.addEventListener("change", mostrarApostasPerfil);
+  }
+  const inputDataFim = document.getElementById("perfilDataApostasFim");
+  if (inputDataFim) {
+    inputDataFim.addEventListener("change", mostrarApostasPerfil);
+  }
+  const modoData = document.getElementById("perfilModoDataApostas");
+  if (modoData) {
+    modoData.addEventListener("change", () => {
+      atualizarVisibilidadeCamposDataApostasPerfil();
+      mostrarApostasPerfil();
+    });
   }
 
   const filtroApostas = document.getElementById("perfilFiltroApostas");

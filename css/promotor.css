@@ -111,6 +111,27 @@
   margin: 0;
 }
 
+.dashboard-filtro-promotor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 6px 0;
+}
+
+.dashboard-filtro-promotor select,
+.dashboard-filtro-promotor input {
+  width: auto;
+  min-width: 150px;
+  margin: 0;
+}
+
+.dashboard-filtro-resumo-promotor {
+  margin: 0 0 8px 0;
+  color: #9fb3c8;
+  font-size: 12px;
+}
+
 .btn-sair-promotor {
   width: auto;
   margin-top: 0;
@@ -275,5 +296,11 @@
 
   .menu-promotor-lista {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-filtro-promotor select,
+  .dashboard-filtro-promotor input,
+  .dashboard-filtro-promotor button {
+    width: 100%;
   }
 }

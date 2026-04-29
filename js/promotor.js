@@ -30,6 +30,10 @@ let resultados = [];
 let usuarioAtual = null;
 let modoEdicaoPerfilPromotor = false;
 let secaoPromotorAtual = "dashboard";
+let dashboardFiltroModoPromotor = "dia";
+let dashboardFiltroDiaPromotor = "";
+let dashboardFiltroInicioPromotor = "";
+let dashboardFiltroFimPromotor = "";
 
 function lerJSONStorage(chave, fallback) {
   try {
@@ -119,6 +123,10 @@ function dataLocalParaISO(data) {
   const mes = String(d.getMonth() + 1).padStart(2, "0");
   const dia = String(d.getDate()).padStart(2, "0");
   return `${ano}-${mes}-${dia}`;
+}
+
+function hojeISO() {
+  return dataLocalParaISO(new Date());
 }
 
 function normalizarValorMoeda(valor) {
@@ -428,32 +436,20 @@ function obterCamposPerfilPromotor() {
 }
 
 function atualizarControlesPerfilPromotor() {
-  const btnEditar = document.getElementById("btnEditarPerfilPromotor");
-  const btnCancelar = document.getElementById("btnCancelarPerfilPromotor");
   const btnSalvar = document.getElementById("btnSalvarPerfilPromotor");
   const camposEdicao = document.getElementById("promotorPerfilCamposEdicao");
   const podeEditar = Boolean(usuarioAtual && usuarioAtual.role === PAPEL_USUARIO_PROMOTOR);
-  const emEdicao = Boolean(modoEdicaoPerfilPromotor && podeEditar);
-
-  if (btnEditar) {
-    btnEditar.style.display = emEdicao ? "none" : "inline-block";
-    btnEditar.disabled = !podeEditar;
-  }
-  if (btnCancelar) {
-    btnCancelar.style.display = emEdicao ? "inline-block" : "none";
-    btnCancelar.disabled = !emEdicao;
-  }
   if (btnSalvar) {
-    btnSalvar.style.display = emEdicao ? "inline-block" : "none";
-    btnSalvar.disabled = !emEdicao;
+    btnSalvar.style.display = "inline-block";
+    btnSalvar.disabled = !podeEditar;
   }
   if (camposEdicao) {
-    camposEdicao.hidden = !emEdicao;
+    camposEdicao.hidden = false;
   }
 }
 
 function definirModoEdicaoPerfilPromotor(ativo, focar) {
-  modoEdicaoPerfilPromotor = Boolean(ativo) && Boolean(usuarioAtual);
+  modoEdicaoPerfilPromotor = Boolean(usuarioAtual && usuarioAtual.role === PAPEL_USUARIO_PROMOTOR);
   const campos = obterCamposPerfilPromotor();
   const desabilitar = !modoEdicaoPerfilPromotor;
   if (campos.nome) campos.nome.disabled = desabilitar;
@@ -484,22 +480,7 @@ function preencherCamposPerfilPromotor() {
   campos.nome.value = String(usuarioAtual.nome || "");
   campos.telefone.value = formatarTelefoneBrasil(usuarioAtual.telefone || "");
   campos.pix.value = String(usuarioAtual.chavePix || "");
-  definirModoEdicaoPerfilPromotor(false, false);
-}
-
-function abrirEdicaoPerfilPromotor() {
-  if (!usuarioAtual || usuarioAtual.role !== PAPEL_USUARIO_PROMOTOR) {
-    atualizarStatusPerfilPromotor("Faça login como promotor para editar seu perfil.", true);
-    return;
-  }
-  definirModoEdicaoPerfilPromotor(true, true);
-  atualizarStatusPerfilPromotor("Modo de edição ativado.", false);
-}
-
-function cancelarEdicaoPerfilPromotor() {
-  preencherCamposPerfilPromotor();
-  definirModoEdicaoPerfilPromotor(false, false);
-  atualizarStatusPerfilPromotor("Edição cancelada.", false);
+  definirModoEdicaoPerfilPromotor(true, false);
 }
 
 function salvarPerfilPromotor() {
@@ -702,19 +683,27 @@ function statusAposta(aposta) {
   return ganhou ? "GANHOU" : "PERDEU";
 }
 
-function resumoApostador(apostador) {
+function resumoApostador(apostador, filtroPeriodo) {
   const usuarioId = Number(apostador.id);
   const usuarioLogin = String(apostador.login || "");
+  const periodo = filtroPeriodo && typeof filtroPeriodo === "object" ? filtroPeriodo : null;
   const apostasBase = apostas.filter((item) => {
     if (Number.isFinite(usuarioId) && item.usuarioId === usuarioId) return true;
     return String(item.usuarioLogin || "") === usuarioLogin;
   });
+  const apostasFiltradas = !periodo
+    ? apostasBase
+    : apostasBase.filter((item) => {
+        const data = normalizarDataISO(item.data);
+        if (!data) return false;
+        return data >= periodo.inicio && data <= periodo.fim;
+      });
 
   let totalApostado = 0;
   let totalGanhos = 0;
   let totalPerdas = 0;
   let pendentes = 0;
-  apostasBase.forEach((item) => {
+  apostasFiltradas.forEach((item) => {
     const valor = Number(normalizarValorMoeda(item.valor) || 0);
     const premio = Number(normalizarValorMoeda(item.premio) || 0);
     const status = statusAposta(item);
@@ -729,7 +718,7 @@ function resumoApostador(apostador) {
   });
 
   return {
-    apostas: apostasBase.length,
+    apostas: apostasFiltradas.length,
     apostado: Number(totalApostado.toFixed(2)),
     ganhos: Number(totalGanhos.toFixed(2)),
     perdas: Number(totalPerdas.toFixed(2)),
@@ -775,6 +764,116 @@ function atualizarSecaoPromotorVisivel() {
 function selecionarSecaoPromotor(secao) {
   secaoPromotorAtual = String(secao || "").trim() || "dashboard";
   atualizarSecaoPromotorVisivel();
+}
+
+function normalizarEstadoFiltroDashboardPromotor() {
+  const hoje = hojeISO();
+  dashboardFiltroModoPromotor = dashboardFiltroModoPromotor === "periodo" ? "periodo" : "dia";
+  dashboardFiltroDiaPromotor = normalizarDataISO(dashboardFiltroDiaPromotor) || hoje;
+  dashboardFiltroInicioPromotor = normalizarDataISO(dashboardFiltroInicioPromotor) || dashboardFiltroDiaPromotor;
+  dashboardFiltroFimPromotor = normalizarDataISO(dashboardFiltroFimPromotor) || dashboardFiltroInicioPromotor;
+  if (dashboardFiltroFimPromotor < dashboardFiltroInicioPromotor) {
+    const troca = dashboardFiltroInicioPromotor;
+    dashboardFiltroInicioPromotor = dashboardFiltroFimPromotor;
+    dashboardFiltroFimPromotor = troca;
+  }
+}
+
+function obterPeriodoDashboardPromotor() {
+  normalizarEstadoFiltroDashboardPromotor();
+  if (dashboardFiltroModoPromotor === "periodo") {
+    return {
+      inicio: dashboardFiltroInicioPromotor,
+      fim: dashboardFiltroFimPromotor,
+      label: `${formatarDataBR(dashboardFiltroInicioPromotor)} até ${formatarDataBR(dashboardFiltroFimPromotor)}`
+    };
+  }
+  return {
+    inicio: dashboardFiltroDiaPromotor,
+    fim: dashboardFiltroDiaPromotor,
+    label: `Dia ${formatarDataBR(dashboardFiltroDiaPromotor)}`
+  };
+}
+
+function atualizarResumoFiltroDashboardPromotor() {
+  const periodo = obterPeriodoDashboardPromotor();
+  const el = document.getElementById("dashFiltroResumoPromotor");
+  if (!el) return;
+  el.innerText = `Filtro ativo: ${periodo.label}`;
+}
+
+function atualizarVisibilidadeCamposFiltroDashboardPromotor() {
+  const modoEl = document.getElementById("dashFiltroModoPromotor");
+  const diaEl = document.getElementById("dashFiltroDiaPromotor");
+  const inicioEl = document.getElementById("dashFiltroInicioPromotor");
+  const fimEl = document.getElementById("dashFiltroFimPromotor");
+  if (!modoEl || !diaEl || !inicioEl || !fimEl) return;
+
+  const modo = String(modoEl.value || "dia").trim() === "periodo" ? "periodo" : "dia";
+  diaEl.style.display = modo === "dia" ? "inline-block" : "none";
+  inicioEl.style.display = modo === "periodo" ? "inline-block" : "none";
+  fimEl.style.display = modo === "periodo" ? "inline-block" : "none";
+}
+
+function sincronizarCamposFiltroDashboardPromotor() {
+  normalizarEstadoFiltroDashboardPromotor();
+  const modoEl = document.getElementById("dashFiltroModoPromotor");
+  const diaEl = document.getElementById("dashFiltroDiaPromotor");
+  const inicioEl = document.getElementById("dashFiltroInicioPromotor");
+  const fimEl = document.getElementById("dashFiltroFimPromotor");
+
+  if (modoEl) modoEl.value = dashboardFiltroModoPromotor;
+  if (diaEl) diaEl.value = dashboardFiltroDiaPromotor;
+  if (inicioEl) inicioEl.value = dashboardFiltroInicioPromotor;
+  if (fimEl) fimEl.value = dashboardFiltroFimPromotor;
+  atualizarVisibilidadeCamposFiltroDashboardPromotor();
+  atualizarResumoFiltroDashboardPromotor();
+}
+
+function aplicarFiltrosDashboardPromotorDoDOM() {
+  const modoEl = document.getElementById("dashFiltroModoPromotor");
+  const diaEl = document.getElementById("dashFiltroDiaPromotor");
+  const inicioEl = document.getElementById("dashFiltroInicioPromotor");
+  const fimEl = document.getElementById("dashFiltroFimPromotor");
+
+  if (modoEl) dashboardFiltroModoPromotor = String(modoEl.value || "dia").trim();
+  if (diaEl) dashboardFiltroDiaPromotor = String(diaEl.value || "").trim();
+  if (inicioEl) dashboardFiltroInicioPromotor = String(inicioEl.value || "").trim();
+  if (fimEl) dashboardFiltroFimPromotor = String(fimEl.value || "").trim();
+
+  normalizarEstadoFiltroDashboardPromotor();
+  sincronizarCamposFiltroDashboardPromotor();
+  renderPainelPromotor();
+}
+
+function irHojeDashboardPromotor() {
+  const hoje = hojeISO();
+  dashboardFiltroModoPromotor = "dia";
+  dashboardFiltroDiaPromotor = hoje;
+  dashboardFiltroInicioPromotor = hoje;
+  dashboardFiltroFimPromotor = hoje;
+  sincronizarCamposFiltroDashboardPromotor();
+  renderPainelPromotor();
+}
+
+function configurarEventosFiltroDashboardPromotor() {
+  const modoEl = document.getElementById("dashFiltroModoPromotor");
+  const diaEl = document.getElementById("dashFiltroDiaPromotor");
+  const inicioEl = document.getElementById("dashFiltroInicioPromotor");
+  const fimEl = document.getElementById("dashFiltroFimPromotor");
+  const btnHoje = document.getElementById("btnDashFiltroHojePromotor");
+
+  if (modoEl) {
+    modoEl.addEventListener("change", () => {
+      dashboardFiltroModoPromotor = String(modoEl.value || "dia").trim();
+      atualizarVisibilidadeCamposFiltroDashboardPromotor();
+      aplicarFiltrosDashboardPromotorDoDOM();
+    });
+  }
+  if (diaEl) diaEl.addEventListener("change", aplicarFiltrosDashboardPromotorDoDOM);
+  if (inicioEl) inicioEl.addEventListener("change", aplicarFiltrosDashboardPromotorDoDOM);
+  if (fimEl) fimEl.addEventListener("change", aplicarFiltrosDashboardPromotorDoDOM);
+  if (btnHoje) btnHoje.addEventListener("click", irHojeDashboardPromotor);
 }
 
 function atualizarEstadoRepassePromotor() {
@@ -849,10 +948,12 @@ function renderPainelPromotor() {
   const base = usuarios.filter(
     (u) => u.role !== PAPEL_USUARIO_PROMOTOR && Number(u.promotorId) === Number(usuarioAtual.id)
   );
+  const periodoDashboard = obterPeriodoDashboardPromotor();
+  sincronizarCamposFiltroDashboardPromotor();
 
   const totais = base.reduce(
     (acc, apostador) => {
-      const resumo = resumoApostador(apostador);
+      const resumo = resumoApostador(apostador, periodoDashboard);
       acc.totalApostadores += 1;
       acc.totalDepositos += Number(apostador.totalDepositos || 0);
       acc.totalApostas += resumo.apostas;
@@ -883,16 +984,9 @@ function renderPainelPromotor() {
   resumoPromotorEl.innerText =
     `Promotor: ${usuarioAtual.nome} (@${usuarioAtual.login}) | Comissão por depósito: ${formatarPercentual(usuarioAtual.comissaoPercentual)}`;
   resumoBaseEl.innerText =
-    `${totais.totalApostadores} apostador(es) na sua base | Depósitos: ${formatarMoedaBR(totais.totalDepositos)} | Apostas: ${totais.totalApostas}`;
+    `${totais.totalApostadores} apostador(es) na sua base | Filtro: ${periodoDashboard.label} | Apostas: ${totais.totalApostas}`;
   atualizarSelecoesApostadoresPromotor(base);
-  if (!modoEdicaoPerfilPromotor) {
-    preencherCamposPerfilPromotor();
-  } else {
-    const camposPerfil = obterCamposPerfilPromotor();
-    if (camposPerfil.resumo) {
-      camposPerfil.resumo.innerText = `Login: @${usuarioAtual.login}`;
-    }
-  }
+  preencherCamposPerfilPromotor();
 
   if (base.length === 0) {
     listaEl.innerHTML = "<p>Nenhum apostador vinculado à sua base ainda.</p>";
@@ -901,7 +995,7 @@ function renderPainelPromotor() {
 
   listaEl.innerHTML = base
     .map((apostador) => {
-      const resumo = resumoApostador(apostador);
+      const resumo = resumoApostador(apostador, periodoDashboard);
       return (
         `<div class="item-base-promotor">` +
         `<strong>${escaparHTML(apostador.nome)}</strong> (@${escaparHTML(apostador.login)})<br>` +
@@ -1067,22 +1161,20 @@ function sairPromotor() {
 function initPromotor() {
   carregarEstado();
   secaoPromotorAtual = "dashboard";
+  dashboardFiltroModoPromotor = "dia";
+  dashboardFiltroDiaPromotor = hojeISO();
+  dashboardFiltroInicioPromotor = dashboardFiltroDiaPromotor;
+  dashboardFiltroFimPromotor = dashboardFiltroDiaPromotor;
   configurarMascaraTelefonePerfilPromotor();
   atualizarStatusPromotor("", false);
   atualizarStatusPerfilPromotor("", false);
   atualizarStatusRepassePromotor("", false);
+  configurarEventosFiltroDashboardPromotor();
+  sincronizarCamposFiltroDashboardPromotor();
   preencherCamposPerfilPromotor();
   renderPainelPromotor();
   atualizarControlesPerfilPromotor();
 
-  const btnEditarPerfil = document.getElementById("btnEditarPerfilPromotor");
-  if (btnEditarPerfil) {
-    btnEditarPerfil.addEventListener("click", abrirEdicaoPerfilPromotor);
-  }
-  const btnCancelarPerfil = document.getElementById("btnCancelarPerfilPromotor");
-  if (btnCancelarPerfil) {
-    btnCancelarPerfil.addEventListener("click", cancelarEdicaoPerfilPromotor);
-  }
   const btnSalvarPerfil = document.getElementById("btnSalvarPerfilPromotor");
   if (btnSalvarPerfil) {
     btnSalvarPerfil.addEventListener("click", salvarPerfilPromotor);
