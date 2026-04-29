@@ -966,6 +966,20 @@ button:disabled {
   font-weight: 700;
 }
 
+#cardApostas .etapa-aposta-ativa {
+  position: relative;
+  box-shadow: 0 0 0 1px #ffd54f55, 0 0 14px #ffd54f2d;
+  animation: etapaApostaPulso 1.45s ease-in-out infinite;
+}
+
+#cardApostas #tipoAposta.etapa-aposta-ativa,
+#cardApostas #palpiteAposta.etapa-aposta-ativa,
+#cardApostas #valorAposta.etapa-aposta-ativa,
+#cardApostas .acoes-bilhete-aposta button.etapa-aposta-ativa,
+#cardApostas > button[onclick="salvarAposta()"].etapa-aposta-ativa {
+  border-color: #ffd54f;
+}
+
 #cardApostas > button[onclick="salvarAposta()"].botao-salvar-aposta-pronto {
   box-shadow: 0 0 0 1px #00e67666;
   animation: salvarBilhetePronto 1.4s ease-in-out 2;
@@ -993,6 +1007,16 @@ button:disabled {
   }
 }
 
+@keyframes etapaApostaPulso {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px #ffd54f33, 0 0 0 #ffd54f00;
+  }
+  50% {
+    box-shadow: 0 0 0 1px #ffd54faa, 0 0 16px #ffd54f42;
+  }
+}
+
 @keyframes salvarBilhetePronto {
   0%,
   100% {
@@ -1006,6 +1030,7 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .loterias-aposta-bloco.loterias-aposta-bloco-destaque,
   .loterias-aposta-lista-destaque .loteria-aposta-opcao.sugerida-passo,
+  #cardApostas .etapa-aposta-ativa,
   #cardApostas > button[onclick="salvarAposta()"].botao-salvar-aposta-pronto {
     animation: none;
   }

@@ -2864,6 +2864,7 @@ function atualizarEstadoSecaoApostas(encerrada, opcoes) {
 
   secaoApostasEncerrada = encerradaFinal;
   atualizarVisibilidadeApostas();
+  atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
 }
 
 function hashDisponibilidadeLoteriasAposta(praca, dataISO) {
@@ -2909,9 +2910,29 @@ function atualizarResumoLoteriasAposta(listaDisponivel, encerrada) {
 }
 
 function atualizarAnimacaoPassoEscolhaLoteria(encerrada) {
+  const tipoInput = document.getElementById("tipoAposta");
+  const palpiteInput = document.getElementById("palpiteAposta");
+  const palpiteGrupoContainer = document.getElementById("palpiteGrupoContainer");
+  const valorInput = document.getElementById("valorAposta");
+  const btnAdicionar = document.querySelector(
+    "#cardApostas .acoes-bilhete-aposta button[onclick=\"adicionarApostaAoBilhete()\"]"
+  );
   const bloco = document.querySelector("#cardApostas .loterias-aposta-bloco");
   const lista = document.getElementById("loteriasApostaLista");
   const btnSalvar = document.querySelector("#cardApostas > button[onclick=\"salvarAposta()\"]");
+  const elementosEtapa = [
+    tipoInput,
+    palpiteInput,
+    palpiteGrupoContainer,
+    valorInput,
+    btnAdicionar,
+    bloco,
+    btnSalvar
+  ];
+  elementosEtapa.forEach((el) => {
+    if (!el) return;
+    el.classList.remove("etapa-aposta-ativa");
+  });
   if (!bloco || !lista) return;
 
   const precisaEscolherLoteriaAgora =
@@ -2923,6 +2944,56 @@ function atualizarAnimacaoPassoEscolhaLoteria(encerrada) {
   lista.classList.toggle("loterias-aposta-lista-destaque", precisaEscolherLoteriaAgora);
   if (btnSalvar) {
     btnSalvar.classList.toggle("botao-salvar-aposta-pronto", bilheteProntoParaSalvar);
+  }
+
+  if (encerrada) return;
+
+  const tipoSelecionado = obterTipoApostaSelecionadoNoFormulario();
+  const loteriasSelecionadas = loteriasApostaSelecionadas.length;
+  const quantidadeRascunho = apostasBilheteRascunho.length;
+
+  if (!tipoSelecionado) {
+    if (quantidadeRascunho > 0 && loteriasSelecionadas === 0) {
+      if (bloco) bloco.classList.add("etapa-aposta-ativa");
+      return;
+    }
+    if (quantidadeRascunho > 0 && loteriasSelecionadas > 0) {
+      if (btnSalvar) btnSalvar.classList.add("etapa-aposta-ativa");
+      return;
+    }
+    if (tipoInput) tipoInput.classList.add("etapa-aposta-ativa");
+    return;
+  }
+
+  sincronizarPalpiteApostaGrupoParaInput();
+  const palpiteAtual = String(palpiteInput && palpiteInput.value || "").trim();
+  const palpiteValido = Boolean(validarPalpiteAposta(tipoSelecionado, palpiteAtual).ok);
+  const quantidadeGrupo = quantidadeGruposPorTipoAposta(tipoSelecionado);
+  const usaPalpiteGrupo = quantidadeGrupo > 0;
+
+  if (!palpiteValido) {
+    if (usaPalpiteGrupo && palpiteGrupoContainer && palpiteGrupoContainer.style.display !== "none") {
+      palpiteGrupoContainer.classList.add("etapa-aposta-ativa");
+    } else if (palpiteInput) {
+      palpiteInput.classList.add("etapa-aposta-ativa");
+    }
+    return;
+  }
+
+  const valor = normalizarValorMoeda(valorInput ? valorInput.value : "");
+  const valorNum = Number(valor || 0);
+  const valorValido =
+    Number.isFinite(valorNum) &&
+    valorNum >= limitesAposta.valorMinimo &&
+    valorNum <= limitesAposta.valorMaximo;
+
+  if (!valorValido) {
+    if (valorInput) valorInput.classList.add("etapa-aposta-ativa");
+    return;
+  }
+
+  if (btnAdicionar) {
+    btnAdicionar.classList.add("etapa-aposta-ativa");
   }
 }
 
@@ -3597,6 +3668,7 @@ function atualizarModoCampoPalpiteAposta() {
       select.value = "";
     }
     renderizarSelecaoPalpiteGrupoPorImagem();
+    atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
     return;
   }
 
@@ -3629,6 +3701,7 @@ function atualizarModoCampoPalpiteAposta() {
     if (grupoAtivo) {
       centralizarCardCarrosselPalpiteGrupo(grupoAtivo);
     }
+    atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
     return;
   }
 
@@ -3651,6 +3724,7 @@ function atualizarModoCampoPalpiteAposta() {
   editorPalpiteGrupoAberto = true;
   normalizarPalpiteNumericoDigitado();
   renderizarSelecaoPalpiteGrupoPorImagem();
+  atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
 }
 
 function atualizarPreviewPremiacaoAposta() {
@@ -3667,6 +3741,7 @@ function atualizarPreviewPremiacaoAposta() {
     destaque.innerText = "";
     destaque.classList.remove("ativo");
     bloco.classList.remove("ativa");
+    atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
     return;
   }
 
@@ -3674,6 +3749,7 @@ function atualizarPreviewPremiacaoAposta() {
   destaque.innerText = `Possível Prêmio: ${formatarMoedaBR(premio)}`;
   destaque.classList.add("ativo");
   bloco.classList.add("ativa");
+  atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
 }
 
 function aplicarMascaraValorAposta() {
