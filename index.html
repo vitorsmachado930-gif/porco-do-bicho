@@ -113,37 +113,6 @@
 </div>
 
 <div class="container">
-  <div class="card">
-    <h3>Resultados</h3>
-    <p><small>Consulta pública: não é necessário login para ver loterias apuradas e bilhetes premiados em destaque.</small></p>
-    <div class="filtro-data">
-      <button id="btnDiaAnterior" class="btn-nav" onclick="voltarDia()">◀</button>
-      <input id="filtroData" type="date" onchange="selecionarData(this.value)">
-      <button id="btnDiaHoje" class="btn-nav btn-hoje" onclick="irHoje()">Hoje</button>
-      <button id="btnDiaProximo" class="btn-nav" onclick="avancarDia()">▶</button>
-    </div>
-    <div class="linha-praca-fixa linha-praca-fixa-filtro">
-      <span class="rotulo-praca-fixa">Praça</span>
-      <strong>Rio</strong>
-    </div>
-    <select id="filtroPraca" class="select-praca-oculta" aria-hidden="true" tabindex="-1"></select>
-    <p id="resumoData"></p>
-    <div class="navegacao-resultados">
-      <button id="btnResultadosPrev" class="btn-nav-horizontal" type="button">◀ Anteriores</button>
-      <button id="btnResultadosNext" class="btn-nav-horizontal" type="button">Próximos ▶</button>
-    </div>
-    <div id="resultados"></div>
-  </div>
-
-  <div class="card card-premiacoes-destaque">
-    <div class="titulo-premiacoes-destaque">
-      <h3>Premiações do dia em destaque</h3>
-      <span id="dataPremiacoesDestaque" class="data-premiacoes-destaque">--/--/--</span>
-    </div>
-    <p><small>Os destaques aparecem automaticamente conforme os resultados apurados.</small></p>
-    <div id="listaPremiacoesDestaque" class="lista-premiacoes-destaque"></div>
-  </div>
-
   <div class="card card-apostas" id="cardApostas">
     <div class="topo-card-apostas">
       <h3>Apostas</h3>
@@ -252,6 +221,37 @@
     <button onclick="salvarAposta()">Salvar Bilhete</button>
   </div>
   <div id="avisoApostasEncerradas" class="aviso-apostas-encerradas" style="display:none;">Apostas Encerradas!</div>
+
+  <div class="card">
+    <h3>Resultados</h3>
+    <p><small>Consulta pública: não é necessário login para ver loterias apuradas e bilhetes premiados em destaque.</small></p>
+    <div class="filtro-data">
+      <button id="btnDiaAnterior" class="btn-nav" onclick="voltarDia()">◀</button>
+      <input id="filtroData" type="date" onchange="selecionarData(this.value)">
+      <button id="btnDiaHoje" class="btn-nav btn-hoje" onclick="irHoje()">Hoje</button>
+      <button id="btnDiaProximo" class="btn-nav" onclick="avancarDia()">▶</button>
+    </div>
+    <div class="linha-praca-fixa linha-praca-fixa-filtro">
+      <span class="rotulo-praca-fixa">Praça</span>
+      <strong>Rio</strong>
+    </div>
+    <select id="filtroPraca" class="select-praca-oculta" aria-hidden="true" tabindex="-1"></select>
+    <p id="resumoData"></p>
+    <div class="navegacao-resultados">
+      <button id="btnResultadosPrev" class="btn-nav-horizontal" type="button">◀ Anteriores</button>
+      <button id="btnResultadosNext" class="btn-nav-horizontal" type="button">Próximos ▶</button>
+    </div>
+    <div id="resultados"></div>
+  </div>
+
+  <div class="card card-premiacoes-destaque">
+    <div class="titulo-premiacoes-destaque">
+      <h3>Premiações do dia em destaque</h3>
+      <span id="dataPremiacoesDestaque" class="data-premiacoes-destaque">--/--/--</span>
+    </div>
+    <p><small>Os destaques aparecem automaticamente conforme os resultados apurados.</small></p>
+    <div id="listaPremiacoesDestaque" class="lista-premiacoes-destaque"></div>
+  </div>
 
 </div>
 
