@@ -21,11 +21,19 @@ function responder(int $status, array $payload): void
 $rootDir = dirname(__DIR__);
 $storageDir = $rootDir . DIRECTORY_SEPARATOR . 'storage';
 $filePath = $storageDir . DIRECTORY_SEPARATOR . 'painel_sync.json';
+$backupDir = $storageDir . DIRECTORY_SEPARATOR . 'backups';
 
 if (!is_dir($storageDir) && !mkdir($storageDir, 0775, true) && !is_dir($storageDir)) {
     responder(500, [
         'ok' => false,
         'error' => 'Nao foi possivel preparar o armazenamento.'
+    ]);
+}
+
+if (!is_dir($backupDir) && !mkdir($backupDir, 0775, true) && !is_dir($backupDir)) {
+    responder(500, [
+        'ok' => false,
+        'error' => 'Nao foi possivel preparar o armazenamento de backup.'
     ]);
 }
 
@@ -101,6 +109,71 @@ function salvarEstado(string $filePath, array $estado): void
         flock($fp, LOCK_UN);
     } finally {
         fclose($fp);
+    }
+}
+
+function diaBackupPorUpdatedAt(int $updatedAt): string
+{
+    $segundos = $updatedAt;
+    if ($segundos > 9999999999) {
+        $segundos = (int) floor($segundos / 1000);
+    }
+    if ($segundos <= 0) {
+        $segundos = time();
+    }
+
+    try {
+        $dt = new DateTimeImmutable('@' . $segundos);
+        $dt = $dt->setTimezone(new DateTimeZone('America/Sao_Paulo'));
+        return $dt->format('Y-m-d');
+    } catch (Throwable $e) {
+        return date('Y-m-d', $segundos);
+    }
+}
+
+function salvarBackupDiarioPainel(string $backupDir, array $estado): void
+{
+    $updatedAt = isset($estado['updatedAt']) ? (int) $estado['updatedAt'] : 0;
+    $dia = diaBackupPorUpdatedAt($updatedAt);
+    $arquivoBackup = $backupDir . DIRECTORY_SEPARATOR . 'painel-' . $dia . '.json';
+
+    $payloadBackup = [
+        'backupDate' => $dia,
+        'generatedAt' => gmdate('c'),
+        'updatedAt' => $updatedAt > 0 ? $updatedAt : 0,
+        'usuarios' => isset($estado['usuarios']) && is_array($estado['usuarios']) ? $estado['usuarios'] : [],
+        'apostas' => isset($estado['apostas']) && is_array($estado['apostas']) ? $estado['apostas'] : []
+    ];
+
+    salvarEstado($arquivoBackup, $payloadBackup);
+}
+
+function limparBackupsAntigosPainel(string $backupDir, int $diasManter = 45): void
+{
+    $dias = max(7, $diasManter);
+    $agora = new DateTimeImmutable('now', new DateTimeZone('America/Sao_Paulo'));
+    $limite = $agora->modify('-' . $dias . ' days');
+    $arquivos = glob($backupDir . DIRECTORY_SEPARATOR . 'painel-*.json');
+    if (!is_array($arquivos)) {
+        return;
+    }
+
+    foreach ($arquivos as $arquivo) {
+        $nome = basename($arquivo, '.json');
+        if (strpos($nome, 'painel-') !== 0) {
+            continue;
+        }
+        $dia = substr($nome, 7);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia)) {
+            continue;
+        }
+        $dt = DateTimeImmutable::createFromFormat('Y-m-d', $dia, new DateTimeZone('America/Sao_Paulo'));
+        if (!$dt) {
+            continue;
+        }
+        if ($dt < $limite) {
+            @unlink($arquivo);
+        }
     }
 }
 
@@ -194,6 +267,8 @@ $novoEstado = [
 
 try {
     salvarEstado($filePath, $novoEstado);
+    salvarBackupDiarioPainel($backupDir, $novoEstado);
+    limparBackupsAntigosPainel($backupDir, 45);
 } catch (Throwable $e) {
     responder(500, [
         'ok' => false,
