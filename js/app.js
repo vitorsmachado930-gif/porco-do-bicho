@@ -2882,6 +2882,9 @@ function sincronizarSelectLoteriaApostaOculto() {
 function atualizarResumoLoteriasAposta(listaDisponivel, encerrada) {
   const resumo = document.getElementById("loteriasApostaResumo");
   if (!resumo) return;
+  const precisaEscolherLoteriaAgora =
+    !encerrada && apostasBilheteRascunho.length > 0 && loteriasApostaSelecionadas.length === 0;
+  resumo.classList.toggle("passo-loteria-destaque", precisaEscolherLoteriaAgora);
 
   if (encerrada) {
     resumo.innerText = "Apostas encerradas para hoje.";
@@ -2894,13 +2897,33 @@ function atualizarResumoLoteriasAposta(listaDisponivel, encerrada) {
   }
 
   if (loteriasApostaSelecionadas.length === 0) {
-    resumo.innerText = "Selecione uma ou mais loterias.";
+    resumo.innerText = precisaEscolherLoteriaAgora
+      ? "Passo final: escolha a(s) loteria(s) para concluir o bilhete."
+      : "Selecione uma ou mais loterias.";
     return;
   }
 
   const listaTxt = loteriasApostaSelecionadas.join(" | ");
   const qtd = loteriasApostaSelecionadas.length;
   resumo.innerText = `${qtd} loteria(s) selecionada(s): ${listaTxt}`;
+}
+
+function atualizarAnimacaoPassoEscolhaLoteria(encerrada) {
+  const bloco = document.querySelector("#cardApostas .loterias-aposta-bloco");
+  const lista = document.getElementById("loteriasApostaLista");
+  const btnSalvar = document.querySelector("#cardApostas > button[onclick=\"salvarAposta()\"]");
+  if (!bloco || !lista) return;
+
+  const precisaEscolherLoteriaAgora =
+    !encerrada && apostasBilheteRascunho.length > 0 && loteriasApostaSelecionadas.length === 0;
+  const bilheteProntoParaSalvar =
+    !encerrada && apostasBilheteRascunho.length > 0 && loteriasApostaSelecionadas.length > 0;
+
+  bloco.classList.toggle("loterias-aposta-bloco-destaque", precisaEscolherLoteriaAgora);
+  lista.classList.toggle("loterias-aposta-lista-destaque", precisaEscolherLoteriaAgora);
+  if (btnSalvar) {
+    btnSalvar.classList.toggle("botao-salvar-aposta-pronto", bilheteProntoParaSalvar);
+  }
 }
 
 function alternarLoteriaApostaSelecionada(loteria, listaDisponivel, encerrada) {
@@ -2937,15 +2960,21 @@ function renderizarLoteriasApostaSelecionaveis(listaDisponivel, encerrada) {
     vazio.innerText = encerrada ? "Apostas encerradas" : "Sem horários disponíveis";
     container.appendChild(vazio);
     atualizarResumoLoteriasAposta(lista, encerrada);
+    atualizarAnimacaoPassoEscolhaLoteria(encerrada);
     return;
   }
 
-  lista.forEach((loteria) => {
+  const destacarOpcoes = !encerrada && apostasBilheteRascunho.length > 0 && loteriasApostaSelecionadas.length === 0;
+  lista.forEach((loteria, index) => {
     const selecionada = loteriasApostaSelecionadas.includes(loteria);
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "loteria-aposta-opcao";
     if (selecionada) btn.classList.add("ativa");
+    if (destacarOpcoes && !selecionada) {
+      btn.classList.add("sugerida-passo");
+      btn.style.setProperty("--loteria-step-delay", `${Math.min(index, 8) * 0.08}s`);
+    }
     btn.disabled = Boolean(encerrada);
     btn.textContent = loteria;
     btn.addEventListener("click", () => {
@@ -2955,6 +2984,7 @@ function renderizarLoteriasApostaSelecionaveis(listaDisponivel, encerrada) {
   });
 
   atualizarResumoLoteriasAposta(lista, encerrada);
+  atualizarAnimacaoPassoEscolhaLoteria(encerrada);
 }
 
 function atualizarDisponibilidadeLoteriasAposta(force) {
@@ -4973,6 +5003,7 @@ function renderizarBilheteRascunhoAposta() {
     bloco.style.display = "block";
     resumo.innerText = "Bilhete em montagem. Adicione apostas para visualizar abaixo.";
     lista.innerHTML = "<div class=\"item-bilhete-rascunho\">Nenhuma aposta adicionada ainda.</div>";
+    atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
     return;
   }
 
@@ -5025,6 +5056,7 @@ function renderizarBilheteRascunhoAposta() {
       );
     })
     .join("");
+  atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
 }
 
 function limparBilheteRascunho(opcoes) {

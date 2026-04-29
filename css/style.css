@@ -889,6 +889,12 @@ button:disabled {
   background: #0f1a24;
 }
 
+.loterias-aposta-bloco.loterias-aposta-bloco-destaque {
+  border-color: #00e67688;
+  box-shadow: 0 0 0 1px #00e67633, 0 0 14px #00e6762e;
+  animation: passoLoteriaPulso 1.8s ease-in-out infinite;
+}
+
 .loterias-aposta-topo {
   display: flex;
   align-items: center;
@@ -927,6 +933,11 @@ button:disabled {
   cursor: pointer;
 }
 
+.loterias-aposta-lista-destaque .loteria-aposta-opcao.sugerida-passo {
+  animation: loteriaOpcaoPulso 1.6s ease-in-out infinite;
+  animation-delay: var(--loteria-step-delay, 0s);
+}
+
 .loteria-aposta-opcao.ativa {
   border-color: #00e676;
   background: #00c853;
@@ -948,6 +959,56 @@ button:disabled {
   font-size: 12px;
   color: #9fb3c8;
   text-align: center;
+}
+
+.loterias-aposta-resumo.passo-loteria-destaque {
+  color: #00e676;
+  font-weight: 700;
+}
+
+#cardApostas > button[onclick="salvarAposta()"].botao-salvar-aposta-pronto {
+  box-shadow: 0 0 0 1px #00e67666;
+  animation: salvarBilhetePronto 1.4s ease-in-out 2;
+}
+
+@keyframes passoLoteriaPulso {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px #00e67622, 0 0 0 #00e67600;
+  }
+  50% {
+    box-shadow: 0 0 0 1px #00e67666, 0 0 16px #00e6763d;
+  }
+}
+
+@keyframes loteriaOpcaoPulso {
+  0%,
+  100% {
+    transform: translateY(0);
+    border-color: #2a4155;
+  }
+  50% {
+    transform: translateY(-1px);
+    border-color: #00e67688;
+  }
+}
+
+@keyframes salvarBilhetePronto {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.01);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loterias-aposta-bloco.loterias-aposta-bloco-destaque,
+  .loterias-aposta-lista-destaque .loteria-aposta-opcao.sugerida-passo,
+  #cardApostas > button[onclick="salvarAposta()"].botao-salvar-aposta-pronto {
+    animation: none;
+  }
 }
 
 #cardApostas #tipoAposta,
