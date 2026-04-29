@@ -686,6 +686,32 @@ function calcularComissaoPromotor(valorDeposito, percentual) {
   return Number(((base * pct) / 100).toFixed(2));
 }
 
+function creditarComissaoNoSaldoPromotor(promotor, valorComissao) {
+  if (!usuarioEhPromotor(promotor)) return 0;
+  const comissao = normalizarValorNaoNegativo(valorComissao);
+  if (comissao <= 0) return 0;
+  promotor.saldo = normalizarSaldoUsuario(normalizarSaldoUsuario(promotor.saldo) + comissao);
+  promotor.comissaoTotal = normalizarValorNaoNegativo(promotor.comissaoTotal + comissao);
+  return comissao;
+}
+
+function migrarComissaoDisponivelParaSaldoPromotor(promotor) {
+  if (!usuarioEhPromotor(promotor)) return 0;
+  const disponivel = normalizarValorNaoNegativo(promotor.comissaoSaldo);
+  if (disponivel <= 0) return 0;
+  promotor.comissaoSaldo = 0;
+  promotor.saldo = normalizarSaldoUsuario(normalizarSaldoUsuario(promotor.saldo) + disponivel);
+  return disponivel;
+}
+
+function migrarComissoesPromotoresParaSaldo() {
+  let totalMigrado = 0;
+  usuarios.forEach((item) => {
+    totalMigrado += migrarComissaoDisponivelParaSaldoPromotor(item);
+  });
+  return normalizarValorNaoNegativo(totalMigrado);
+}
+
 function aplicarDepositoUsuarioComComissao(usuarioAlvo, valorDeposito) {
   if (!usuarioAlvo) {
     return { ok: false, mensagem: "Usuário não encontrado para depósito." };
@@ -710,8 +736,7 @@ function aplicarDepositoUsuarioComComissao(usuarioAlvo, valorDeposito) {
     } else {
       comissaoGerada = calcularComissaoPromotor(valor, promotor.comissaoPercentual);
       if (comissaoGerada > 0) {
-        promotor.comissaoSaldo = normalizarValorNaoNegativo(promotor.comissaoSaldo + comissaoGerada);
-        promotor.comissaoTotal = normalizarValorNaoNegativo(promotor.comissaoTotal + comissaoGerada);
+        creditarComissaoNoSaldoPromotor(promotor, comissaoGerada);
       }
     }
   }
@@ -3966,7 +3991,7 @@ function depositarSaldoUsuario() {
   atualizarCarteiraUsuarioAposta();
   const parteComissao =
     aplicacao.comissaoGerada > 0 && aplicacao.promotor
-      ? ` Comissão do promotor @${aplicacao.promotor.login}: ${formatarMoedaBR(aplicacao.comissaoGerada)}.`
+      ? ` Comissão do promotor @${aplicacao.promotor.login} creditada no saldo: ${formatarMoedaBR(aplicacao.comissaoGerada)}.`
       : "";
   atualizarStatusDepositoUsuario(
     `Depósito fictício confirmado: +${formatarMoedaBR(aplicacao.valorDeposito)}.${parteComissao}`,
@@ -7030,6 +7055,7 @@ async function init() {
   carregarLimitesAposta();
   apostas = sanitizarApostas(apostas);
   usuarios = sanitizarUsuarios(usuarios);
+  migrarComissoesPromotoresParaSaldo();
   usuarioAtual = carregarSessaoUsuario();
   salvarDados({
     atualizarTimestamp: false,

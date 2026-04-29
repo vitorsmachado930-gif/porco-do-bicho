@@ -376,6 +376,11 @@ function sanitizarResultados(arr) {
 
 function carregarEstado() {
   usuarios = sanitizarUsuarios(lerJSONStorage(USUARIOS_KEY, []));
+  const totalMigrado = migrarComissoesPromotoresParaSaldo();
+  if (totalMigrado > 0) {
+    salvarJSONStorage(USUARIOS_KEY, usuarios);
+    localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
+  }
   apostas = sanitizarApostas(lerJSONStorage(APOSTAS_KEY, []));
   resultados = sanitizarResultados(lerJSONStorage(STORAGE_KEY, []));
 
@@ -591,6 +596,34 @@ function calcularComissaoPromotor(valorDeposito, percentualComissao) {
   const pct = normalizarValorNaoNegativo(percentualComissao);
   if (base <= 0 || pct <= 0) return 0;
   return Number(((base * pct) / 100).toFixed(2));
+}
+
+function creditarComissaoNoSaldoPromotor(promotor, valorComissao) {
+  if (!promotor || promotor.role !== PAPEL_USUARIO_PROMOTOR) return 0;
+  const comissao = normalizarValorNaoNegativo(valorComissao);
+  if (comissao <= 0) return 0;
+  promotor.saldo = normalizarValorNaoNegativo(normalizarValorNaoNegativo(promotor.saldo) + comissao);
+  promotor.comissaoTotal = normalizarValorNaoNegativo(
+    normalizarValorNaoNegativo(promotor.comissaoTotal) + comissao
+  );
+  return comissao;
+}
+
+function migrarComissaoDisponivelParaSaldoPromotor(promotor) {
+  if (!promotor || promotor.role !== PAPEL_USUARIO_PROMOTOR) return 0;
+  const disponivel = normalizarValorNaoNegativo(promotor.comissaoSaldo);
+  if (disponivel <= 0) return 0;
+  promotor.comissaoSaldo = 0;
+  promotor.saldo = normalizarValorNaoNegativo(normalizarValorNaoNegativo(promotor.saldo) + disponivel);
+  return disponivel;
+}
+
+function migrarComissoesPromotoresParaSaldo() {
+  let totalMigrado = 0;
+  usuarios.forEach((item) => {
+    totalMigrado += migrarComissaoDisponivelParaSaldoPromotor(item);
+  });
+  return normalizarValorNaoNegativo(totalMigrado);
 }
 
 function gruposDoPalpite(palpite) {
@@ -954,12 +987,7 @@ function registrarDepositoApostadorPromotor() {
 
   const comissao = calcularComissaoPromotor(valor, usuarios[idxPromotor].comissaoPercentual);
   if (comissao > 0) {
-    usuarios[idxPromotor].comissaoSaldo = normalizarValorNaoNegativo(
-      normalizarValorNaoNegativo(usuarios[idxPromotor].comissaoSaldo) + comissao
-    );
-    usuarios[idxPromotor].comissaoTotal = normalizarValorNaoNegativo(
-      normalizarValorNaoNegativo(usuarios[idxPromotor].comissaoTotal) + comissao
-    );
+    creditarComissaoNoSaldoPromotor(usuarios[idxPromotor], comissao);
   }
 
   usuarioAtual = usuarios[idxPromotor];
@@ -968,7 +996,7 @@ function registrarDepositoApostadorPromotor() {
 
   inputValor.value = "";
   atualizarStatusDepositoPromotor(
-    `Depósito registrado: ${formatarMoedaBR(valor)} para @${usuarios[idxApostador].login}. Comissão: ${formatarMoedaBR(comissao)}.`,
+    `Depósito registrado: ${formatarMoedaBR(valor)} para @${usuarios[idxApostador].login}. Comissão creditada no saldo: ${formatarMoedaBR(comissao)}.`,
     false
   );
   renderPainelPromotor();
