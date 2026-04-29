@@ -1151,18 +1151,13 @@ function montarCardBilhete(grupo) {
       const tipoLabel = TIPOS_APOSTA[item.tipo] || item.tipo;
       const palpite = formatarPalpiteBilhete(item);
       const valor = formatarMoedaBR(item.valor);
-      const premio = formatarMoedaBR(item.premio || item.valor);
       const conf = resultadoDaAposta(item);
-      const premioApurado = formatarMoedaBR(
-        item.premioCreditado ? item.premioCreditadoValor : item.premio
-      );
+      const premio = formatarMoedaBR(item.premio || item.valor);
       const classeLinhaPremiada = conf.status === "GANHOU" ? " ganhou" : "";
       const classePalpitePremiado = conf.status === "GANHOU" ? "palpite-premiado" : "";
       const detalhePremiacao = !aposHorarioBilhete
         ? ` | Potencial: ${escaparHTML(premio)}`
-        : conf.status === "GANHOU"
-          ? ` | Prêmio: ${escaparHTML(premioApurado)}`
-          : "";
+        : "";
       return (
         `<div class="bilhete-linha-aposta${classeLinhaPremiada}">` +
         `${escaparHTML(tipoLabel)}: <b class="${classePalpitePremiado}">${escaparHTML(palpite)}</b> | ` +
