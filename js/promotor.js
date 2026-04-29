@@ -29,7 +29,7 @@ let apostas = [];
 let resultados = [];
 let usuarioAtual = null;
 let modoEdicaoPerfilPromotor = false;
-let menuPromotorAberto = false;
+let secaoPromotorAtual = "dashboard";
 
 function lerJSONStorage(chave, fallback) {
   try {
@@ -567,13 +567,6 @@ function configurarMascaraTelefonePerfilPromotor() {
   });
 }
 
-function atualizarStatusDepositoPromotor(texto, erro) {
-  const el = document.getElementById("statusDepositoPromotor");
-  if (!el) return;
-  el.style.color = erro ? "#ff6b6b" : "#9fb3c8";
-  el.innerText = texto || "";
-}
-
 function atualizarSelectApostadoresPromotor(id, base) {
   const select = document.getElementById(id);
   if (!select) return;
@@ -592,7 +585,6 @@ function atualizarSelectApostadoresPromotor(id, base) {
 }
 
 function atualizarSelecoesApostadoresPromotor(base) {
-  atualizarSelectApostadoresPromotor("depositoApostadorPromotor", base);
   atualizarSelectApostadoresPromotor("repasseApostadorPromotor", base);
 }
 
@@ -754,45 +746,53 @@ function escaparHTML(valor) {
     .replace(/'/g, "&#39;");
 }
 
-function definirMenuPromotorAberto(ativo) {
-  menuPromotorAberto = Boolean(ativo);
-  const painel = document.getElementById("menuPromotor");
-  const overlay = document.getElementById("menuPromotorOverlay");
+function atualizarSecaoPromotorVisivel() {
+  const mapa = {
+    dashboard: "secaoDashboardPromotor",
+    perfil: "secaoPerfilPromotor",
+    cadastro: "secaoCadastroBasePromotor",
+    apostadores: "secaoApostadoresBasePromotor",
+    repasse: "secaoRepasseBasePromotor"
+  };
 
-  if (painel) {
-    painel.classList.toggle("aberto", menuPromotorAberto);
-    painel.setAttribute("aria-hidden", menuPromotorAberto ? "false" : "true");
-  }
-  if (overlay) {
-    overlay.classList.toggle("ativo", menuPromotorAberto);
-  }
-  document.body.classList.toggle("menu-promotor-aberto", menuPromotorAberto);
-}
+  const chaves = Object.keys(mapa);
+  const secaoValida = chaves.includes(secaoPromotorAtual) ? secaoPromotorAtual : "dashboard";
 
-function alternarMenuPromotor() {
-  definirMenuPromotorAberto(!menuPromotorAberto);
-}
-
-function fecharMenuPromotor() {
-  definirMenuPromotorAberto(false);
-}
-
-function irSecaoPromotor(idElemento) {
-  const alvo = document.getElementById(String(idElemento || "").trim());
-  if (!alvo) {
-    fecharMenuPromotor();
-    return;
-  }
-  alvo.scrollIntoView({ behavior: "smooth", block: "start" });
-  fecharMenuPromotor();
-}
-
-function configurarMenuPromotor() {
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && menuPromotorAberto) {
-      fecharMenuPromotor();
+  chaves.forEach((chave) => {
+    const el = document.getElementById(mapa[chave]);
+    if (el) {
+      el.classList.toggle("ativa", chave === secaoValida);
     }
   });
+
+  const botoes = Array.from(document.querySelectorAll("[data-secao-promotor]"));
+  botoes.forEach((btn) => {
+    const chave = String(btn.getAttribute("data-secao-promotor") || "").trim();
+    btn.classList.toggle("ativo", chave === secaoValida);
+  });
+}
+
+function selecionarSecaoPromotor(secao) {
+  secaoPromotorAtual = String(secao || "").trim() || "dashboard";
+  atualizarSecaoPromotorVisivel();
+}
+
+function atualizarEstadoRepassePromotor() {
+  const inputSaldo = document.getElementById("repasseSaldoDisponivelPromotor");
+  const btnRepassar = document.getElementById("btnRepassarSaldoPromotor");
+  const saldoDisponivel = normalizarValorNaoNegativo(
+    usuarioAtual && usuarioAtual.role === PAPEL_USUARIO_PROMOTOR ? usuarioAtual.saldoApostador : 0
+  );
+
+  if (inputSaldo) {
+    inputSaldo.value = `Saldo disponível para repasse: ${formatarMoedaBR(saldoDisponivel)}`;
+  }
+
+  if (btnRepassar) {
+    const semSaldo = saldoDisponivel <= 0;
+    btnRepassar.disabled = semSaldo;
+    btnRepassar.title = semSaldo ? "Sem saldo disponível para repassar." : "";
+  }
 }
 
 function renderPainelPromotor() {
@@ -810,6 +810,7 @@ function renderPainelPromotor() {
     avisoEl.innerText = "Faça login na Home como promotor para acessar este painel.";
     const menuPromotorInfo = document.getElementById("menuPromotorInfo");
     if (menuPromotorInfo) menuPromotorInfo.innerText = "Painel do Promotor";
+    atualizarEstadoRepassePromotor();
     atualizarSelecoesApostadoresPromotor([]);
     return;
   }
@@ -820,6 +821,7 @@ function renderPainelPromotor() {
     avisoEl.innerText = "Seu usuário não possui perfil de promotor.";
     const menuPromotorInfo = document.getElementById("menuPromotorInfo");
     if (menuPromotorInfo) menuPromotorInfo.innerText = "Painel do Promotor";
+    atualizarEstadoRepassePromotor();
     atualizarSelecoesApostadoresPromotor([]);
     return;
   }
@@ -829,6 +831,7 @@ function renderPainelPromotor() {
     avisoEl.style.display = "block";
     painelEl.style.display = "none";
     avisoEl.innerText = "Promotor não encontrado. Faça login novamente.";
+    atualizarEstadoRepassePromotor();
     atualizarSelecoesApostadoresPromotor([]);
     return;
   }
@@ -840,6 +843,8 @@ function renderPainelPromotor() {
 
   avisoEl.style.display = "none";
   painelEl.style.display = "block";
+  atualizarSecaoPromotorVisivel();
+  atualizarEstadoRepassePromotor();
 
   const base = usuarios.filter(
     (u) => u.role !== PAPEL_USUARIO_PROMOTOR && Number(u.promotorId) === Number(usuarioAtual.id)
@@ -980,82 +985,6 @@ function cadastrarApostadorBasePromotor() {
   renderPainelPromotor();
 }
 
-function registrarDepositoApostadorPromotor() {
-  if (!usuarioAtual || usuarioAtual.role !== PAPEL_USUARIO_PROMOTOR) {
-    atualizarStatusDepositoPromotor("Somente promotores podem registrar depósito da base.", true);
-    return;
-  }
-
-  const idxPromotor = usuarios.findIndex(
-    (u) => Number(u.id) === Number(usuarioAtual.id) && u.role === PAPEL_USUARIO_PROMOTOR
-  );
-  if (idxPromotor === -1) {
-    atualizarStatusDepositoPromotor("Promotor não encontrado. Faça login novamente.", true);
-    return;
-  }
-
-  const selectApostador = document.getElementById("depositoApostadorPromotor");
-  const inputValor = document.getElementById("depositoValorPromotor");
-  if (!selectApostador || !inputValor) return;
-
-  const apostadorId = Number(selectApostador.value);
-  if (!Number.isFinite(apostadorId)) {
-    atualizarStatusDepositoPromotor("Selecione um apostador da sua base.", true);
-    return;
-  }
-
-  const valor = parseNumeroPositivo(inputValor.value);
-  if (!valor) {
-    atualizarStatusDepositoPromotor("Informe um valor válido para depósito.", true);
-    return;
-  }
-
-  const idxApostador = usuarios.findIndex(
-    (u) =>
-      Number(u.id) === apostadorId &&
-      u.role !== PAPEL_USUARIO_PROMOTOR &&
-      Number(u.promotorId) === Number(usuarioAtual.id)
-  );
-  if (idxApostador === -1) {
-    atualizarStatusDepositoPromotor("Apostador inválido para depósito.", true);
-    return;
-  }
-
-  const saldoApostadorPromotor = normalizarValorNaoNegativo(usuarios[idxPromotor].saldoApostador);
-  if (saldoApostadorPromotor < valor) {
-    atualizarStatusDepositoPromotor(
-      `Saldo apostador insuficiente. Disponível: ${formatarMoedaBR(saldoApostadorPromotor)}.`,
-      true
-    );
-    return;
-  }
-
-  usuarios[idxPromotor].saldoApostador = normalizarValorNaoNegativo(saldoApostadorPromotor - valor);
-
-  usuarios[idxApostador].saldo = normalizarValorNaoNegativo(
-    normalizarValorNaoNegativo(usuarios[idxApostador].saldo) + valor
-  );
-  usuarios[idxApostador].totalDepositos = normalizarValorNaoNegativo(
-    normalizarValorNaoNegativo(usuarios[idxApostador].totalDepositos) + valor
-  );
-
-  const comissao = calcularComissaoPromotor(valor, usuarios[idxPromotor].comissaoPercentual);
-  if (comissao > 0) {
-    creditarComissaoNoSaldoPromotor(usuarios[idxPromotor], comissao);
-  }
-
-  usuarioAtual = usuarios[idxPromotor];
-  salvarJSONStorage(USUARIOS_KEY, usuarios);
-  localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
-
-  inputValor.value = "";
-  atualizarStatusDepositoPromotor(
-    `Depósito registrado: ${formatarMoedaBR(valor)} para @${usuarios[idxApostador].login}. Comissão creditada no saldo: ${formatarMoedaBR(comissao)}.`,
-    false
-  );
-  renderPainelPromotor();
-}
-
 function repassarSaldoApostadorPromotor() {
   if (!usuarioAtual || usuarioAtual.role !== PAPEL_USUARIO_PROMOTOR) {
     atualizarStatusRepassePromotor("Somente promotores podem repassar saldo aos apostadores.", true);
@@ -1110,6 +1039,13 @@ function repassarSaldoApostadorPromotor() {
   usuarios[idxApostador].saldo = normalizarValorNaoNegativo(
     normalizarValorNaoNegativo(usuarios[idxApostador].saldo) + valor
   );
+  usuarios[idxApostador].totalDepositos = normalizarValorNaoNegativo(
+    normalizarValorNaoNegativo(usuarios[idxApostador].totalDepositos) + valor
+  );
+  const comissao = calcularComissaoPromotor(valor, usuarios[idxPromotor].comissaoPercentual);
+  if (comissao > 0) {
+    creditarComissaoNoSaldoPromotor(usuarios[idxPromotor], comissao);
+  }
 
   usuarioAtual = usuarios[idxPromotor];
   salvarJSONStorage(USUARIOS_KEY, usuarios);
@@ -1117,27 +1053,24 @@ function repassarSaldoApostadorPromotor() {
 
   inputValor.value = "";
   atualizarStatusRepassePromotor(
-    `Repasse concluído: ${formatarMoedaBR(valor)} para @${usuarios[idxApostador].login}.`,
+    `Repasse concluído: ${formatarMoedaBR(valor)} para @${usuarios[idxApostador].login}. Comissão creditada no saldo: ${formatarMoedaBR(comissao)}.`,
     false
   );
   renderPainelPromotor();
 }
 
 function sairPromotor() {
-  fecharMenuPromotor();
   localStorage.removeItem(USUARIO_SESSAO_KEY);
   window.location.href = "../index.html";
 }
 
 function initPromotor() {
   carregarEstado();
+  secaoPromotorAtual = "dashboard";
   configurarMascaraTelefonePerfilPromotor();
   atualizarStatusPromotor("", false);
   atualizarStatusPerfilPromotor("", false);
-  atualizarStatusDepositoPromotor("", false);
   atualizarStatusRepassePromotor("", false);
-  configurarMenuPromotor();
-  definirMenuPromotorAberto(false);
   preencherCamposPerfilPromotor();
   renderPainelPromotor();
   atualizarControlesPerfilPromotor();
@@ -1157,10 +1090,7 @@ function initPromotor() {
 }
 
 window.cadastrarApostadorBasePromotor = cadastrarApostadorBasePromotor;
-window.registrarDepositoApostadorPromotor = registrarDepositoApostadorPromotor;
 window.repassarSaldoApostadorPromotor = repassarSaldoApostadorPromotor;
-window.alternarMenuPromotor = alternarMenuPromotor;
-window.fecharMenuPromotor = fecharMenuPromotor;
-window.irSecaoPromotor = irSecaoPromotor;
+window.selecionarSecaoPromotor = selecionarSecaoPromotor;
 window.sairPromotor = sairPromotor;
 window.addEventListener("load", initPromotor);
