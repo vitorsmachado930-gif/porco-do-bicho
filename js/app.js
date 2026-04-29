@@ -2529,6 +2529,15 @@ async function sincronizarPainelRemoto(modo) {
       estadoRemoto.usuarios.length === 0 && estadoRemoto.apostas.length === 0;
     const localVazio = usuarios.length === 0 && apostas.length === 0;
 
+    // Proteção contra sobrescrever o remoto com base local vazia
+    // (ex.: primeiro acesso em dispositivo novo).
+    if (localVazio && !remotoVazio) {
+      aplicarEstadoPainelRemoto(estadoRemoto);
+      atualizarVisibilidadeUsuario();
+      mostrar();
+      return;
+    }
+
     if (atualizadoRemoto > atualizadoLocal) {
       if (!localVazio && remotoVazio) {
         const tsRecuperacao = Date.now();
@@ -6761,8 +6770,14 @@ async function init() {
     atualizarTimestamp: false,
     pularSyncRemoto: true
   });
-  salvarApostas();
-  salvarUsuarios();
+  salvarApostas({
+    atualizarTimestamp: false,
+    pularSyncRemoto: true
+  });
+  salvarUsuarios({
+    atualizarTimestamp: false,
+    pularSyncRemoto: true
+  });
   salvarLimitesApostaStorage();
   popularPracas();
   popularLoterias();
