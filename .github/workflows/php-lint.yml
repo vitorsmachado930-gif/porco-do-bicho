@@ -1,0 +1,35 @@
+name: PHP Lint
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+
+      - name: Lint PHP files
+        run: |
+          set -euo pipefail
+          files=$(find api -type f -name "*.php" | sort)
+          if [ -z "$files" ]; then
+            echo "Nenhum arquivo PHP encontrado."
+            exit 0
+          fi
+          echo "Arquivos PHP encontrados:"
+          echo "$files"
+          while IFS= read -r file; do
+            php -l "$file"
+          done <<< "$files"
+
