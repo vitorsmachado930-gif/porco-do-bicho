@@ -4427,6 +4427,48 @@ function abrirApostasAgora() {
   if (tipoInput) tipoInput.focus();
 }
 
+function apostarAgoraResultado(loteriaCodificada) {
+  const loteriaSelecionada = decodeURIComponent(String(loteriaCodificada || "").trim());
+  if (!loteriaSelecionada) return;
+
+  if (!usuarioAtual) {
+    mostrarConfirmacaoApostaRapida("Faça login para apostar.", "erro");
+    return;
+  }
+
+  abrirApostasAgora();
+
+  if (!painelApostaExpandido || secaoApostasEncerrada) return;
+
+  const pracaInput = document.getElementById("pracaAposta");
+  const dataInput = document.getElementById("dataAposta");
+  const praca = String(pracaInput && pracaInput.value || PRACA_FIXA).trim();
+  const data = normalizarDataISO(dataInput && dataInput.value ? dataInput.value : hojeISO());
+  const listaDisponivel = loteriasDisponiveisParaAposta(praca, data);
+  const encerrada = apostasEncerradasNoDia(praca, data);
+
+  if (encerrada || !listaDisponivel.includes(loteriaSelecionada)) {
+    mostrarConfirmacaoApostaRapida("Esta loteria não está disponível para aposta agora.", "erro");
+    return;
+  }
+
+  const loteriasAtuais = loteriasApostaSelecionadas.filter((item) => item !== loteriaSelecionada);
+  loteriasApostaSelecionadas = [loteriaSelecionada, ...loteriasAtuais];
+  direcionarEtapaLoteria = false;
+
+  renderizarLoteriasApostaSelecionaveis(listaDisponivel, encerrada);
+  sincronizarSelectLoteriaApostaOculto();
+  atualizarCronometroApostaFormulario();
+  atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
+  const tipoInput = document.getElementById("tipoAposta");
+  if (tipoInput) tipoInput.focus();
+  const cardApostas = document.getElementById("cardApostas");
+  if (cardApostas) {
+    cardApostas.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  mostrarConfirmacaoApostaRapida(`Loteria ${loteriaSelecionada} selecionada para sua aposta.`);
+}
+
 function atualizarModoCTADeApostas() {
   const cardApostas = document.getElementById("cardApostas");
   const btnAposteAgora = document.getElementById("btnAposteAgora");
@@ -7058,7 +7100,7 @@ function mostrar() {
     if (!item.resultados || item.resultados.length === 0) {
       html += `<div class="resultado-pendente-bloco">`;
       html += `<p class="resultado-pendente">Aguardando resultado desta loteria.</p>`;
-      html += `<p class="resultado-chamada-aposta">Aposte Agora!</p>`;
+      html += `<button type="button" class="resultado-chamada-aposta" onclick="apostarAgoraResultado('${encodeURIComponent(item.loteria)}')">Aposte Agora!</button>`;
       const hoje = hojeISO();
       if (item.data === hoje) {
         const restante = segundosAteSorteio(item.data, item.loteria);
@@ -7207,6 +7249,7 @@ window.abrirMeuPerfil = abrirMeuPerfil;
 window.abrirPainelPromotor = abrirPainelPromotor;
 window.abrirDeposito = abrirDeposito;
 window.abrirApostasAgora = abrirApostasAgora;
+window.apostarAgoraResultado = apostarAgoraResultado;
 window.criarUsuarioAdmin = criarUsuarioAdmin;
 window.criarPromotorAdmin = criarPromotorAdmin;
 window.salvarComissaoPromotorAdmin = salvarComissaoPromotorAdmin;
