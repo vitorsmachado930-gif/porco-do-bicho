@@ -160,6 +160,7 @@ let usuarios = carregarUsuarios();
 let usuarioAtual = carregarSessaoUsuario();
 let cronometroApostaTimer = null;
 let acessoAdminVisivel = false;
+let secaoAdminAtual = "dashboard";
 let hashLoteriasApostaDisponiveis = "";
 let secaoApostasEncerrada = false;
 let modoUsuarioPublico = "login";
@@ -4251,10 +4252,43 @@ function aplicarLimitesDeData() {
   atualizarCronometroApostaFormulario();
 }
 
+function atualizarSecaoAdminVisivel() {
+  const mapa = {
+    dashboard: "secaoAdminDashboard",
+    cadastros: "secaoAdminCadastros",
+    promotores: "secaoAdminPromotores",
+    saldos: "secaoAdminSaldos",
+    edicao: "secaoAdminEdicao",
+    operacoes: "secaoAdminOperacoes"
+  };
+  const chaves = Object.keys(mapa);
+  const secaoValida = chaves.includes(secaoAdminAtual) ? secaoAdminAtual : "dashboard";
+
+  chaves.forEach((chave) => {
+    const el = document.getElementById(mapa[chave]);
+    if (el) {
+      el.classList.toggle("ativa", chave === secaoValida);
+    }
+  });
+
+  const botoes = Array.from(document.querySelectorAll("[data-secao-admin]"));
+  botoes.forEach((btn) => {
+    const chave = String(btn.getAttribute("data-secao-admin") || "").trim();
+    btn.classList.toggle("ativo", chave === secaoValida);
+  });
+}
+
+function selecionarSecaoAdmin(secao) {
+  secaoAdminAtual = String(secao || "").trim() || "dashboard";
+  atualizarSecaoAdminVisivel();
+}
+
 function atualizarVisibilidadeAdmin() {
   const acesso = document.getElementById("acessoAdmin");
   const painel = document.getElementById("painelAdmin");
   const btnSair = document.getElementById("btnSairAdmin");
+  const menuLateral = document.getElementById("menuAdminLateral");
+  const layoutAdmin = document.querySelector(".layout-admin");
 
   if (document.body) {
     document.body.classList.toggle("admin-logado", Boolean(logado));
@@ -4269,6 +4303,13 @@ function atualizarVisibilidadeAdmin() {
 
   if (painel) {
     painel.style.display = logado ? "block" : "none";
+  }
+
+  if (menuLateral) {
+    menuLateral.style.display = logado ? "grid" : "none";
+  }
+  if (layoutAdmin) {
+    layoutAdmin.classList.toggle("com-menu-admin", Boolean(logado));
   }
 
   if (btnSair) {
@@ -4943,6 +4984,7 @@ function loginAdmin() {
 
   if (senha === SENHA) {
     logado = true;
+    secaoAdminAtual = "dashboard";
     salvarSessaoAdmin();
     atualizarVisibilidadeAdmin();
     status.innerText = "Liberado!";
@@ -4972,6 +5014,7 @@ function loginAdmin() {
 
 function logoutAdmin() {
   logado = false;
+  secaoAdminAtual = "dashboard";
   salvarSessaoAdmin();
   acessoAdminVisivel = false;
   atualizarVisibilidadeAdmin();
@@ -6792,6 +6835,7 @@ function mostrarPainelAdmin() {
   const dashSaidaTotal = document.getElementById("dashSaidaTotal");
   const dashInfoFinanceiro = document.getElementById("dashInfoFinanceiro");
   if (!resumo || !listaUsuariosAdmin || !listaApostasAdmin) return;
+  atualizarSecaoAdminVisivel();
 
   if (dashDataInicioInput) {
     dashboardDataInicio = normalizarDashboardData(dashDataInicioInput.value || dashboardDataInicio);
@@ -7257,6 +7301,7 @@ window.vincularApostadorPromotorAdmin = vincularApostadorPromotorAdmin;
 window.recarregarSaldoAdmin = recarregarSaldoAdmin;
 window.salvarEdicaoSaldoAdmin = salvarEdicaoSaldoAdmin;
 window.salvarEdicaoUsuarioAdmin = salvarEdicaoUsuarioAdmin;
+window.selecionarSecaoAdmin = selecionarSecaoAdmin;
 
 window.addEventListener("load", () => {
   init();
