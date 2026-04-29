@@ -8,9 +8,29 @@
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/style.css?v=20260427-11">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/promotor.css?v=20260429-4">
+  <link rel="stylesheet" href="../css/promotor.css?v=20260429-5">
 </head>
 <body>
+  <button id="btnMenuPromotor" class="btn-menu-promotor" type="button" aria-label="Abrir menu" onclick="alternarMenuPromotor()">☰</button>
+  <div id="menuPromotorOverlay" class="menu-promotor-overlay" onclick="fecharMenuPromotor()"></div>
+  <aside id="menuPromotor" class="menu-promotor" aria-hidden="true">
+    <div class="menu-promotor-topo">
+      <strong>Menu</strong>
+      <button type="button" class="menu-promotor-fechar" aria-label="Fechar menu" onclick="fecharMenuPromotor()">×</button>
+    </div>
+    <p id="menuPromotorInfo" class="menu-promotor-info">Painel do Promotor</p>
+    <nav class="menu-promotor-lista" aria-label="Navegação do promotor">
+      <button type="button" class="menu-promotor-item" onclick="irSecaoPromotor('secaoDashboardPromotor')">Dashboard</button>
+      <button type="button" class="menu-promotor-item" onclick="irSecaoPromotor('secaoPerfilPromotor')">Meu Perfil</button>
+      <button type="button" class="menu-promotor-item" onclick="irSecaoPromotor('secaoCadastroBasePromotor')">Cadastrar Apostador</button>
+      <button type="button" class="menu-promotor-item" onclick="irSecaoPromotor('secaoApostadoresBasePromotor')">Apostadores da Base</button>
+      <button type="button" class="menu-promotor-item" onclick="irSecaoPromotor('secaoDepositoBasePromotor')">Registrar Depósito</button>
+      <button type="button" class="menu-promotor-item" onclick="irSecaoPromotor('secaoRepasseBasePromotor')">Repassar Saldo</button>
+      <button type="button" class="menu-promotor-item" onclick="window.location.href='../index.html'">Voltar para Home</button>
+      <button type="button" class="menu-promotor-item menu-promotor-item-sair" onclick="sairPromotor()">Sair</button>
+    </nav>
+  </aside>
+
   <header class="topo-pagina">
     <div class="topo-pagina-conteudo topo-promotor">
       <a href="../index.html">← Voltar para Home</a>
@@ -22,6 +42,7 @@
     <div id="avisoPromotor" class="card" style="display:none;"></div>
 
     <div id="painelPromotor" class="card" style="display:none;">
+      <div id="secaoDashboardPromotor"></div>
       <div class="topo-painel-promotor">
         <h3>Dashboard da Base</h3>
         <button type="button" class="btn-danger btn-sair-promotor" onclick="sairPromotor()">Sair</button>
@@ -63,7 +84,7 @@
         </div>
       </div>
 
-      <section class="painel-admin-bloco painel-promotor-perfil">
+      <section id="secaoPerfilPromotor" class="painel-admin-bloco painel-promotor-perfil">
         <h4>Meu Perfil (Promotor)</h4>
         <p id="promotorPerfilResumo" class="resumo-painel-admin"></p>
 
@@ -88,7 +109,7 @@
       </section>
 
       <div class="painel-promotor-grid">
-        <section class="painel-admin-bloco">
+        <section id="secaoCadastroBasePromotor" class="painel-admin-bloco">
           <h4>Cadastrar Apostador da Base</h4>
           <input id="baseNome" type="text" placeholder="Nome do apostador">
           <input id="baseLogin" type="text" placeholder="Login do apostador">
@@ -97,13 +118,13 @@
           <p id="statusPromotor"></p>
         </section>
 
-        <section class="painel-admin-bloco">
+        <section id="secaoApostadoresBasePromotor" class="painel-admin-bloco">
           <h4>Apostadores da Base</h4>
           <p id="resumoBasePromotor" class="resumo-painel-admin"></p>
           <div id="listaApostadoresBasePromotor" class="lista-admin-scroll"></div>
         </section>
 
-        <section class="painel-admin-bloco">
+        <section id="secaoDepositoBasePromotor" class="painel-admin-bloco">
           <h4>Registrar Depósito do Apostador</h4>
           <select id="depositoApostadorPromotor">
             <option value="">Selecione o apostador da base</option>
@@ -113,7 +134,7 @@
           <p id="statusDepositoPromotor"></p>
         </section>
 
-        <section class="painel-admin-bloco">
+        <section id="secaoRepasseBasePromotor" class="painel-admin-bloco">
           <h4>Repassar Saldo ao Apostador</h4>
           <select id="repasseApostadorPromotor">
             <option value="">Selecione o apostador da base</option>
@@ -130,6 +151,6 @@
     Porco do Bicho • Painel do Promotor.
   </footer>
 
-  <script src="../js/promotor.js?v=20260429-9"></script>
+  <script src="../js/promotor.js?v=20260429-10"></script>
 </body>
 </html>

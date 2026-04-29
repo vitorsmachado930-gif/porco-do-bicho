@@ -6,6 +6,123 @@
   flex-wrap: wrap;
 }
 
+body.menu-promotor-aberto {
+  overflow: hidden;
+}
+
+.btn-menu-promotor {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border-radius: 9px;
+  border: 1px solid #2a4155;
+  background: #102030;
+  color: #e8f3ff;
+  font-size: 24px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+.menu-promotor-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1180;
+}
+
+.menu-promotor-overlay.ativo {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.menu-promotor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: min(84vw, 320px);
+  height: 100vh;
+  transform: translateX(-104%);
+  transition: transform 0.22s ease;
+  background: linear-gradient(180deg, #102030 0%, #0b1824 100%);
+  border-right: 1px solid #00e67633;
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
+  padding: 16px 12px 14px;
+  box-sizing: border-box;
+  z-index: 1190;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 8px;
+}
+
+.menu-promotor.aberto {
+  transform: translateX(0);
+}
+
+.menu-promotor-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.menu-promotor-topo strong {
+  color: #d8e8f7;
+  font-size: 20px;
+}
+
+.menu-promotor-fechar {
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid #2a4155;
+  background: #132738;
+  color: #e8f3ff;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.menu-promotor-info {
+  margin: 0;
+  color: #9fb3c8;
+  font-size: 12px;
+}
+
+.menu-promotor-lista {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.menu-promotor-item {
+  width: 100%;
+  margin: 0;
+  border: 1px solid #2a4155;
+  border-radius: 8px;
+  background: #0f1a24;
+  color: #e8f3ff;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.menu-promotor-item-sair {
+  border-color: #ff525266;
+  color: #ffc7c7;
+}
+
 .topo-promotor strong {
   color: #d8e8f7;
   font-size: 14px;
@@ -146,6 +263,24 @@
 }
 
 @media (max-width: 640px) {
+  .btn-menu-promotor {
+    width: 36px;
+    height: 36px;
+    top: 8px;
+    left: 8px;
+    font-size: 20px;
+  }
+
+  .menu-promotor {
+    width: min(88vw, 300px);
+    padding: 14px 10px 12px;
+  }
+
+  .menu-promotor-item {
+    font-size: 13px;
+    padding: 9px 10px;
+  }
+
   .topo-promotor strong {
     font-size: 12px;
   }

@@ -29,6 +29,7 @@ let apostas = [];
 let resultados = [];
 let usuarioAtual = null;
 let modoEdicaoPerfilPromotor = false;
+let menuPromotorAberto = false;
 
 function lerJSONStorage(chave, fallback) {
   try {
@@ -753,6 +754,47 @@ function escaparHTML(valor) {
     .replace(/'/g, "&#39;");
 }
 
+function definirMenuPromotorAberto(ativo) {
+  menuPromotorAberto = Boolean(ativo);
+  const painel = document.getElementById("menuPromotor");
+  const overlay = document.getElementById("menuPromotorOverlay");
+
+  if (painel) {
+    painel.classList.toggle("aberto", menuPromotorAberto);
+    painel.setAttribute("aria-hidden", menuPromotorAberto ? "false" : "true");
+  }
+  if (overlay) {
+    overlay.classList.toggle("ativo", menuPromotorAberto);
+  }
+  document.body.classList.toggle("menu-promotor-aberto", menuPromotorAberto);
+}
+
+function alternarMenuPromotor() {
+  definirMenuPromotorAberto(!menuPromotorAberto);
+}
+
+function fecharMenuPromotor() {
+  definirMenuPromotorAberto(false);
+}
+
+function irSecaoPromotor(idElemento) {
+  const alvo = document.getElementById(String(idElemento || "").trim());
+  if (!alvo) {
+    fecharMenuPromotor();
+    return;
+  }
+  alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+  fecharMenuPromotor();
+}
+
+function configurarMenuPromotor() {
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && menuPromotorAberto) {
+      fecharMenuPromotor();
+    }
+  });
+}
+
 function renderPainelPromotor() {
   const avisoEl = document.getElementById("avisoPromotor");
   const painelEl = document.getElementById("painelPromotor");
@@ -766,6 +808,8 @@ function renderPainelPromotor() {
     avisoEl.style.display = "block";
     painelEl.style.display = "none";
     avisoEl.innerText = "Faça login na Home como promotor para acessar este painel.";
+    const menuPromotorInfo = document.getElementById("menuPromotorInfo");
+    if (menuPromotorInfo) menuPromotorInfo.innerText = "Painel do Promotor";
     atualizarSelecoesApostadoresPromotor([]);
     return;
   }
@@ -774,6 +818,8 @@ function renderPainelPromotor() {
     avisoEl.style.display = "block";
     painelEl.style.display = "none";
     avisoEl.innerText = "Seu usuário não possui perfil de promotor.";
+    const menuPromotorInfo = document.getElementById("menuPromotorInfo");
+    if (menuPromotorInfo) menuPromotorInfo.innerText = "Painel do Promotor";
     atualizarSelecoesApostadoresPromotor([]);
     return;
   }
@@ -787,6 +833,10 @@ function renderPainelPromotor() {
     return;
   }
   usuarioAtual = usuarios[idxPromotor];
+  const menuPromotorInfo = document.getElementById("menuPromotorInfo");
+  if (menuPromotorInfo) {
+    menuPromotorInfo.innerText = `${usuarioAtual.nome} (@${usuarioAtual.login})`;
+  }
 
   avisoEl.style.display = "none";
   painelEl.style.display = "block";
@@ -1074,6 +1124,7 @@ function repassarSaldoApostadorPromotor() {
 }
 
 function sairPromotor() {
+  fecharMenuPromotor();
   localStorage.removeItem(USUARIO_SESSAO_KEY);
   window.location.href = "../index.html";
 }
@@ -1085,6 +1136,8 @@ function initPromotor() {
   atualizarStatusPerfilPromotor("", false);
   atualizarStatusDepositoPromotor("", false);
   atualizarStatusRepassePromotor("", false);
+  configurarMenuPromotor();
+  definirMenuPromotorAberto(false);
   preencherCamposPerfilPromotor();
   renderPainelPromotor();
   atualizarControlesPerfilPromotor();
@@ -1106,5 +1159,8 @@ function initPromotor() {
 window.cadastrarApostadorBasePromotor = cadastrarApostadorBasePromotor;
 window.registrarDepositoApostadorPromotor = registrarDepositoApostadorPromotor;
 window.repassarSaldoApostadorPromotor = repassarSaldoApostadorPromotor;
+window.alternarMenuPromotor = alternarMenuPromotor;
+window.fecharMenuPromotor = fecharMenuPromotor;
+window.irSecaoPromotor = irSecaoPromotor;
 window.sairPromotor = sairPromotor;
 window.addEventListener("load", initPromotor);
