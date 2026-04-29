@@ -5,6 +5,128 @@ body {
   color: white;
 }
 
+body.menu-lateral-aberto {
+  overflow: hidden;
+}
+
+.btn-menu-lateral {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: 42px;
+  height: 42px;
+  margin: 0;
+  border: 1px solid #2a4155;
+  border-radius: 10px;
+  background: #102030;
+  color: #e8f3ff;
+  font-size: 24px;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  z-index: 1200;
+}
+
+.menu-lateral-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1180;
+}
+
+.menu-lateral-overlay.ativo {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.menu-lateral {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: min(84vw, 320px);
+  height: 100vh;
+  transform: translateX(-104%);
+  transition: transform 0.22s ease;
+  background: linear-gradient(180deg, #102030 0%, #0b1824 100%);
+  border-right: 1px solid #00e67633;
+  box-shadow: 8px 0 24px rgba(0, 0, 0, 0.35);
+  padding: 16px 12px 14px;
+  box-sizing: border-box;
+  z-index: 1190;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 8px;
+}
+
+.menu-lateral.aberto {
+  transform: translateX(0);
+}
+
+.menu-lateral-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.menu-lateral-topo strong {
+  color: #d8e8f7;
+  font-size: 20px;
+}
+
+.menu-lateral-fechar {
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid #2a4155;
+  background: #132738;
+  color: #e8f3ff;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.menu-lateral-usuario {
+  margin: 0;
+  color: #9fb3c8;
+  font-size: 12px;
+}
+
+.menu-lateral-lista {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.menu-lateral-item {
+  width: 100%;
+  margin: 0;
+  border: 1px solid #2a4155;
+  border-radius: 8px;
+  background: #0f1a24;
+  color: #e8f3ff;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.menu-lateral-item:hover {
+  border-color: #00e67666;
+}
+
+.menu-lateral-item-sair {
+  border-color: #ff525266;
+  color: #ffc7c7;
+}
+
 .toast-aposta-confirmacao {
   position: fixed;
   left: 50%;
@@ -1765,6 +1887,25 @@ body.admin-logado .acao-admin {
 }
 
 @media (max-width: 820px) {
+  .btn-menu-lateral {
+    top: 8px;
+    left: 8px;
+    width: 38px;
+    height: 38px;
+    font-size: 22px;
+    border-radius: 9px;
+  }
+
+  .menu-lateral {
+    width: min(88vw, 300px);
+    padding: 14px 10px 12px;
+  }
+
+  .menu-lateral-item {
+    font-size: 13px;
+    padding: 9px 10px;
+  }
+
   #resultados {
     grid-auto-columns: min(54vw, 198px);
     gap: 6px;
@@ -2087,6 +2228,12 @@ body.admin-logado .acao-admin {
 }
 
 @media (max-width: 430px) {
+  .btn-menu-lateral {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+
   .usuario-acoes-publicas {
     grid-template-columns: 1fr;
   }

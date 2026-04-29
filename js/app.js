@@ -181,6 +181,7 @@ let contextoBilheteRascunho = null;
 let loteriasApostaSelecionadas = [];
 let direcionarEtapaLoteria = false;
 let painelApostaExpandido = false;
+let menuLateralAberto = false;
 
 function hojeISO() {
   return dataLocalParaISO(new Date());
@@ -4377,6 +4378,69 @@ function atualizarBloqueioBotoesApostaPorSaldo(saldoAtual) {
   }
 }
 
+function definirMenuLateralAberto(ativo) {
+  menuLateralAberto = Boolean(ativo);
+  const painel = document.getElementById("menuLateral");
+  const overlay = document.getElementById("menuLateralOverlay");
+
+  if (painel) {
+    painel.classList.toggle("aberto", menuLateralAberto);
+    painel.setAttribute("aria-hidden", menuLateralAberto ? "false" : "true");
+  }
+  if (overlay) {
+    overlay.classList.toggle("ativo", menuLateralAberto);
+  }
+  document.body.classList.toggle("menu-lateral-aberto", menuLateralAberto);
+}
+
+function alternarMenuLateral() {
+  definirMenuLateralAberto(!menuLateralAberto);
+}
+
+function fecharMenuLateral() {
+  definirMenuLateralAberto(false);
+}
+
+function irParaSecaoMenu(idElemento) {
+  const alvo = document.getElementById(String(idElemento || "").trim());
+  if (!alvo) return;
+  alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function atualizarMenuLateral() {
+  const menuUsuarioInfo = document.getElementById("menuUsuarioInfo");
+  const itemEntrar = document.getElementById("menuItemEntrar");
+  const itemCadastro = document.getElementById("menuItemCadastro");
+  const itemMeuPerfil = document.getElementById("menuItemMeuPerfil");
+  const itemPainelPromotor = document.getElementById("menuItemPainelPromotor");
+  const itemDepositar = document.getElementById("menuItemDepositar");
+  const itemSair = document.getElementById("menuItemSair");
+
+  const logadoUsuario = Boolean(usuarioAtual);
+  const ehPromotor = Boolean(logadoUsuario && usuarioEhPromotor(usuarioAtual));
+
+  if (menuUsuarioInfo) {
+    menuUsuarioInfo.innerText = logadoUsuario
+      ? `Conectado: ${usuarioAtual.nome} (@${usuarioAtual.login})`
+      : "Acesso rápido";
+  }
+
+  if (itemEntrar) itemEntrar.style.display = logadoUsuario ? "none" : "block";
+  if (itemCadastro) itemCadastro.style.display = logadoUsuario ? "none" : "block";
+  if (itemMeuPerfil) itemMeuPerfil.style.display = logadoUsuario && !ehPromotor ? "block" : "none";
+  if (itemPainelPromotor) itemPainelPromotor.style.display = ehPromotor ? "block" : "none";
+  if (itemDepositar) itemDepositar.style.display = logadoUsuario ? "block" : "none";
+  if (itemSair) itemSair.style.display = logadoUsuario ? "block" : "none";
+}
+
+function configurarMenuLateral() {
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && menuLateralAberto) {
+      fecharMenuLateral();
+    }
+  });
+}
+
 function irHomeCabecalho() {
   irHoje();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -4611,6 +4675,8 @@ function atualizarVisibilidadeUsuario() {
   if (status) {
     status.style.display = !usuarioAtual && painelUsuarioAberto ? "block" : "none";
   }
+
+  atualizarMenuLateral();
 
   atualizarVisibilidadeApostas();
 }
@@ -4859,6 +4925,7 @@ function entrarUsuario() {
   salvarSessaoUsuario();
   painelUsuarioAberto = false;
   painelApostaExpandido = false;
+  fecharMenuLateral();
   definirModoUsuarioPublico("login");
   atualizarVisibilidadeUsuario();
   if (usuarioEhPromotor(encontrado)) {
@@ -4879,6 +4946,7 @@ function sairUsuario() {
   salvarSessaoUsuario();
   painelUsuarioAberto = false;
   painelApostaExpandido = false;
+  fecharMenuLateral();
   limparBilheteRascunho({
     limparCampos: false
   });
@@ -7176,6 +7244,8 @@ async function init() {
   configurarEventosGestaoSaldoAdmin();
   configurarEventosGestaoEdicaoUsuarioAdmin();
   configurarEventosDashboardAdmin();
+  configurarMenuLateral();
+  definirMenuLateralAberto(false);
   configurarMascaraValorDepositoUsuario();
   configurarCronometroAposta();
   preencherCamposMultiplicadores();
@@ -7245,6 +7315,9 @@ window.avancarDia = avancarDia;
 window.irHoje = irHoje;
 window.irHojeHistoricoApostas = irHojeHistoricoApostas;
 window.irHomeCabecalho = irHomeCabecalho;
+window.alternarMenuLateral = alternarMenuLateral;
+window.fecharMenuLateral = fecharMenuLateral;
+window.irParaSecaoMenu = irParaSecaoMenu;
 window.abrirMeuPerfil = abrirMeuPerfil;
 window.abrirPainelPromotor = abrirPainelPromotor;
 window.abrirDeposito = abrirDeposito;

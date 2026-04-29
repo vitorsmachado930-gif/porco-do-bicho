@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/style.css?v=20260427-11">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/promotor.css?v=20260428-3">
+  <link rel="stylesheet" href="../css/promotor.css?v=20260429-4">
 </head>
 <body>
   <header class="topo-pagina">
@@ -67,15 +67,17 @@
         <h4>Meu Perfil (Promotor)</h4>
         <p id="promotorPerfilResumo" class="resumo-painel-admin"></p>
 
-        <label for="promotorPerfilNome">Nome</label>
-        <input id="promotorPerfilNome" type="text" placeholder="Seu nome completo" maxlength="80" disabled>
+        <div id="promotorPerfilCamposEdicao" class="promotor-perfil-campos-edicao" hidden>
+          <label for="promotorPerfilNome">Nome</label>
+          <input id="promotorPerfilNome" type="text" placeholder="Seu nome completo" maxlength="80" disabled>
 
-        <label for="promotorPerfilTelefone">Telefone (DDD + número)</label>
-        <input id="promotorPerfilTelefone" type="tel" inputmode="tel" placeholder="(11) 98765-4321" maxlength="16" disabled>
-        <small class="promotor-perfil-dica">Informe um telefone válido com DDD (ex: 11 98765-4321).</small>
+          <label for="promotorPerfilTelefone">Telefone (DDD + número)</label>
+          <input id="promotorPerfilTelefone" type="tel" inputmode="tel" placeholder="(11) 98765-4321" maxlength="16" disabled>
+          <small class="promotor-perfil-dica">Informe um telefone válido com DDD (ex: 11 98765-4321).</small>
 
-        <label for="promotorPerfilPix">Chave Pix para recebimento</label>
-        <input id="promotorPerfilPix" type="text" placeholder="CPF, e-mail, telefone ou chave aleatória" maxlength="120" disabled>
+          <label for="promotorPerfilPix">Chave Pix para recebimento</label>
+          <input id="promotorPerfilPix" type="text" placeholder="CPF, e-mail, telefone ou chave aleatória" maxlength="120" disabled>
+        </div>
 
         <div class="promotor-perfil-acoes">
           <button id="btnEditarPerfilPromotor" type="button" class="btn-secondary">Editar informações pessoais</button>
@@ -128,6 +130,6 @@
     Porco do Bicho • Painel do Promotor.
   </footer>
 
-  <script src="../js/promotor.js?v=20260429-8"></script>
+  <script src="../js/promotor.js?v=20260429-9"></script>
 </body>
 </html>

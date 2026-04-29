@@ -7,10 +7,32 @@
 <link rel="icon" type="image/png" href="img/mascote/icone.png?v=20260425">
 <link rel="apple-touch-icon" href="img/mascote/icone.png?v=20260425">
 
-<link rel="stylesheet" href="css/style.css?v=20260429-16">
+<link rel="stylesheet" href="css/style.css?v=20260429-17">
 </head>
 
 <body>
+
+<button id="btnMenuLateral" class="btn-menu-lateral" type="button" aria-label="Abrir menu" onclick="alternarMenuLateral()">☰</button>
+<div id="menuLateralOverlay" class="menu-lateral-overlay" onclick="fecharMenuLateral()"></div>
+<aside id="menuLateral" class="menu-lateral" aria-hidden="true">
+  <div class="menu-lateral-topo">
+    <strong>Menu</strong>
+    <button type="button" class="menu-lateral-fechar" aria-label="Fechar menu" onclick="fecharMenuLateral()">×</button>
+  </div>
+  <p id="menuUsuarioInfo" class="menu-lateral-usuario">Acesso rápido</p>
+  <nav class="menu-lateral-lista" aria-label="Menu principal">
+    <button type="button" class="menu-lateral-item" onclick="irHomeCabecalho(); fecharMenuLateral();">Home</button>
+    <button type="button" class="menu-lateral-item" onclick="irParaSecaoMenu('cardResultados'); fecharMenuLateral();">Resultados</button>
+    <button type="button" class="menu-lateral-item" onclick="abrirApostasAgora(); irParaSecaoMenu('cardApostas'); fecharMenuLateral();">Apostas</button>
+    <button type="button" class="menu-lateral-item" onclick="irParaSecaoMenu('cardPremiacoesDestaque'); fecharMenuLateral();">Premiações</button>
+    <button id="menuItemEntrar" type="button" class="menu-lateral-item" onclick="abrirPainelLoginUsuario(); irParaSecaoMenu('blocoUsuarioTopo'); fecharMenuLateral();">Entrar</button>
+    <button id="menuItemCadastro" type="button" class="menu-lateral-item" onclick="abrirCadastroUsuario(); irParaSecaoMenu('blocoUsuarioTopo'); fecharMenuLateral();">Cadastro</button>
+    <button id="menuItemMeuPerfil" type="button" class="menu-lateral-item" style="display:none;" onclick="abrirMeuPerfil();">Meu Perfil</button>
+    <button id="menuItemPainelPromotor" type="button" class="menu-lateral-item" style="display:none;" onclick="abrirPainelPromotor();">Painel Promotor</button>
+    <button id="menuItemDepositar" type="button" class="menu-lateral-item" style="display:none;" onclick="abrirDeposito(); fecharMenuLateral();">Depositar</button>
+    <button id="menuItemSair" type="button" class="menu-lateral-item menu-lateral-item-sair" style="display:none;" onclick="sairUsuarioCabecalho(); fecharMenuLateral();">Sair</button>
+  </nav>
+</aside>
 
 <div id="cabecalhoUsuario" class="cabecalho-usuario" style="display:none;">
   <button class="btn-secondary btn-cabecalho-home" onclick="irHomeCabecalho()">Home</button>
@@ -223,7 +245,7 @@
   </div>
   <div id="avisoApostasEncerradas" class="aviso-apostas-encerradas" style="display:none;">Apostas Encerradas!</div>
 
-  <div class="card">
+  <div class="card" id="cardResultados">
     <h3>Resultados</h3>
     <div class="filtro-data">
       <button id="btnDiaAnterior" class="btn-nav" onclick="voltarDia()">◀</button>
@@ -244,7 +266,7 @@
     <div id="resultados"></div>
   </div>
 
-  <div class="card card-premiacoes-destaque">
+  <div class="card card-premiacoes-destaque" id="cardPremiacoesDestaque">
     <div class="titulo-premiacoes-destaque">
       <h3>Premiações do dia em destaque</h3>
       <span id="dataPremiacoesDestaque" class="data-premiacoes-destaque">--/--/--</span>
@@ -325,6 +347,6 @@
   </div>
 </footer>
 
-<script src="js/app.js?v=20260429-53"></script>
+<script src="js/app.js?v=20260429-54"></script>
 </body>
 </html>

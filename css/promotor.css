@@ -90,6 +90,10 @@
   font-weight: 700;
 }
 
+.promotor-perfil-campos-edicao[hidden] {
+  display: none !important;
+}
+
 .promotor-perfil-dica {
   display: block;
   margin: 2px 0 6px;

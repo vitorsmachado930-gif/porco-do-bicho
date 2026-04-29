@@ -832,6 +832,7 @@ function atualizarControlesEdicaoPerfil() {
   const btnEditar = document.getElementById("btnEditarPerfil");
   const btnCancelar = document.getElementById("btnCancelarPerfil");
   const btnSalvar = document.getElementById("btnSalvarPerfil");
+  const camposEdicao = document.getElementById("perfilCamposEdicao");
   const podeEditar = Boolean(usuarioAtual);
   const emEdicao = Boolean(modoEdicaoPerfil && podeEditar);
 
@@ -846,6 +847,9 @@ function atualizarControlesEdicaoPerfil() {
   if (btnSalvar) {
     btnSalvar.style.display = emEdicao ? "inline-block" : "none";
     btnSalvar.disabled = !emEdicao;
+  }
+  if (camposEdicao) {
+    camposEdicao.hidden = !emEdicao;
   }
 }
 

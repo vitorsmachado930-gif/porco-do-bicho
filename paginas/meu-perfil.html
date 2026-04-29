@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/perfil.css?v=20260427-7">
+  <link rel="stylesheet" href="../css/perfil.css?v=20260429-8">
 </head>
 <body>
   <header class="topo-pagina">
@@ -27,15 +27,17 @@
         <small id="perfilSaldoAnimacao" aria-live="polite"></small>
       </div>
 
-      <label for="perfilNome">Nome</label>
-      <input id="perfilNome" type="text" placeholder="Seu nome completo" maxlength="80">
+      <div id="perfilCamposEdicao" class="perfil-campos-edicao" hidden>
+        <label for="perfilNome">Nome</label>
+        <input id="perfilNome" type="text" placeholder="Seu nome completo" maxlength="80">
 
-      <label for="perfilTelefone">Telefone (DDD + número)</label>
-      <input id="perfilTelefone" type="tel" inputmode="tel" placeholder="(11) 98765-4321" maxlength="16">
-      <small class="perfil-dica-campo">Informe um telefone válido com DDD (ex: 11 98765-4321).</small>
+        <label for="perfilTelefone">Telefone (DDD + número)</label>
+        <input id="perfilTelefone" type="tel" inputmode="tel" placeholder="(11) 98765-4321" maxlength="16">
+        <small class="perfil-dica-campo">Informe um telefone válido com DDD (ex: 11 98765-4321).</small>
 
-      <label for="perfilChavePix">Chave Pix para recebimento</label>
-      <input id="perfilChavePix" type="text" placeholder="CPF, e-mail, telefone ou chave aleatória" maxlength="120">
+        <label for="perfilChavePix">Chave Pix para recebimento</label>
+        <input id="perfilChavePix" type="text" placeholder="CPF, e-mail, telefone ou chave aleatória" maxlength="120">
+      </div>
 
       <div class="perfil-acoes-edicao">
         <button id="btnEditarPerfil" type="button" class="btn-secundario">Editar informações pessoais</button>
@@ -97,6 +99,6 @@
     Porco do Bicho • Área de perfil • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/perfil.js?v=20260429-18"></script>
+  <script src="../js/perfil.js?v=20260429-19"></script>
 </body>
 </html>

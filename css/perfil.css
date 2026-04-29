@@ -79,6 +79,10 @@
   font-weight: 700;
 }
 
+.perfil-campos-edicao[hidden] {
+  display: none !important;
+}
+
 .perfil-dica-campo {
   display: block;
   margin-top: 4px;

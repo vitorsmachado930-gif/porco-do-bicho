@@ -430,6 +430,7 @@ function atualizarControlesPerfilPromotor() {
   const btnEditar = document.getElementById("btnEditarPerfilPromotor");
   const btnCancelar = document.getElementById("btnCancelarPerfilPromotor");
   const btnSalvar = document.getElementById("btnSalvarPerfilPromotor");
+  const camposEdicao = document.getElementById("promotorPerfilCamposEdicao");
   const podeEditar = Boolean(usuarioAtual && usuarioAtual.role === PAPEL_USUARIO_PROMOTOR);
   const emEdicao = Boolean(modoEdicaoPerfilPromotor && podeEditar);
 
@@ -444,6 +445,9 @@ function atualizarControlesPerfilPromotor() {
   if (btnSalvar) {
     btnSalvar.style.display = emEdicao ? "inline-block" : "none";
     btnSalvar.disabled = !emEdicao;
+  }
+  if (camposEdicao) {
+    camposEdicao.hidden = !emEdicao;
   }
 }
 
