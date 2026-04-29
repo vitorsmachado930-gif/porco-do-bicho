@@ -4342,6 +4342,39 @@ function atualizarCarteiraUsuarioAposta() {
   const saldoAtual = normalizarSaldoUsuario(usuarioSincronizado && usuarioSincronizado.saldo);
   if (saldoEl) saldoEl.innerText = formatarMoedaBR(saldoAtual);
   if (saldoCabecalhoEl) saldoCabecalhoEl.innerText = formatarMoedaBR(saldoAtual);
+  atualizarBloqueioBotoesApostaPorSaldo(saldoAtual);
+}
+
+function atualizarBloqueioBotoesApostaPorSaldo(saldoAtual) {
+  const temUsuario = Boolean(usuarioAtual);
+  const saldoNum = normalizarSaldoUsuario(saldoAtual);
+  const saldoInsuficiente = temUsuario && saldoNum <= 0;
+
+  const btnAposteAgora = document.getElementById("btnAposteAgora");
+  const btnConfirma = document.querySelector(
+    "#cardApostas .acoes-bilhete-aposta button[onclick=\"adicionarApostaAoBilhete()\"]"
+  );
+  const btnSalvar = document.querySelector("#cardApostas > button[onclick=\"salvarAposta()\"]");
+
+  if (btnAposteAgora) {
+    btnAposteAgora.disabled = saldoInsuficiente;
+    btnAposteAgora.title = saldoInsuficiente
+      ? "Saldo insuficiente para apostar."
+      : "Clique para iniciar sua aposta.";
+  }
+  if (btnConfirma) {
+    btnConfirma.disabled = saldoInsuficiente;
+    btnConfirma.title = saldoInsuficiente ? "Saldo insuficiente para apostar." : "";
+  }
+  if (btnSalvar) {
+    btnSalvar.disabled = saldoInsuficiente;
+    btnSalvar.title = saldoInsuficiente ? "Saldo insuficiente para apostar." : "";
+  }
+
+  if (saldoInsuficiente && painelApostaExpandido) {
+    painelApostaExpandido = false;
+    atualizarModoCTADeApostas();
+  }
 }
 
 function irHomeCabecalho() {
@@ -4379,6 +4412,11 @@ function abrirDeposito() {
 
 function abrirApostasAgora() {
   if (!usuarioAtual || secaoApostasEncerrada) return;
+  const saldoAtual = normalizarSaldoUsuario(usuarioAtual.saldo);
+  if (saldoAtual <= 0) {
+    mostrarConfirmacaoApostaRapida("Saldo insuficiente. Faça uma recarga para apostar.", "erro");
+    return;
+  }
   painelApostaExpandido = true;
   if (apostasBilheteRascunho.length === 0) {
     direcionarEtapaLoteria = false;
@@ -5201,7 +5239,7 @@ function renderizarBilheteRascunhoAposta() {
         `<button type="button" class="btn-danger btn-remover-rascunho" onclick="removerApostaBilheteRascunho(${index})">Remover</button>` +
         `</div>` +
         `<div class="${classeLinhaPalpite}">Palpite: <b>${palpite}</b></div>` +
-        `<div>Valor: ${formatarMoedaBR(item.valor)} | Potencial: ${formatarMoedaBR(item.premio)}</div>` +
+        `<div>Valor: <span class="valor-aposta-bilhete-criacao">${formatarMoedaBR(item.valor)}</span> | Potencial: ${formatarMoedaBR(item.premio)}</div>` +
         `</div>`
       );
     })
@@ -5244,6 +5282,10 @@ function adicionarApostaAoBilhete() {
     mostrarConfirmacaoApostaRapida("Faça login de usuário para apostar.", "erro");
     return;
   }
+  if (normalizarSaldoUsuario(usuarioSincronizado.saldo) <= 0) {
+    mostrarConfirmacaoApostaRapida("Saldo insuficiente. Faça uma recarga para apostar.", "erro");
+    return;
+  }
 
   const leitura = lerLinhaApostaDoFormulario();
   if (!leitura.ok) {
@@ -5282,6 +5324,10 @@ function salvarAposta() {
   if (!usuarioSincronizado) {
     atualizarStatusUsuario("Faça login de usuário para apostar.", true);
     mostrarConfirmacaoApostaRapida("Faça login de usuário para apostar.", "erro");
+    return;
+  }
+  if (normalizarSaldoUsuario(usuarioSincronizado.saldo) <= 0) {
+    mostrarConfirmacaoApostaRapida("Saldo insuficiente. Faça uma recarga para apostar.", "erro");
     return;
   }
 
