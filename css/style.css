@@ -1058,6 +1058,21 @@ button:disabled {
   text-align: center;
 }
 
+#cardApostas #palpiteGrupoContainer,
+#cardApostas #blocoPremiacaoAposta,
+#cardApostas .acoes-bilhete-aposta,
+#cardApostas #bilheteRascunhoAposta,
+#cardApostas .loterias-aposta-bloco,
+#cardApostas .linha-praca-fixa,
+#cardApostas #infoLimitesAposta,
+#cardApostas #cronometroAposta,
+#cardApostas > button[onclick="salvarAposta()"] {
+  width: min(100%, 320px);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
 .btn-aposte-agora-cta {
   display: none;
   width: min(100%, 320px);
@@ -1113,7 +1128,6 @@ button:disabled {
 }
 
 #cardApostas .linha-praca-fixa {
-  width: min(100%, 320px);
   margin: 6px auto 8px auto;
   padding: 8px 10px;
 }
