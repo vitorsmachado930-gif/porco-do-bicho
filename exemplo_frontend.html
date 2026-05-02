@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Exemplo Pix Asaas</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 680px; margin: 24px auto; padding: 0 12px; }
+    .card { border: 1px solid #ddd; border-radius: 10px; padding: 16px; }
+    label { display: block; margin-top: 10px; }
+    input, button, textarea { width: 100%; padding: 10px; margin-top: 6px; box-sizing: border-box; }
+    button { cursor: pointer; }
+    .ok { color: #0a7d39; }
+    .erro { color: #b42323; }
+    #qrBox { margin-top: 14px; display: none; }
+    #qrImage { width: 220px; height: 220px; object-fit: contain; border: 1px solid #ccc; padding: 4px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Gerar Pix (Asaas)</h1>
+
+    <!-- ID do usuário local (tabela usuarios.id) -->
+    <label for="userId">ID do usuário</label>
+    <input id="userId" type="number" value="1" min="1">
+
+    <!-- Valor em reais -->
+    <label for="valor">Valor do depósito (R$)</label>
+    <input id="valor" type="number" step="0.01" value="10.00" min="1">
+
+    <!-- Botão para gerar Pix -->
+    <button id="btnGerarPix" type="button">Gerar Pix</button>
+
+    <!-- Área de status -->
+    <p id="status"></p>
+
+    <!-- Área que mostra QR e copia e cola -->
+    <div id="qrBox">
+      <h3>Pix Gerado</h3>
+      <p id="resumo"></p>
+      <img id="qrImage" alt="QR Code Pix">
+      <label for="pixCode">Pix copia e cola</label>
+      <textarea id="pixCode" rows="4" readonly></textarea>
+      <button id="btnCopiar" type="button">Copiar código Pix</button>
+    </div>
+  </div>
+
+  <script>
+    // Endpoint backend que cria cobrança PIX.
+    const URL_CRIAR_PIX = './criar_pix.php';
+
+    // Endpoint para consultar status local do depósito (opcional no exemplo).
+    // (Neste exemplo simples, vamos apenas orientar aguardar webhook.)
+
+    // Elementos da tela.
+    const elStatus = document.getElementById('status');
+    const elQrBox = document.getElementById('qrBox');
+    const elResumo = document.getElementById('resumo');
+    const elQrImage = document.getElementById('qrImage');
+    const elPixCode = document.getElementById('pixCode');
+
+    // Função para mostrar status.
+    function setStatus(texto, erro = false) {
+      elStatus.textContent = texto || '';
+      elStatus.className = erro ? 'erro' : 'ok';
+    }
+
+    // Clique em gerar Pix.
+    document.getElementById('btnGerarPix').addEventListener('click', async () => {
+      try {
+        // Lê valores do formulário.
+        const userId = Number(document.getElementById('userId').value || 0);
+        const valor = Number(document.getElementById('valor').value || 0);
+
+        // Valida localmente.
+        if (!Number.isFinite(userId) || userId <= 0) {
+          setStatus('Informe um ID de usuário válido.', true);
+          return;
+        }
+        if (!Number.isFinite(valor) || valor < 1) {
+          setStatus('Informe valor mínimo de R$ 1,00.', true);
+          return;
+        }
+
+        // Informa carregamento.
+        setStatus('Gerando Pix...');
+
+        // Chama backend (API Key não vai para o frontend).
+        const resp = await fetch(URL_CRIAR_PIX, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, valor })
+        });
+
+        // Lê JSON de retorno.
+        const data = await resp.json();
+
+        // Trata erro HTTP.
+        if (!resp.ok || !data.ok) {
+          throw new Error(data.error || 'Falha ao gerar Pix.');
+        }
+
+        // Extrai dados úteis.
+        const dep = data.deposito || {};
+        const qrBase64 = String(dep.qrCodeBase64 || '');
+        const pixCopiaCola = String(dep.pixCopiaCola || '');
+
+        // Mostra resumo.
+        elResumo.textContent = `Depósito #${dep.id} | Status: ${dep.status} | Valor: R$ ${Number(dep.valor || 0).toFixed(2)}`;
+
+        // Mostra imagem QR (base64).
+        elQrImage.src = `data:image/png;base64,${qrBase64}`;
+
+        // Mostra payload Pix.
+        elPixCode.value = pixCopiaCola;
+
+        // Exibe bloco de QR.
+        elQrBox.style.display = 'block';
+
+        // Mensagem final.
+        setStatus('Pix gerado com sucesso. Pague para o webhook creditar o saldo automaticamente.');
+      } catch (err) {
+        // Mostra erro amigável.
+        setStatus(err.message || 'Erro ao gerar Pix.', true);
+      }
+    });
+
+    // Botão copiar Pix.
+    document.getElementById('btnCopiar').addEventListener('click', async () => {
+      try {
+        const texto = elPixCode.value.trim();
+        if (!texto) {
+          setStatus('Não há código Pix para copiar.', true);
+          return;
+        }
+        await navigator.clipboard.writeText(texto);
+        setStatus('Código Pix copiado.');
+      } catch (_) {
+        setStatus('Não foi possível copiar automaticamente.', true);
+      }
+    });
+  </script>
+</body>
+</html>
