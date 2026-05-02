@@ -63,6 +63,18 @@
   box-sizing: border-box;
 }
 
+.card-deposito textarea {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border-radius: 7px;
+  border: 1px solid #2a4155;
+  background: #0f1a24;
+  color: #e8f3ff;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
 .card-deposito input:disabled {
   opacity: 0.75;
   cursor: not-allowed;
@@ -97,6 +109,40 @@
   margin: 10px 0 0 0;
   font-size: 13px;
   color: #9fb3c8;
+}
+
+.deposito-pix-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #00c85355;
+  background: #0f1a24;
+}
+
+.deposito-pix-box h2 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #9fd5ff;
+}
+
+#depositoPixResumo {
+  margin: 0 0 8px 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#depositoPixQrImage {
+  display: block;
+  width: min(100%, 240px);
+  margin: 6px auto 10px auto;
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px;
+}
+
+.btn-secundario-deposito {
+  background: #455a64 !important;
+  color: #fff !important;
 }
 
 @media (max-width: 640px) {

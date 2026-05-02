@@ -3,3 +3,7 @@ Options -Indexes
 <Files "security.php">
   Require all denied
 </Files>
+
+<FilesMatch "^(wallet_.*\.php)$">
+  Require all denied
+</FilesMatch>

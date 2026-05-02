@@ -1,11 +1,28 @@
 const USUARIOS_KEY = "usuarios_aposta";
 const USUARIO_SESSAO_KEY = "usuario_sessao_id";
-const PAINEL_UPDATED_AT_KEY = "painel_updated_at";
 const PAPEL_USUARIO_APOSTADOR = "apostador";
 const PAPEL_USUARIO_PROMOTOR = "promotor";
 
+const API_ORIGIN_FALLBACK = "https://porcodobicho.com";
+const API_ORIGIN_ATIVO = (() => {
+  const host = String(window.location.hostname || "").toLowerCase();
+  const isLocal =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host.endsWith(".local");
+  return isLocal ? API_ORIGIN_FALLBACK : "";
+})();
+
+const API_WALLET_UPSERT_URL = `${API_ORIGIN_ATIVO}/api/carteira_usuario_upsert.php`;
+const API_WALLET_SALDO_URL = `${API_ORIGIN_ATIVO}/api/carteira_saldo_usuario.php`;
+const API_WALLET_CRIAR_DEPOSITO_URL = `${API_ORIGIN_ATIVO}/api/carteira_deposito_criar.php`;
+const API_WALLET_STATUS_DEPOSITO_URL = `${API_ORIGIN_ATIVO}/api/carteira_deposito_status.php`;
+
 let usuarios = [];
 let usuarioAtual = null;
+let depositoRefAtual = "";
+let timerStatusDeposito = null;
 
 function lerJSONStorage(chave, fallback) {
   try {
@@ -18,10 +35,6 @@ function lerJSONStorage(chave, fallback) {
   }
 }
 
-function salvarJSONStorage(chave, valor) {
-  localStorage.setItem(chave, JSON.stringify(valor));
-}
-
 function normalizarLoginUsuario(login) {
   return String(login || "")
     .trim()
@@ -29,8 +42,17 @@ function normalizarLoginUsuario(login) {
     .replace(/\s+/g, "");
 }
 
-function extrairDigitos(valor) {
-  return String(valor || "").replace(/\D/g, "");
+function normalizarValorNaoNegativo(valor) {
+  const n = Number(valor);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  return Number(n.toFixed(2));
+}
+
+function normalizarIdPositivo(valor) {
+  if (valor === null || valor === undefined || valor === "") return null;
+  const id = Number(valor);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  return Math.floor(id);
 }
 
 function formatarMoedaBR(valor) {
@@ -48,49 +70,8 @@ function formatarCentavosComoMoedaBR(centavos) {
   return formatarMoedaBR(final / 100);
 }
 
-function normalizarValorNaoNegativo(valor) {
-  const n = Number(valor);
-  if (!Number.isFinite(n) || n < 0) return 0;
-  return Number(n.toFixed(2));
-}
-
-function normalizarIdPositivo(valor) {
-  if (valor === null || valor === undefined || valor === "") return null;
-  const id = Number(valor);
-  if (!Number.isFinite(id) || id <= 0) return null;
-  return Math.floor(id);
-}
-
-function normalizarDataISO(valor) {
-  if (typeof valor !== "string") return "";
-  const limpo = valor.trim();
-  if (!limpo) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(limpo)) return limpo;
-  const d = new Date(limpo);
-  if (Number.isNaN(d.getTime())) return "";
-  const ano = d.getFullYear();
-  const mes = String(d.getMonth() + 1).padStart(2, "0");
-  const dia = String(d.getDate()).padStart(2, "0");
-  return `${ano}-${mes}-${dia}`;
-}
-
-function hojeISO() {
-  return normalizarDataISO(new Date().toISOString()) || "";
-}
-
-function normalizarContadorNaoNegativo(valor) {
-  const n = Number(valor);
-  if (!Number.isFinite(n) || n < 0) return 0;
-  return Math.floor(n);
-}
-
-function resetarControleDiarioBonusIndicacao(usuario, dataReferencia) {
-  if (!usuario || typeof usuario !== "object") return;
-  const referencia = normalizarDataISO(dataReferencia) || hojeISO();
-  if (String(usuario.bonusIndicacaoConvertidoHojeData || "") !== referencia) {
-    usuario.bonusIndicacaoConvertidoHoje = 0;
-    usuario.bonusIndicacaoConvertidoHojeData = referencia;
-  }
+function extrairDigitos(valor) {
+  return String(valor || "").replace(/\D/g, "");
 }
 
 function sanitizarUsuarios(arr) {
@@ -107,36 +88,6 @@ function sanitizarUsuarios(arr) {
         String(raw.role || "").trim().toLowerCase() === PAPEL_USUARIO_PROMOTOR
           ? PAPEL_USUARIO_PROMOTOR
           : PAPEL_USUARIO_APOSTADOR;
-      const promotorIdNum = Number(raw.promotorId);
-      const promotorId =
-        Number.isFinite(promotorIdNum) && promotorIdNum > 0 ? Math.floor(promotorIdNum) : null;
-      const comissaoPercentualRaw = Number(raw.comissaoPercentual);
-      const comissaoPercentual = Number.isFinite(comissaoPercentualRaw)
-        ? Math.max(0, Math.min(100, Number(comissaoPercentualRaw.toFixed(2))))
-        : 0;
-      const comissaoSaldoRaw = Number(raw.comissaoSaldo);
-      const comissaoSaldo = Number.isFinite(comissaoSaldoRaw) && comissaoSaldoRaw >= 0
-        ? Number(comissaoSaldoRaw.toFixed(2))
-        : 0;
-      const comissaoTotalRaw = Number(raw.comissaoTotal);
-      const comissaoTotal = Number.isFinite(comissaoTotalRaw) && comissaoTotalRaw >= 0
-        ? Number(comissaoTotalRaw.toFixed(2))
-        : 0;
-      const totalDepositosRaw = Number(raw.totalDepositos);
-      const totalDepositos = Number.isFinite(totalDepositosRaw) && totalDepositosRaw >= 0
-        ? Number(totalDepositosRaw.toFixed(2))
-        : 0;
-      const saldoApostador = normalizarValorNaoNegativo(raw.saldoApostador);
-      const indicadorId = normalizarIdPositivo(raw.indicadorId);
-      const bonusIndicacaoSaldo = normalizarValorNaoNegativo(raw.bonusIndicacaoSaldo);
-      const bonusIndicacaoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoTotal);
-      const bonusIndicacaoConvertidoTotal = normalizarValorNaoNegativo(raw.bonusIndicacaoConvertidoTotal);
-      const bonusIndicacaoConvertidoHoje = normalizarValorNaoNegativo(raw.bonusIndicacaoConvertidoHoje);
-      const bonusIndicacaoConvertidoHojeData = normalizarDataISO(raw.bonusIndicacaoConvertidoHojeData);
-      const indicadosTotal = normalizarContadorNaoNegativo(raw.indicadosTotal);
-      const telefone = String(raw.telefone || "").trim();
-      const chavePix = String(raw.chavePix || "").trim().slice(0, 120);
-      const bloqueado = Boolean(raw.bloqueado || raw.blocked || raw.suspenso);
       if (!Number.isFinite(id)) return null;
       if (nome.length < 2) return null;
       if (!login) return null;
@@ -145,56 +96,13 @@ function sanitizarUsuarios(arr) {
         id,
         nome,
         login,
-        senha,
         saldo: Number.isFinite(saldo) && saldo >= 0 ? Number(saldo.toFixed(2)) : 0,
         role,
-        promotorId: role === PAPEL_USUARIO_PROMOTOR ? null : promotorId,
-        comissaoPercentual: role === PAPEL_USUARIO_PROMOTOR ? comissaoPercentual : 0,
-        comissaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? comissaoSaldo : 0,
-        comissaoTotal: role === PAPEL_USUARIO_PROMOTOR ? comissaoTotal : 0,
-        totalDepositos,
-        saldoApostador: role === PAPEL_USUARIO_PROMOTOR ? saldoApostador : 0,
-        indicadorId: role === PAPEL_USUARIO_PROMOTOR ? null : indicadorId,
-        bonusIndicacaoSaldo: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoSaldo,
-        bonusIndicacaoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoTotal,
-        bonusIndicacaoConvertidoTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoConvertidoTotal,
-        bonusIndicacaoConvertidoHoje: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoConvertidoHoje,
-        bonusIndicacaoConvertidoHojeData: role === PAPEL_USUARIO_PROMOTOR ? "" : (bonusIndicacaoConvertidoHojeData || ""),
-        indicadosTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : indicadosTotal,
-        telefone,
-        chavePix,
-        bloqueado
+        email: String(raw.email || "").trim(),
+        telefone: String(raw.telefone || "").trim(),
       };
     })
     .filter(Boolean);
-
-  const idsPromotores = new Set(
-    sane.filter((item) => item.role === PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
-  );
-  const idsApostadores = new Set(
-    sane.filter((item) => item.role !== PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
-  );
-  sane.forEach((item) => {
-    if (item.role === PAPEL_USUARIO_PROMOTOR) {
-      item.promotorId = null;
-      item.indicadorId = null;
-      item.bonusIndicacaoSaldo = 0;
-      item.bonusIndicacaoTotal = 0;
-      item.bonusIndicacaoConvertidoTotal = 0;
-      item.bonusIndicacaoConvertidoHoje = 0;
-      item.bonusIndicacaoConvertidoHojeData = "";
-      item.indicadosTotal = 0;
-      return;
-    }
-    item.saldoApostador = 0;
-    if (!idsPromotores.has(item.promotorId)) {
-      item.promotorId = null;
-    }
-    if (!idsApostadores.has(item.indicadorId) || item.indicadorId === item.id) {
-      item.indicadorId = null;
-    }
-    resetarControleDiarioBonusIndicacao(item, hojeISO());
-  });
 
   return sane;
 }
@@ -207,10 +115,6 @@ function carregarEstado() {
     return;
   }
   usuarioAtual = usuarios.find((u) => u.id === sessaoId) || null;
-  if (usuarioAtual && usuarioAtual.bloqueado) {
-    localStorage.removeItem(USUARIO_SESSAO_KEY);
-    usuarioAtual = null;
-  }
 }
 
 function atualizarStatusDeposito(texto, erro) {
@@ -220,21 +124,54 @@ function atualizarStatusDeposito(texto, erro) {
   el.innerText = texto || "";
 }
 
+function mostrarPixBox(info) {
+  const box = document.getElementById("depositoPixBox");
+  const resumo = document.getElementById("depositoPixResumo");
+  const img = document.getElementById("depositoPixQrImage");
+  const copia = document.getElementById("depositoPixCopiaCola");
+
+  if (!box || !resumo || !img || !copia) return;
+
+  const valorFmt = formatarMoedaBR(info.valor || 0);
+  resumo.innerText = `Depósito ${info.referenceId || "-"} | Valor: ${valorFmt} | Status: ${info.status || "PENDENTE"}`;
+
+  const qrBase64 = String(info.qrCodeBase64 || "").trim();
+  if (qrBase64) {
+    img.src = `data:image/png;base64,${qrBase64}`;
+    img.style.display = "block";
+  } else {
+    img.removeAttribute("src");
+    img.style.display = "none";
+  }
+
+  copia.value = String(info.pixCopiaCola || "");
+  box.style.display = "block";
+}
+
+function ocultarPixBox() {
+  const box = document.getElementById("depositoPixBox");
+  if (box) box.style.display = "none";
+}
+
 function atualizarResumoUsuario() {
   const resumoEl = document.getElementById("depositoResumoUsuario");
   const saldoEl = document.getElementById("depositoSaldoAtual");
   const inputEl = document.getElementById("valorDepositoNovo");
   const btnEl = document.getElementById("btnDepositarSaldo");
+
   if (!resumoEl || !saldoEl || !inputEl || !btnEl) return;
 
   if (usuarioAtual) {
     saldoEl.innerText = formatarMoedaBR(usuarioAtual.saldo);
+    resumoEl.innerText = `Usuário logado: ${usuarioAtual.nome} (@${usuarioAtual.login}).`;
+    inputEl.disabled = false;
+    btnEl.disabled = false;
   } else {
     saldoEl.innerText = "R$ 0,00";
+    resumoEl.innerText = "Faça login antes de gerar depósito.";
+    inputEl.disabled = true;
+    btnEl.disabled = true;
   }
-  resumoEl.innerText = "Recarga disponível somente no Painel Admin.";
-  inputEl.disabled = true;
-  btnEl.disabled = true;
 }
 
 function configurarMascaraValorDeposito() {
@@ -251,15 +188,200 @@ function configurarMascaraValorDeposito() {
   input.value = formatarCentavosComoMoedaBR(input.value);
 }
 
-function depositarSaldo() {
-  atualizarStatusDeposito("Recarga disponível somente no Painel Admin.", true);
+function valorInputDeposito() {
+  const input = document.getElementById("valorDepositoNovo");
+  if (!input) return 0;
+  const digitos = extrairDigitos(input.value);
+  const centavos = Number(digitos || 0);
+  if (!Number.isFinite(centavos) || centavos <= 0) return 0;
+  return normalizarValorNaoNegativo(centavos / 100);
 }
 
-function initDeposito() {
+async function requestJson(url, options) {
+  const resp = await fetch(url, {
+    ...(options || {}),
+    headers: {
+      Accept: "application/json",
+      "X-Requested-With": "XMLHttpRequest",
+      "X-App-Client": "porcodobicho-web",
+      ...((options && options.headers) || {})
+    },
+    cache: "no-store"
+  });
+
+  let body = null;
+  try {
+    body = await resp.json();
+  } catch (_err) {
+    body = null;
+  }
+
+  if (!resp.ok) {
+    const msg = body && body.error ? body.error : `Falha HTTP ${resp.status}`;
+    throw new Error(msg);
+  }
+
+  return body || {};
+}
+
+async function sincronizarUsuarioCarteira() {
+  if (!usuarioAtual) return;
+
+  await requestJson(API_WALLET_UPSERT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      login: usuarioAtual.login,
+      nome: usuarioAtual.nome,
+      email: usuarioAtual.email || "",
+      telefone: usuarioAtual.telefone || ""
+    })
+  });
+}
+
+async function atualizarSaldoCarteira() {
+  if (!usuarioAtual) return;
+
+  const payload = await requestJson(
+    `${API_WALLET_SALDO_URL}?login=${encodeURIComponent(usuarioAtual.login)}`,
+    { method: "GET" }
+  );
+
+  const saldoRemoto = normalizarValorNaoNegativo(payload?.usuario?.saldo || 0);
+  usuarioAtual.saldo = saldoRemoto;
+  const saldoEl = document.getElementById("depositoSaldoAtual");
+  if (saldoEl) saldoEl.innerText = formatarMoedaBR(saldoRemoto);
+}
+
+function pararPollingStatusDeposito() {
+  if (timerStatusDeposito) {
+    clearInterval(timerStatusDeposito);
+    timerStatusDeposito = null;
+  }
+}
+
+async function consultarStatusDepositoAtual() {
+  if (!depositoRefAtual) return;
+
+  try {
+    const payload = await requestJson(
+      `${API_WALLET_STATUS_DEPOSITO_URL}?ref=${encodeURIComponent(depositoRefAtual)}`,
+      { method: "GET" }
+    );
+
+    const dep = payload?.deposito || {};
+    const status = String(dep.status || "").toUpperCase();
+
+    mostrarPixBox({
+      referenceId: dep.referenceId || depositoRefAtual,
+      valor: dep.valor || 0,
+      status,
+      qrCodeBase64: "",
+      pixCopiaCola: (document.getElementById("depositoPixCopiaCola") || {}).value || ""
+    });
+
+    if (status === "PAGO") {
+      pararPollingStatusDeposito();
+      atualizarStatusDeposito("Pagamento confirmado. Saldo creditado com sucesso!", false);
+      await atualizarSaldoCarteira();
+    }
+  } catch (_err) {
+    // Mantem polling silencioso para nao poluir a tela.
+  }
+}
+
+async function depositarSaldo() {
+  try {
+    if (!usuarioAtual) {
+      atualizarStatusDeposito("Faça login para gerar depósito.", true);
+      return;
+    }
+
+    const valor = valorInputDeposito();
+    if (valor < 1) {
+      atualizarStatusDeposito("Informe um valor mínimo de R$ 1,00.", true);
+      return;
+    }
+
+    const cpfInput = document.getElementById("cpfCnpjDeposito");
+    const cpfCnpj = extrairDigitos(cpfInput ? cpfInput.value : "");
+
+    atualizarStatusDeposito("Gerando cobrança PIX...", false);
+
+    const payload = await requestJson(API_WALLET_CRIAR_DEPOSITO_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        login: usuarioAtual.login,
+        valor,
+        cpfCnpj
+      })
+    });
+
+    const dep = payload?.deposito || {};
+    depositoRefAtual = String(dep.referenceId || "");
+
+    mostrarPixBox({
+      referenceId: depositoRefAtual,
+      valor: dep.valor || valor,
+      status: dep.status || "PENDENTE",
+      qrCodeBase64: dep.qrCodeBase64 || "",
+      pixCopiaCola: dep.pixCopiaCola || ""
+    });
+
+    atualizarStatusDeposito(
+      "PIX gerado. Pague o QR Code para o saldo ser creditado automaticamente.",
+      false
+    );
+
+    pararPollingStatusDeposito();
+    timerStatusDeposito = setInterval(() => {
+      consultarStatusDepositoAtual();
+    }, 15000);
+  } catch (err) {
+    atualizarStatusDeposito(err?.message || "Falha ao gerar depósito PIX.", true);
+  }
+}
+
+function copiarCodigoPix() {
+  const area = document.getElementById("depositoPixCopiaCola");
+  if (!area) return;
+  const texto = String(area.value || "").trim();
+  if (!texto) {
+    atualizarStatusDeposito("Nenhum código PIX para copiar.", true);
+    return;
+  }
+
+  navigator.clipboard
+    .writeText(texto)
+    .then(() => atualizarStatusDeposito("Código PIX copiado.", false))
+    .catch(() => atualizarStatusDeposito("Não foi possível copiar automaticamente.", true));
+}
+
+async function initDeposito() {
   carregarEstado();
   configurarMascaraValorDeposito();
   atualizarResumoUsuario();
+  ocultarPixBox();
   atualizarStatusDeposito("", false);
+
+  const btnCopiar = document.getElementById("btnCopiarPixCode");
+  if (btnCopiar && !btnCopiar.dataset.bind) {
+    btnCopiar.dataset.bind = "1";
+    btnCopiar.addEventListener("click", copiarCodigoPix);
+  }
+
+  if (!usuarioAtual) return;
+
+  try {
+    await sincronizarUsuarioCarteira();
+    await atualizarSaldoCarteira();
+  } catch (_err) {
+    atualizarStatusDeposito(
+      "Carteira SQL ainda não configurada no servidor. Defina DB_* e ASAAS_* para ativar.",
+      true
+    );
+  }
 }
 
 window.depositarSaldo = depositarSaldo;

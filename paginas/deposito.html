@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
   <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
   <link rel="stylesheet" href="../css/paginas.css?v=20260425">
-  <link rel="stylesheet" href="../css/deposito.css?v=20260425-1">
+  <link rel="stylesheet" href="../css/deposito.css?v=20260502-1">
 </head>
 <body>
   <header class="topo-pagina">
@@ -28,19 +28,31 @@
         <strong id="depositoSaldoAtual">R$ 0,00</strong>
       </div>
 
+      <label for="cpfCnpjDeposito">CPF/CNPJ (obrigatório no 1º depósito)</label>
+      <input id="cpfCnpjDeposito" type="text" inputmode="numeric" placeholder="Somente números">
+
       <label for="valorDepositoNovo">Valor do depósito</label>
       <input id="valorDepositoNovo" type="text" value="R$ 0,00" inputmode="numeric" placeholder="R$ 0,00">
-      <small class="deposito-dica">Depósito fictício para testes.</small>
+      <small class="deposito-dica">O saldo é creditado somente após confirmação do pagamento no webhook.</small>
 
-      <button id="btnDepositarSaldo" type="button" onclick="depositarSaldo()">Depositar saldo</button>
+      <button id="btnDepositarSaldo" type="button" onclick="depositarSaldo()">Gerar PIX</button>
       <p id="depositoStatus" class="deposito-status"></p>
+
+      <section id="depositoPixBox" class="deposito-pix-box" style="display:none;">
+        <h2>PIX gerado</h2>
+        <p id="depositoPixResumo"></p>
+        <img id="depositoPixQrImage" alt="QR Code PIX" style="display:none;">
+        <label for="depositoPixCopiaCola">Código copia e cola</label>
+        <textarea id="depositoPixCopiaCola" rows="4" readonly></textarea>
+        <button id="btnCopiarPixCode" type="button" class="btn-secundario-deposito">Copiar código PIX</button>
+      </section>
     </article>
   </main>
 
   <footer class="rodape-pagina">
-    Porco do Bicho • Área de depósito • Atualizado em 25/04/2026.
+    Porco do Bicho • Área de depósito • Atualizado em 02/05/2026.
   </footer>
 
-  <script src="../js/deposito.js?v=20260427-4"></script>
+  <script src="../js/deposito.js?v=20260502-1"></script>
 </body>
 </html>
