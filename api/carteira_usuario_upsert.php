@@ -34,8 +34,7 @@ try {
             nome = VALUES(nome),
             email = CASE WHEN VALUES(email) <> \'\' THEN VALUES(email) ELSE email END,
             telefone = CASE WHEN VALUES(telefone) <> \'\' THEN VALUES(telefone) ELSE telefone END,
-            cpf_cnpj = CASE WHEN (cpf_cnpj IS NULL OR cpf_cnpj = \'\') AND VALUES(cpf_cnpj) <> \'\' THEN VALUES(cpf_cnpj) ELSE cpf_cnpj END,
-            updated_at = NOW()'
+            cpf_cnpj = CASE WHEN (cpf_cnpj IS NULL OR cpf_cnpj = \'\') AND VALUES(cpf_cnpj) <> \'\' THEN VALUES(cpf_cnpj) ELSE cpf_cnpj END'
     );
 
     $stmt->execute([
@@ -61,8 +60,17 @@ try {
         ],
     ]);
 } catch (Throwable $e) {
+    $msg = 'Falha ao sincronizar usuario da carteira.';
+    if ($e instanceof PDOException) {
+        $sqlState = (string)($e->getCode() ?? '');
+        if ($sqlState === '42S02') {
+            $msg = 'Falha ao sincronizar usuario: tabela "usuarios" nao encontrada na base SQL.';
+        } elseif ($sqlState === '42S22') {
+            $msg = 'Falha ao sincronizar usuario: coluna ausente na tabela "usuarios".';
+        }
+    }
     walletResponder(500, [
         'ok' => false,
-        'error' => 'Falha ao sincronizar usuario da carteira.',
+        'error' => $msg,
     ]);
 }

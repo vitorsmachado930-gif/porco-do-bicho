@@ -45,3 +45,19 @@ CREATE TABLE IF NOT EXISTS depositos (
     ON UPDATE CASCADE
     ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS carteira_apostas_debitos (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  usuario_id BIGINT UNSIGNED NOT NULL,
+  referencia VARCHAR(120) NOT NULL,
+  valor DECIMAL(14,2) NOT NULL,
+  metadata_json JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_carteira_apostas_debitos_referencia (referencia),
+  KEY idx_carteira_apostas_debitos_usuario (usuario_id),
+  CONSTRAINT fk_carteira_apostas_debitos_usuario
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

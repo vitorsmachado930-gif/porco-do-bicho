@@ -4,6 +4,17 @@ const USUARIOS_KEY = "usuarios_aposta";
 const USUARIO_SESSAO_KEY = "usuario_sessao_id";
 const PAINEL_UPDATED_AT_KEY = "painel_updated_at";
 const MAX_DIAS_HISTORICO = 7;
+const API_ORIGIN_FALLBACK = "https://porcodobicho.com";
+const API_ORIGIN_ATIVO = (() => {
+  const host = String(window.location.hostname || "").toLowerCase();
+  const isLocal =
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "0.0.0.0" ||
+    host.endsWith(".local");
+  return isLocal ? API_ORIGIN_FALLBACK : "";
+})();
+const CARTEIRA_SALDO_USUARIO_API_URL = `${API_ORIGIN_ATIVO}/api/carteira_saldo_usuario.php`;
 const PAPEL_USUARIO_APOSTADOR = "apostador";
 const PAPEL_USUARIO_PROMOTOR = "promotor";
 const BONUS_INDICACAO_VALOR_POR_CADASTRO = 10;
@@ -11,22 +22,33 @@ const BONUS_INDICACAO_VALOR_CONVERSAO = 10;
 const BONUS_INDICACAO_LIMITE_DIARIO = 100;
 
 const TIPOS_APOSTA = {
-  grupo: "Grupo 1º",
-  dupla_grupo: "Dupla de Grupo",
+  unidade: "Unidade",
+  dezena: "Dezena",
+  centena: "Centena",
+  milhar: "Milhar",
+  milhar_brinde: "Milhar Brinde",
+  grupo: "Grupo",
   terno_grupo: "Terno de Grupo",
+  duque_grupo: "Duque de Grupo",
+  quadra_grupo: "Quadra de Grupo",
   duque_dezena: "Duque de Dezena",
-  terno_dezena: "Terno de Dezena",
-  passe_seco: "Passe-Seco",
+  terno_dezena_seco: "Terno de Dezena Seco",
+  terno_dezena_1a5: "Terno de Dezena 1º ao 5º",
+  palpitao: "Palpitão",
+  passe_vai: "Passe Vai",
   passe_vai_vem: "Passe Vai e Vem",
-  dupla_grupo_1a5: "Dupla de Grupo 1º ao 5º",
-  terno_grupo_1a5: "Terno de Grupo 1º ao 5º",
-  milhar: "Milhar (Ao quinto 1º-5º)",
-  milhar_seca: "Milhar (Seca 1º)",
-  centena: "Centena (Ao quinto 1º-5º)",
-  centena_seca: "Centena (Seca 1º)",
-  dezena: "Dezena (Ao quinto 1º-5º)",
-  dezena_seca: "Dezena (Seca 1º)"
 };
+
+const TIPOS_APOSTA_LEGADOS_MAP = Object.freeze({
+  dupla_grupo: "duque_grupo",
+  dupla_grupo_1a5: "duque_grupo",
+  terno_grupo_1a5: "terno_grupo",
+  terno_dezena: "terno_dezena_seco",
+  passe_seco: "passe_vai",
+  milhar_seca: "milhar",
+  centena_seca: "centena",
+  dezena_seca: "dezena"
+});
 
 let usuarios = [];
 let apostas = [];
@@ -38,6 +60,7 @@ let timeoutAnimacaoSaldoPerfil = null;
 let ultimoPainelSyncPerfil = 0;
 let intervaloSyncPerfil = null;
 let totalPremiosCreditadosPerfilAnterior = null;
+let secaoPerfilAtual = "info";
 
 function lerJSONStorage(chave, fallback) {
   try {
@@ -59,6 +82,11 @@ function normalizarLoginUsuario(login) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, "");
+}
+
+function normalizarTipoAposta(tipo) {
+  const valor = String(tipo || "").trim().toLowerCase();
+  return TIPOS_APOSTA_LEGADOS_MAP[valor] || valor;
 }
 
 function slugBilheteParte(valor) {
@@ -380,7 +408,7 @@ function sanitizarApostas(arr) {
       const data = normalizarDataISO(raw.data);
       const praca = String(raw.praca || "").trim();
       const loteria = String(raw.loteria || "").trim();
-      const tipo = String(raw.tipo || "").trim();
+      const tipo = normalizarTipoAposta(raw.tipo);
       const palpite = String(raw.palpite || "").trim();
       const valor = normalizarValorMoeda(raw.valor);
       const premio = normalizarValorMoeda(raw.premio);
@@ -465,18 +493,19 @@ function gruposDoPalpite(palpite) {
 }
 
 function formatarPalpiteBilhete(aposta) {
-  const tipo = String(aposta && aposta.tipo || "");
+  const tipo = normalizarTipoAposta(aposta && aposta.tipo);
   const palpite = String(aposta && aposta.palpite || "");
   if (
     tipo === "grupo" ||
-    tipo === "dupla_grupo" ||
+    tipo === "duque_grupo" ||
     tipo === "terno_grupo" ||
-    tipo === "passe_seco" ||
+    tipo === "quadra_grupo" ||
+    tipo === "palpitao" ||
+    tipo === "passe_vai" ||
     tipo === "passe_vai_vem" ||
-    tipo === "dupla_grupo_1a5" ||
-    tipo === "terno_grupo_1a5" ||
     tipo === "duque_dezena" ||
-    tipo === "terno_dezena"
+    tipo === "terno_dezena_seco" ||
+    tipo === "terno_dezena_1a5"
   ) {
     return gruposDoPalpite(palpite).join(" - ");
   }
@@ -503,56 +532,60 @@ function resultadoDaAposta(aposta) {
   const numerosResultado = achado.resultados.map((r) => String(r.numero || "").padStart(4, "0"));
   const dezenasResultado = numerosResultado.map((n) => n.slice(-2));
   const gruposPrimeiros2 = gruposResultado.slice(0, 2);
-  const primeiroNumero = numerosResultado[0] || "";
+  const gruposPrimeiros4 = gruposResultado.slice(0, 4);
+  const dezenasPrimeiras3 = numerosResultado.slice(0, 3).map((n) => n.slice(-2));
+  const dezenasPrimeiras5 = numerosResultado.slice(0, 5).map((n) => n.slice(-2));
   const palpite = String(aposta.palpite || "").trim();
   let ganhou = false;
 
-  if (aposta.tipo === "grupo") {
+  const tipo = normalizarTipoAposta(aposta && aposta.tipo);
+  if (tipo === "grupo") {
     ganhou = gruposResultado.includes(palpite);
-  } else if (aposta.tipo === "dupla_grupo") {
+  } else if (tipo === "duque_grupo") {
     const alvo = gruposDoPalpite(palpite);
     ganhou = alvo.length === 2 && alvo.every((g) => gruposResultado.includes(g));
-  } else if (aposta.tipo === "terno_grupo") {
+  } else if (tipo === "terno_grupo") {
     const alvo = gruposDoPalpite(palpite);
     ganhou = alvo.length === 3 && alvo.every((g) => gruposResultado.includes(g));
-  } else if (aposta.tipo === "duque_dezena") {
+  } else if (tipo === "quadra_grupo") {
+    const alvo = gruposDoPalpite(palpite);
+    ganhou = alvo.length === 4 && alvo.every((g) => gruposResultado.includes(g));
+  } else if (tipo === "palpitao") {
+    const alvo = gruposDoPalpite(palpite);
+    ganhou = alvo.length === 4 && alvo.every((g) => gruposPrimeiros4.includes(g));
+  } else if (tipo === "duque_dezena") {
     const alvo = gruposDoPalpite(palpite);
     ganhou = alvo.length === 2 && alvo.every((d) => dezenasResultado.includes(d));
-  } else if (aposta.tipo === "terno_dezena") {
+  } else if (tipo === "terno_dezena_seco") {
     const alvo = gruposDoPalpite(palpite);
-    ganhou = alvo.length === 3 && alvo.every((d) => dezenasResultado.includes(d));
-  } else if (aposta.tipo === "passe_seco") {
+    ganhou = alvo.length === 3 && alvo.every((d) => dezenasPrimeiras3.includes(d));
+  } else if (tipo === "terno_dezena_1a5") {
+    const alvo = gruposDoPalpite(palpite);
+    ganhou = alvo.length === 3 && alvo.every((d) => dezenasPrimeiras5.includes(d));
+  } else if (tipo === "passe_vai") {
     const alvo = gruposDoPalpite(palpite);
     ganhou =
       alvo.length === 2 &&
       gruposPrimeiros2.length === 2 &&
       alvo[0] === gruposPrimeiros2[0] &&
       alvo[1] === gruposPrimeiros2[1];
-  } else if (aposta.tipo === "passe_vai_vem") {
+  } else if (tipo === "passe_vai_vem") {
     const alvo = gruposDoPalpite(palpite);
     ganhou =
       alvo.length === 2 &&
       gruposPrimeiros2.length === 2 &&
       ((alvo[0] === gruposPrimeiros2[0] && alvo[1] === gruposPrimeiros2[1]) ||
         (alvo[0] === gruposPrimeiros2[1] && alvo[1] === gruposPrimeiros2[0]));
-  } else if (aposta.tipo === "dupla_grupo_1a5") {
-    const alvo = gruposDoPalpite(palpite);
-    ganhou = alvo.length === 2 && alvo.every((g) => gruposResultado.includes(g));
-  } else if (aposta.tipo === "terno_grupo_1a5") {
-    const alvo = gruposDoPalpite(palpite);
-    ganhou = alvo.length === 3 && alvo.every((g) => gruposResultado.includes(g));
-  } else if (aposta.tipo === "milhar") {
+  } else if (tipo === "milhar") {
     ganhou = numerosResultado.includes(palpite);
-  } else if (aposta.tipo === "milhar_seca") {
-    ganhou = primeiroNumero === palpite;
-  } else if (aposta.tipo === "centena") {
+  } else if (tipo === "milhar_brinde") {
+    ganhou = numerosResultado.slice(1, 5).includes(palpite);
+  } else if (tipo === "centena") {
     ganhou = numerosResultado.some((n) => n.slice(-3) === palpite);
-  } else if (aposta.tipo === "centena_seca") {
-    ganhou = primeiroNumero.slice(-3) === palpite;
-  } else if (aposta.tipo === "dezena") {
+  } else if (tipo === "dezena") {
     ganhou = numerosResultado.some((n) => n.slice(-2) === palpite);
-  } else if (aposta.tipo === "dezena_seca") {
-    ganhou = primeiroNumero.slice(-2) === palpite;
+  } else if (tipo === "unidade") {
+    ganhou = numerosResultado.some((n) => n.slice(-1) === palpite);
   }
 
   return ganhou
@@ -562,12 +595,15 @@ function resultadoDaAposta(aposta) {
 
 function atualizarResumoUsuario() {
   const resumo = document.getElementById("perfilResumoUsuario");
+  const menuInfo = document.getElementById("menuPerfilInfo");
   if (!resumo) return;
   if (!usuarioAtual) {
     resumo.innerText = "Faça login na Home para acessar seu perfil.";
+    if (menuInfo) menuInfo.innerText = "Acesso rápido";
     return;
   }
   resumo.innerText = `Login: @${usuarioAtual.login}`;
+  if (menuInfo) menuInfo.innerText = `${usuarioAtual.nome} (@${usuarioAtual.login})`;
 }
 
 function limparAnimacaoSaldoPerfil() {
@@ -676,6 +712,38 @@ function sincronizarPerfilComStorage(forcar) {
   configurarFiltroDataApostas();
   mostrarApostasPerfil();
   atualizarControlesEdicaoPerfil();
+}
+
+async function sincronizarSaldoPerfilComServidor() {
+  if (!usuarioAtual || !usuarioAtual.login) return;
+  try {
+    const resp = await fetch(
+      `${CARTEIRA_SALDO_USUARIO_API_URL}?login=${encodeURIComponent(usuarioAtual.login)}`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+          "X-App-Client": "porcodobicho-web"
+        },
+        cache: "no-store"
+      }
+    );
+    if (!resp.ok) return;
+    const payload = await resp.json();
+    if (!payload || !payload.ok || !payload.usuario) return;
+    const saldoServidor = normalizarValorNaoNegativo(payload.usuario.saldo);
+    const idx = usuarios.findIndex((u) => u.id === usuarioAtual.id);
+    if (idx === -1) return;
+    usuarios[idx].saldo = saldoServidor;
+    usuarioAtual = usuarios[idx];
+    salvarJSONStorage(USUARIOS_KEY, usuarios);
+    localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
+    atualizarResumoUsuario();
+    atualizarCardSaldoPerfil({ animarSeSubiu: false });
+  } catch (_err) {
+    // Mantém fallback local quando API estiver indisponível.
+  }
 }
 
 function configurarSincronizacaoPerfilTempoReal() {
@@ -1225,7 +1293,8 @@ function montarCardBilhete(grupo) {
 
   const linhasApostas = apostasBilhete
     .map((item, index) => {
-      const tipoLabel = TIPOS_APOSTA[item.tipo] || item.tipo;
+      const tipoNorm = normalizarTipoAposta(item.tipo);
+      const tipoLabel = TIPOS_APOSTA[tipoNorm] || item.tipo;
       const palpite = formatarPalpiteBilhete(item);
       const valor = formatarMoedaBR(item.valor);
       const conf = resultadosBilhete[index] || resultadoDaAposta(item);
@@ -1250,7 +1319,9 @@ function montarCardBilhete(grupo) {
 
   const linhaPotencialOuPremio = !loteriaApuradaBilhete
     ? `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho potencial total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotal))}</b></div>`
-    : `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho Total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotalApurado))}</b></div>`;
+    : premioTotalApurado > 0
+      ? `<div class="bilhete-resumo-total bilhete-resumo-potencial">Ganho Total: <b class="ganho-potencial-total">${escaparHTML(formatarMoedaBR(premioTotalApurado))}</b></div>`
+      : "";
 
   const rotuloStatusBilhete =
     statusBilhete.status === "PERDEU" ? "PERDA" : statusBilhete.status;
@@ -1265,6 +1336,32 @@ function montarCardBilhete(grupo) {
     `Status: <span class="status-aposta ${statusBilhete.classe}">${rotuloStatusBilhete}</span> | ${statusBilhete.detalhe}` +
     `</div>`
   );
+}
+
+function atualizarSecaoPerfilVisivel() {
+  const mapa = {
+    info: "secaoPerfilInfo",
+    indicacao: "secaoPerfilIndicacao",
+    apostas: "secaoPerfilApostas"
+  };
+  const chaves = Object.keys(mapa);
+  const secaoValida = chaves.includes(secaoPerfilAtual) ? secaoPerfilAtual : "info";
+
+  chaves.forEach((chave) => {
+    const el = document.getElementById(mapa[chave]);
+    if (el) el.classList.toggle("ativa", chave === secaoValida);
+  });
+
+  const botoes = Array.from(document.querySelectorAll("[data-secao-perfil]"));
+  botoes.forEach((btn) => {
+    const chave = String(btn.getAttribute("data-secao-perfil") || "").trim();
+    btn.classList.toggle("ativo", chave === secaoValida);
+  });
+}
+
+function selecionarSecaoPerfil(secao) {
+  secaoPerfilAtual = String(secao || "").trim() || "info";
+  atualizarSecaoPerfilVisivel();
 }
 
 function mostrarApostasPerfil() {
@@ -1356,9 +1453,11 @@ function irHojeApostasPerfil() {
 
 function initPerfil() {
   carregarEstado();
+  secaoPerfilAtual = "info";
   ultimoPainelSyncPerfil = valorTimestampPainelLocal();
   configurarMascaraTelefonePerfil();
   atualizarResumoUsuario();
+  atualizarSecaoPerfilVisivel();
   atualizarCardSaldoPerfil({ animarSeSubiu: false });
   atualizarCardBonusIndicacaoPerfil();
   atualizarStatusBonusPerfil("", false);
@@ -1366,6 +1465,7 @@ function initPerfil() {
   configurarFiltroDataApostas();
   mostrarApostasPerfil();
   configurarSincronizacaoPerfilTempoReal();
+  sincronizarSaldoPerfilComServidor();
 
   const btnEditar = document.getElementById("btnEditarPerfil");
   if (btnEditar) {
@@ -1425,6 +1525,7 @@ function initPerfil() {
 }
 
 window.addEventListener("load", initPerfil);
+window.selecionarSecaoPerfil = selecionarSecaoPerfil;
 window.addEventListener("beforeunload", () => {
   if (intervaloSyncPerfil) {
     clearInterval(intervaloSyncPerfil);

@@ -3,6 +3,8 @@ const STORAGE_KEY = "dados";
 const APOSTAS_KEY = "apostas";
 const MULTIPLICADORES_KEY = "multiplicadores_aposta";
 const USUARIOS_KEY = "usuarios_aposta";
+// Aviso: dados em localStorage podem ser alterados no navegador.
+// Em produção, validações e cotações devem ser garantidas no backend.
 const USUARIO_SESSAO_KEY = "usuario_sessao_id";
 const ADMIN_SESSAO_KEY = "admin_sessao_ativa";
 const LIMITES_APOSTA_KEY = "limites_aposta";
@@ -20,6 +22,9 @@ const API_ORIGIN_ATIVO = (() => {
 })();
 const RESULTADOS_SYNC_API_URL = `${API_ORIGIN_ATIVO}/api/resultados.php`;
 const PAINEL_SYNC_API_URL = `${API_ORIGIN_ATIVO}/api/painel.php`;
+const CARTEIRA_USUARIO_UPSERT_API_URL = `${API_ORIGIN_ATIVO}/api/carteira_usuario_upsert.php`;
+const CARTEIRA_SALDO_USUARIO_API_URL = `${API_ORIGIN_ATIVO}/api/carteira_saldo_usuario.php`;
+const CARTEIRA_APOSTAR_API_URL = `${API_ORIGIN_ATIVO}/api/carteira_apostar.php`;
 const RESULTADOS_SYNC_INTERVALO_MS = 30000;
 const PAINEL_SYNC_INTERVALO_MS = 30000;
 const MAX_DIAS_HISTORICO = 7;
@@ -31,42 +36,54 @@ const PAGINA_ADMIN_SEPARADA = (() => {
 })();
 
 const TIPOS_APOSTA = {
-  grupo: "Grupo 1º",
-  dupla_grupo: "Dupla de Grupo",
-  terno_grupo: "Terno de Grupo",
+  unidade: "Unidade",
+  dezena: "Dezena",
+  centena: "Centena",
+  milhar: "Milhar",
+  milhar_brinde: "Milhar Brinde",
+  grupo: "Grupo",
   duque_dezena: "Duque de Dezena",
-  terno_dezena: "Terno de Dezena",
-  passe_seco: "Passe-Seco",
+  terno_dezena_seco: "Terno de Dezena Seco",
+  terno_dezena_1a5: "Terno de Dezena 1º ao 5º",
+  duque_grupo: "Duque de Grupo",
+  terno_grupo: "Terno de Grupo",
+  quadra_grupo: "Quadra de Grupo",
+  palpitao: "Palpitão",
+  passe_vai: "Passe Vai",
   passe_vai_vem: "Passe Vai e Vem",
-  dupla_grupo_1a5: "Dupla de Grupo 1º ao 5º",
-  terno_grupo_1a5: "Terno de Grupo 1º ao 5º",
-  milhar: "Milhar (Ao quinto 1º-5º)",
-  milhar_seca: "Milhar (Seca 1º)",
-  centena: "Centena (Ao quinto 1º-5º)",
-  centena_seca: "Centena (Seca 1º)",
-  dezena: "Dezena (Ao quinto 1º-5º)",
-  dezena_seca: "Dezena (Seca 1º)"
 };
 
+// Mapeia tipos legados para os tipos novos, preservando apostas antigas no localStorage.
+const TIPOS_APOSTA_LEGADOS_MAP = Object.freeze({
+  dupla_grupo: "duque_grupo",
+  dupla_grupo_1a5: "duque_grupo",
+  terno_grupo_1a5: "terno_grupo",
+  terno_dezena: "terno_dezena_seco",
+  passe_seco: "passe_vai",
+  milhar_seca: "milhar",
+  centena_seca: "centena",
+  dezena_seca: "dezena"
+});
+
 const PREMIO_FICTICIO_MULTIPLICADOR = {
-  grupo: 18,
-  dupla_grupo: 90,
-  terno_grupo: 320,
-  duque_dezena: 180,
-  terno_dezena: 700,
-  passe_seco: 120,
-  passe_vai_vem: 70,
-  dupla_grupo_1a5: 45,
-  terno_grupo_1a5: 140,
-  milhar: 4000,
-  milhar_seca: 4000,
-  centena: 600,
-  centena_seca: 600,
-  dezena: 60,
-  dezena_seca: 60
+  unidade: 9,
+  dezena: 90,
+  centena: 900,
+  milhar: 9500,
+  milhar_brinde: 400,
+  grupo: 23,
+  duque_dezena: 300,
+  terno_dezena_seco: 10000,
+  terno_dezena_1a5: 5000,
+  duque_grupo: 200,
+  terno_grupo: 1500,
+  quadra_grupo: 1000,
+  palpitao: 800,
+  passe_vai: 90,
+  passe_vai_vem: 45
 };
 const TIPOS_PREMIACAO_DESTAQUE_BASE = ["grupo", "terno_grupo", "milhar"];
-const TIPOS_PREMIACAO_DESTAQUE_EXTRA = ["dupla_grupo", "centena", "dezena"];
+const TIPOS_PREMIACAO_DESTAQUE_EXTRA = ["duque_grupo", "centena", "dezena"];
 const VALORES_APOSTA_DESTAQUE = [2, 3, 5, 10, 15, 20];
 
 const LIMITES_APOSTA_PADRAO = {
@@ -85,6 +102,7 @@ const BONUS_INDICACAO_VALOR_POR_CADASTRO = Number(
 );
 const BONUS_INDICACAO_VALOR_CONVERSAO = 10;
 const BONUS_INDICACAO_LIMITE_DIARIO = 100;
+const MAX_PALPITES_GRUPO = 4;
 
 const USUARIO_TESTE_FIXO = Object.freeze({
   id: 102030,
@@ -112,18 +130,21 @@ const USUARIO_TESTE_FIXO = Object.freeze({
 });
 
 const CAMPOS_MULTIPLICADOR = [
-  { tipo: "grupo", id: "multGrupo", label: "Grupo 1º" },
-  { tipo: "dupla_grupo", id: "multDuplaGrupo", label: "Dupla de Grupo" },
-  { tipo: "terno_grupo", id: "multTernoGrupo", label: "Terno de Grupo" },
-  { tipo: "duque_dezena", id: "multDuqueDezena", label: "Duque de Dezena" },
-  { tipo: "terno_dezena", id: "multTernoDezena", label: "Terno de Dezena" },
-  { tipo: "passe_seco", id: "multPasseSeco", label: "Passe-Seco" },
-  { tipo: "passe_vai_vem", id: "multPasseVaiVem", label: "Passe Vai e Vem" },
-  { tipo: "dupla_grupo_1a5", id: "multDuplaGrupo1a5", label: "Dupla de Grupo 1º ao 5º" },
-  { tipo: "terno_grupo_1a5", id: "multTernoGrupo1a5", label: "Terno de Grupo 1º ao 5º" },
-  { tipo: "milhar", id: "multMilhar", label: "Milhar" },
+  { tipo: "unidade", id: "multUnidade", label: "Unidade" },
+  { tipo: "dezena", id: "multDezena", label: "Dezena" },
   { tipo: "centena", id: "multCentena", label: "Centena" },
-  { tipo: "dezena", id: "multDezena", label: "Dezena" }
+  { tipo: "milhar", id: "multMilhar", label: "Milhar" },
+  { tipo: "milhar_brinde", id: "multMilharBrinde", label: "Milhar Brinde" },
+  { tipo: "grupo", id: "multGrupo", label: "Grupo" },
+  { tipo: "duque_dezena", id: "multDuqueDezena", label: "Duque de Dezena" },
+  { tipo: "terno_dezena_seco", id: "multTernoDezenaSeco", label: "Terno de Dezena Seco" },
+  { tipo: "terno_dezena_1a5", id: "multTernoDezena1a5", label: "Terno de Dezena 1º ao 5º" },
+  { tipo: "duque_grupo", id: "multDuqueGrupo", label: "Duque de Grupo" },
+  { tipo: "terno_grupo", id: "multTernoGrupo", label: "Terno de Grupo" },
+  { tipo: "quadra_grupo", id: "multQuadraGrupo", label: "Quadra de Grupo" },
+  { tipo: "palpitao", id: "multPalpitao", label: "Palpitão" },
+  { tipo: "passe_vai", id: "multPasseVai", label: "Passe Vai" },
+  { tipo: "passe_vai_vem", id: "multPasseVaiVem", label: "Passe Vai e Vem" },
 ];
 
 const SEQUENCIAS_POR_PRACA = {
@@ -182,6 +203,7 @@ let contextoBilheteRascunho = null;
 let loteriasApostaSelecionadas = [];
 let direcionarEtapaLoteria = false;
 let painelApostaExpandido = false;
+let salvandoApostaEmAndamento = false;
 
 function hojeISO() {
   return dataLocalParaISO(new Date());
@@ -343,7 +365,9 @@ function normalizarValorMoeda(valor) {
 }
 
 function normalizarTipoAposta(tipo) {
-  const t = String(tipo || "").trim();
+  const t = String(tipo || "").trim().toLowerCase();
+  const legado = TIPOS_APOSTA_LEGADOS_MAP[t];
+  if (legado) return legado;
   return Object.prototype.hasOwnProperty.call(TIPOS_APOSTA, t) ? t : "";
 }
 
@@ -367,33 +391,7 @@ function obterSubtipoNumericoSelecionado() {
 
 function obterTipoApostaSelecionadoNoFormulario() {
   const tipoInput = document.getElementById("tipoAposta");
-  const tipoBruto = normalizarTipoAposta(tipoInput ? tipoInput.value : "");
-  if (tipoBruto === "dupla_grupo") {
-    return obterSubtipoDuplaGrupoSelecionado() === "ao_quinto"
-      ? "dupla_grupo_1a5"
-      : "dupla_grupo";
-  }
-  if (tipoBruto === "terno_grupo") {
-    return obterSubtipoTernoGrupoSelecionado() === "ao_quinto"
-      ? "terno_grupo_1a5"
-      : "terno_grupo";
-  }
-  if (tipoBruto === "milhar") {
-    return obterSubtipoNumericoSelecionado() === "ao_quinto"
-      ? "milhar"
-      : "milhar_seca";
-  }
-  if (tipoBruto === "centena") {
-    return obterSubtipoNumericoSelecionado() === "ao_quinto"
-      ? "centena"
-      : "centena_seca";
-  }
-  if (tipoBruto === "dezena") {
-    return obterSubtipoNumericoSelecionado() === "ao_quinto"
-      ? "dezena"
-      : "dezena_seca";
-  }
-  return tipoBruto;
+  return normalizarTipoAposta(tipoInput ? tipoInput.value : "");
 }
 
 function atualizarVisibilidadeSubtiposGrupo() {
@@ -404,9 +402,9 @@ function atualizarVisibilidadeSubtiposGrupo() {
   if (!tipoInput || !selectSubtipoDupla || !selectSubtipoTerno || !selectSubtipoNumerico) return;
 
   const tipoBruto = normalizarTipoAposta(tipoInput.value);
-  const exibirDupla = tipoBruto === "dupla_grupo";
-  const exibirTerno = tipoBruto === "terno_grupo";
-  const exibirNumerico = tipoBruto === "milhar" || tipoBruto === "centena" || tipoBruto === "dezena";
+  const exibirDupla = false;
+  const exibirTerno = false;
+  const exibirNumerico = false;
   selectSubtipoDupla.style.display = exibirDupla ? "block" : "none";
   selectSubtipoTerno.style.display = exibirTerno ? "block" : "none";
   selectSubtipoNumerico.style.display = exibirNumerico ? "block" : "none";
@@ -1140,7 +1138,15 @@ function formatarBichoComGrupo(grupo) {
 }
 
 function montarPalpiteDestaque(tipo, rand) {
+  if (tipo === "unidade") {
+    return String(sortearInteiro(rand, 10));
+  }
+
   if (tipo === "milhar") {
+    return String(sortearInteiro(rand, 10000)).padStart(4, "0");
+  }
+
+  if (tipo === "milhar_brinde") {
     return String(sortearInteiro(rand, 10000)).padStart(4, "0");
   }
 
@@ -1157,7 +1163,7 @@ function montarPalpiteDestaque(tipo, rand) {
     return formatarBichoComGrupo(grupo);
   }
 
-  if (tipo === "dupla_grupo") {
+  if (tipo === "duque_grupo") {
     const usados = new Set();
     const escolhidos = [];
     while (escolhidos.length < 2) {
@@ -1173,6 +1179,18 @@ function montarPalpiteDestaque(tipo, rand) {
     const usados = new Set();
     const escolhidos = [];
     while (escolhidos.length < 3) {
+      const grupo = sortearInteiro(rand, 25) + 1;
+      if (usados.has(grupo)) continue;
+      usados.add(grupo);
+      escolhidos.push(formatarBichoComGrupo(grupo));
+    }
+    return escolhidos.join(" | ");
+  }
+
+  if (tipo === "quadra_grupo") {
+    const usados = new Set();
+    const escolhidos = [];
+    while (escolhidos.length < 4) {
       const grupo = sortearInteiro(rand, 25) + 1;
       if (usados.has(grupo)) continue;
       usados.add(grupo);
@@ -1248,13 +1266,14 @@ function montarPalpitePremiadoPorResultado(tipo, resultadoItem, rand) {
   const numerosResultado = listaResultados
     .map((r) => extrairDigitos(r && r.numero ? r.numero : "").padStart(4, "0").slice(-4))
     .filter(Boolean);
+  const dezenasResultado = numerosResultado.map((n) => n.slice(-2));
 
   if (tipo === "grupo") {
     if (gruposUnicos.length === 0) return "";
     return gruposUnicos[sortearInteiro(rand, gruposUnicos.length)];
   }
 
-  if (tipo === "dupla_grupo") {
+  if (tipo === "duque_grupo") {
     if (gruposUnicos.length < 2) return "";
     const copia = gruposUnicos.slice();
     const g1 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
@@ -1269,6 +1288,22 @@ function montarPalpitePremiadoPorResultado(tipo, resultadoItem, rand) {
     const g2 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
     const g3 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
     return `${g1}-${g2}-${g3}`;
+  }
+
+  if (tipo === "quadra_grupo" || tipo === "palpitao") {
+    if (gruposUnicos.length < 4) return "";
+    const copia = gruposUnicos.slice();
+    const g1 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    const g2 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    const g3 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    const g4 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    return `${g1}-${g2}-${g3}-${g4}`;
+  }
+
+  if (tipo === "unidade") {
+    if (numerosResultado.length === 0) return "";
+    const numero = numerosResultado[sortearInteiro(rand, numerosResultado.length)];
+    return numero.slice(-1);
   }
 
   if (tipo === "milhar") {
@@ -1286,6 +1321,30 @@ function montarPalpitePremiadoPorResultado(tipo, resultadoItem, rand) {
     if (numerosResultado.length === 0) return "";
     const numero = numerosResultado[sortearInteiro(rand, numerosResultado.length)];
     return numero.slice(-2);
+  }
+
+  if (tipo === "duque_dezena") {
+    if (dezenasResultado.length < 2) return "";
+    const unicos = [...new Set(dezenasResultado)];
+    if (unicos.length < 2) return "";
+    const copia = unicos.slice();
+    const d1 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    const d2 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    return `${d1}-${d2}`;
+  }
+
+  if (tipo === "terno_dezena_seco" || tipo === "terno_dezena_1a5") {
+    const base = tipo === "terno_dezena_seco"
+      ? numerosResultado.slice(0, 3).map((n) => n.slice(-2))
+      : numerosResultado.slice(0, 5).map((n) => n.slice(-2));
+    if (base.length < 3) return "";
+    const unicos = [...new Set(base)];
+    if (unicos.length < 3) return "";
+    const copia = unicos.slice();
+    const d1 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    const d2 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    const d3 = copia.splice(sortearInteiro(rand, copia.length), 1)[0];
+    return `${d1}-${d2}-${d3}`;
   }
 
   return "";
@@ -1458,22 +1517,19 @@ function formatarPalpiteParaBilhete(item) {
 
   if (
     tipo === "grupo" ||
-    tipo === "dupla_grupo" ||
+    tipo === "duque_grupo" ||
     tipo === "terno_grupo" ||
-    tipo === "passe_seco" ||
+    tipo === "quadra_grupo" ||
+    tipo === "palpitao" ||
+    tipo === "passe_vai" ||
     tipo === "passe_vai_vem" ||
-    tipo === "dupla_grupo_1a5" ||
-    tipo === "terno_grupo_1a5"
+    tipo === "duque_dezena" ||
+    tipo === "terno_dezena_seco" ||
+    tipo === "terno_dezena_1a5"
   ) {
     const grupos = extrairGruposDoPalpite(palpite);
     if (grupos.length === 0) return palpite;
     return grupos.map((g) => descricaoGrupoPorCodigo(g)).join(" - ");
-  }
-
-  if (tipo === "duque_dezena" || tipo === "terno_dezena") {
-    const dezenas = extrairGruposDoPalpite(palpite);
-    if (dezenas.length === 0) return palpite;
-    return dezenas.map((d) => String(d).padStart(2, "0")).join(" - ");
   }
 
   return palpite;
@@ -1509,23 +1565,38 @@ function resultadoDaAposta(aposta) {
   const palpite = String(aposta.palpite || "").trim();
   const dezenasResultado = numerosResultado.map((n) => n.slice(-2));
   const gruposPrimeiros2 = gruposResultado.slice(0, 2);
+  const gruposPrimeiros4 = gruposResultado.slice(0, 4);
+  const gruposPrimeiros5 = gruposResultado.slice(0, 5);
+  const dezenasPrimeiras3 = numerosResultado.slice(0, 3).map((n) => n.slice(-2));
+  const dezenasPrimeiras5 = numerosResultado.slice(0, 5).map((n) => n.slice(-2));
   const primeiroNumero = numerosResultado[0] || "";
 
   if (tipo === "grupo") {
     ganhou = gruposResultado.includes(palpite);
-  } else if (tipo === "dupla_grupo") {
+  } else if (tipo === "duque_grupo") {
     const alvo = extrairGruposDoPalpite(palpite);
     ganhou = alvo.length === 2 && alvo.every((g) => gruposResultado.includes(g));
   } else if (tipo === "terno_grupo") {
     const alvo = extrairGruposDoPalpite(palpite);
     ganhou = alvo.length === 3 && alvo.every((g) => gruposResultado.includes(g));
+  } else if (tipo === "quadra_grupo") {
+    const alvo = extrairGruposDoPalpite(palpite);
+    ganhou = alvo.length === 4 && alvo.every((g) => gruposResultado.includes(g));
+  } else if (tipo === "palpitao") {
+    const alvo = extrairGruposDoPalpite(palpite);
+    // Regra inicial do Palpitão: 4 grupos presentes entre 1º e 4º.
+    // Se quiser outra regra, ajuste aqui.
+    ganhou = alvo.length === 4 && alvo.every((g) => gruposPrimeiros4.includes(g));
   } else if (tipo === "duque_dezena") {
     const alvo = extrairGruposDoPalpite(palpite);
     ganhou = alvo.length === 2 && alvo.every((d) => dezenasResultado.includes(d));
-  } else if (tipo === "terno_dezena") {
+  } else if (tipo === "terno_dezena_seco") {
     const alvo = extrairGruposDoPalpite(palpite);
-    ganhou = alvo.length === 3 && alvo.every((d) => dezenasResultado.includes(d));
-  } else if (tipo === "passe_seco") {
+    ganhou = alvo.length === 3 && alvo.every((d) => dezenasPrimeiras3.includes(d));
+  } else if (tipo === "terno_dezena_1a5") {
+    const alvo = extrairGruposDoPalpite(palpite);
+    ganhou = alvo.length === 3 && alvo.every((d) => dezenasPrimeiras5.includes(d));
+  } else if (tipo === "passe_vai") {
     const alvo = extrairGruposDoPalpite(palpite);
     ganhou =
       alvo.length === 2 &&
@@ -1539,24 +1610,16 @@ function resultadoDaAposta(aposta) {
       gruposPrimeiros2.length === 2 &&
       ((alvo[0] === gruposPrimeiros2[0] && alvo[1] === gruposPrimeiros2[1]) ||
         (alvo[0] === gruposPrimeiros2[1] && alvo[1] === gruposPrimeiros2[0]));
-  } else if (tipo === "dupla_grupo_1a5") {
-    const alvo = extrairGruposDoPalpite(palpite);
-    ganhou = alvo.length === 2 && alvo.every((g) => gruposResultado.includes(g));
-  } else if (tipo === "terno_grupo_1a5") {
-    const alvo = extrairGruposDoPalpite(palpite);
-    ganhou = alvo.length === 3 && alvo.every((g) => gruposResultado.includes(g));
   } else if (tipo === "milhar") {
     ganhou = numerosResultado.includes(palpite);
-  } else if (tipo === "milhar_seca") {
-    ganhou = primeiroNumero === palpite;
+  } else if (tipo === "milhar_brinde") {
+    ganhou = numerosResultado.slice(1, 5).includes(palpite);
   } else if (tipo === "centena") {
     ganhou = numerosResultado.some((n) => n.slice(-3) === palpite);
-  } else if (tipo === "centena_seca") {
-    ganhou = primeiroNumero.slice(-3) === palpite;
   } else if (tipo === "dezena") {
     ganhou = numerosResultado.some((n) => n.slice(-2) === palpite);
-  } else if (tipo === "dezena_seca") {
-    ganhou = primeiroNumero.slice(-2) === palpite;
+  } else if (tipo === "unidade") {
+    ganhou = numerosResultado.some((n) => n.slice(-1) === palpite);
   }
 
   const valor = Number(aposta.valor || 0);
@@ -1630,12 +1693,41 @@ function creditarPremiacoesPendentes() {
 }
 
 function parseGruposPalpite(valor, quantidade) {
-  const encontrados = (String(valor || "").match(/\d{1,2}/g) || [])
-    .map((n) => Number(n))
-    .filter((n) => Number.isInteger(n));
+  const bruto = String(valor || "").trim();
+  const partes = bruto
+    .split(/[-,;/|]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const tokens = partes.length > 0 ? partes : [bruto];
+  const encontrados = [];
+  const nomesParaGrupo = {};
+
+  for (let grupo = 1; grupo <= 25; grupo += 1) {
+    const nomeBase = pegarAnimal(grupo);
+    nomesParaGrupo[nomeBase] = grupo;
+    nomesParaGrupo[capitalizar(nomeBase)] = grupo;
+    nomesParaGrupo[normalizarTextoBusca(nomeBase)] = grupo;
+  }
+
+  tokens.forEach((token) => {
+    const digitos = extrairDigitos(token);
+    if (digitos) {
+      const numero = Number(digitos);
+      if (Number.isInteger(numero)) {
+        encontrados.push(numero);
+      }
+      return;
+    }
+    const chaveNome = normalizarTextoBusca(token);
+    const grupoPorNome = nomesParaGrupo[chaveNome];
+    if (Number.isInteger(grupoPorNome)) {
+      encontrados.push(grupoPorNome);
+    }
+  });
 
   if (encontrados.length !== quantidade) {
-    return { ok: false, mensagem: `Informe ${quantidade} grupos.` };
+    return { ok: false, mensagem: `Informe ${quantidade} grupo(s) válido(s) de 1 a 25 ou nome do bicho.` };
   }
 
   if (encontrados.some((g) => g < 1 || g > 25)) {
@@ -1675,15 +1767,29 @@ function parseDezenasPalpite(valor, quantidade) {
   };
 }
 
+function normalizarTextoBusca(valor) {
+  return String(valor || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
 function validarPalpiteAposta(tipo, palpite) {
   const palpiteTxt = String(palpite || "").trim();
   const digitos = extrairDigitos(palpiteTxt);
+
+  if (tipo === "unidade") {
+    if (digitos.length !== 1) return { ok: false, mensagem: "Unidade precisa ter 1 dígito (0 a 9)." };
+    return { ok: true, valor: digitos };
+  }
 
   if (tipo === "grupo") {
     return parseGruposPalpite(palpiteTxt, 1);
   }
 
-  if (tipo === "dupla_grupo") {
+  if (tipo === "duque_grupo") {
     return parseGruposPalpite(palpiteTxt, 2);
   }
 
@@ -1691,33 +1797,33 @@ function validarPalpiteAposta(tipo, palpite) {
     return parseGruposPalpite(palpiteTxt, 3);
   }
 
+  if (tipo === "quadra_grupo" || tipo === "palpitao") {
+    return parseGruposPalpite(palpiteTxt, 4);
+  }
+
   if (tipo === "duque_dezena") {
     return parseDezenasPalpite(palpiteTxt, 2);
   }
 
-  if (tipo === "terno_dezena") {
+  if (tipo === "terno_dezena_seco" || tipo === "terno_dezena_1a5") {
     return parseDezenasPalpite(palpiteTxt, 3);
   }
 
-  if (tipo === "passe_seco" || tipo === "passe_vai_vem" || tipo === "dupla_grupo_1a5") {
+  if (tipo === "passe_vai" || tipo === "passe_vai_vem") {
     return parseGruposPalpite(palpiteTxt, 2);
   }
 
-  if (tipo === "terno_grupo_1a5") {
-    return parseGruposPalpite(palpiteTxt, 3);
-  }
-
-  if (tipo === "milhar" || tipo === "milhar_seca") {
+  if (tipo === "milhar" || tipo === "milhar_brinde") {
     if (digitos.length !== 4) return { ok: false, mensagem: "Milhar precisa ter 4 dígitos." };
     return { ok: true, valor: digitos };
   }
 
-  if (tipo === "centena" || tipo === "centena_seca") {
+  if (tipo === "centena") {
     if (digitos.length !== 3) return { ok: false, mensagem: "Centena precisa ter 3 dígitos." };
     return { ok: true, valor: digitos };
   }
 
-  if (tipo === "dezena" || tipo === "dezena_seca") {
+  if (tipo === "dezena") {
     if (digitos.length !== 2) return { ok: false, mensagem: "Dezena precisa ter 2 dígitos." };
     return { ok: true, valor: digitos };
   }
@@ -2177,6 +2283,173 @@ async function fetchComTimeout(url, opcoes, timeoutMs) {
   }
 }
 
+function hashTextoSimples(valor) {
+  const texto = String(valor || "");
+  let hash = 5381;
+  for (let i = 0; i < texto.length; i += 1) {
+    hash = ((hash << 5) + hash) + texto.charCodeAt(i);
+    hash = hash >>> 0;
+  }
+  return hash.toString(36);
+}
+
+function gerarReferenciaDebitoAposta(usuario, contexto, loteriasSelecionadas, linhas, valorTotal) {
+  const base = JSON.stringify({
+    usuarioId: Number(usuario && usuario.id),
+    login: normalizarLoginUsuario(usuario && usuario.login),
+    data: String(contexto && contexto.data || ""),
+    praca: String(contexto && contexto.praca || ""),
+    loterias: (Array.isArray(loteriasSelecionadas) ? loteriasSelecionadas.slice() : [])
+      .map((item) => String(item || "").trim().toUpperCase())
+      .sort(),
+    linhas: (Array.isArray(linhas) ? linhas : [])
+      .map((item) => `${item.tipo}|${item.palpite}|${Number(item.valor || 0).toFixed(2)}`)
+      .sort(),
+    valor: Number(valorTotal || 0).toFixed(2),
+    ts: Date.now(),
+  });
+
+  return `apt_${Date.now().toString(36)}_${hashTextoSimples(base)}`;
+}
+
+function atualizarEstadoBotaoSalvarAposta(emProcessamento) {
+  const btnSalvar = document.querySelector("#cardApostas > button[onclick=\"salvarAposta()\"]");
+  if (!btnSalvar) return;
+
+  if (!btnSalvar.dataset.rotuloOriginal) {
+    btnSalvar.dataset.rotuloOriginal = String(btnSalvar.innerText || "Salvar Bilhete");
+  }
+
+  btnSalvar.disabled = Boolean(emProcessamento);
+  btnSalvar.innerText = emProcessamento
+    ? "Salvando..."
+    : String(btnSalvar.dataset.rotuloOriginal || "Salvar Bilhete");
+}
+
+async function requisicaoCarteiraJSON(url, opcoes, timeoutMs) {
+  const resp = await fetchComTimeout(
+    url,
+    {
+      ...(opcoes || {}),
+      headers: {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-App-Client": "porcodobicho-web",
+        ...((opcoes && opcoes.headers) || {})
+      },
+      cache: "no-store"
+    },
+    Number.isFinite(timeoutMs) ? timeoutMs : 12000
+  );
+
+  let payload = null;
+  try {
+    payload = await resp.json();
+  } catch (_err) {
+    payload = null;
+  }
+
+  if (!resp.ok || !(payload && payload.ok)) {
+    const detalhe = payload && typeof payload.error === "string" ? payload.error : "";
+    const base = `Falha na carteira (${resp.status}).`;
+    throw new Error(detalhe ? `${base} ${detalhe}` : base);
+  }
+
+  return payload;
+}
+
+async function sincronizarUsuarioCarteiraServidor(usuario) {
+  if (!usuario) return;
+  const login = normalizarLoginUsuario(usuario.login);
+  if (!login) return;
+
+  await requisicaoCarteiraJSON(
+    CARTEIRA_USUARIO_UPSERT_API_URL,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        login,
+        nome: String(usuario.nome || "Usuário"),
+        email: String(usuario.email || ""),
+        telefone: String(usuario.telefone || "")
+      })
+    },
+    12000
+  );
+
+  const saldoPayload = await requisicaoCarteiraJSON(
+    `${CARTEIRA_SALDO_USUARIO_API_URL}?login=${encodeURIComponent(login)}`,
+    {
+      method: "GET"
+    },
+    10000
+  );
+
+  const saldoServidor = normalizarSaldoUsuario(saldoPayload && saldoPayload.usuario && saldoPayload.usuario.saldo);
+  const idx = usuarios.findIndex((item) => item.id === usuario.id);
+  if (idx !== -1) {
+    usuarios[idx].saldo = saldoServidor;
+    if (usuarioAtual && usuarioAtual.id === usuarios[idx].id) {
+      usuarioAtual = usuarios[idx];
+    }
+    salvarUsuarios({
+      atualizarTimestamp: false,
+      pularSyncRemoto: true
+    });
+  }
+  atualizarCarteiraUsuarioAposta();
+}
+
+async function debitarSaldoCarteiraServidorAposta(usuario, valorTotalBilhete, referencia, detalhes) {
+  const login = normalizarLoginUsuario(usuario && usuario.login);
+  if (!login) {
+    throw new Error("Usuário inválido para débito em carteira.");
+  }
+
+  const payload = await requisicaoCarteiraJSON(
+    CARTEIRA_APOSTAR_API_URL,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        login,
+        valor: normalizarValorNaoNegativo(valorTotalBilhete),
+        referencia: String(referencia || "").trim(),
+        detalhes: detalhes && typeof detalhes === "object" ? detalhes : {}
+      })
+    },
+    12000
+  );
+
+  const saldoAtualServidor = normalizarSaldoUsuario(payload.saldoAtual);
+  const idx = usuarios.findIndex((item) => item.id === usuario.id);
+  if (idx !== -1) {
+    usuarios[idx].saldo = saldoAtualServidor;
+    if (usuarioAtual && usuarioAtual.id === usuarios[idx].id) {
+      usuarioAtual = usuarios[idx];
+    }
+    salvarUsuarios({
+      atualizarTimestamp: false,
+      pularSyncRemoto: true
+    });
+  }
+  atualizarCarteiraUsuarioAposta();
+  return payload;
+}
+
+function sincronizarSaldoUsuarioLogadoComServidor() {
+  const usuarioSincronizado = sincronizarUsuarioAtualComLista();
+  if (!usuarioSincronizado) return;
+  sincronizarUsuarioCarteiraServidor(usuarioSincronizado).catch(() => {
+    // Se a carteira SQL não estiver pronta, mantém fallback local.
+  });
+}
+
 async function extrairErroResposta(resp, fallback) {
   let detalhe = "";
   try {
@@ -2537,6 +2810,10 @@ function aplicarEstadoPainelRemoto(estadoRemoto) {
   if (updatedAtValido > 0) {
     salvarAtualizacaoPainelLocal(updatedAtValido);
   }
+
+  // Garante que o saldo do usuário logado continue vindo da carteira SQL,
+  // mesmo após aplicar payload remoto antigo do painel.
+  sincronizarSaldoUsuarioLogadoComServidor();
 }
 
 async function sincronizarPainelRemoto(modo) {
@@ -2854,6 +3131,7 @@ function atualizarEstadoSecaoApostas(encerrada, opcoes) {
     "palpiteGrupo1",
     "palpiteGrupo2",
     "palpiteGrupo3",
+    "palpiteGrupo4",
     "btnEditarPalpiteGrupo",
     "btnPalpiteGrupoPrev",
     "btnPalpiteGrupoNext",
@@ -3279,30 +3557,32 @@ function configurarNavegacaoResultados() {
 
 function quantidadeGruposPorTipoAposta(tipo) {
   if (tipo === "grupo") return 1;
-  if (tipo === "dupla_grupo") return 2;
+  if (tipo === "duque_grupo") return 2;
   if (tipo === "terno_grupo") return 3;
-  if (tipo === "passe_seco") return 2;
+  if (tipo === "quadra_grupo" || tipo === "palpitao") return 4;
+  if (tipo === "passe_vai") return 2;
   if (tipo === "passe_vai_vem") return 2;
-  if (tipo === "dupla_grupo_1a5") return 2;
-  if (tipo === "terno_grupo_1a5") return 3;
   return 0;
 }
 
 function limiteDigitosPalpitePorTipo(tipo) {
   if (tipo === "duque_dezena") return 4;
-  if (tipo === "terno_dezena") return 6;
-  if (tipo === "milhar" || tipo === "milhar_seca") return 4;
-  if (tipo === "centena" || tipo === "centena_seca") return 3;
-  if (tipo === "dezena" || tipo === "dezena_seca") return 2;
+  if (tipo === "terno_dezena_seco" || tipo === "terno_dezena_1a5") return 6;
+  if (tipo === "milhar" || tipo === "milhar_brinde") return 4;
+  if (tipo === "centena") return 3;
+  if (tipo === "dezena") return 2;
+  if (tipo === "unidade") return 1;
   return 10;
 }
 
 function placeholderPalpitePorTipo(tipo) {
   if (tipo === "duque_dezena") return "Duque de Dezena (ex: 12-34)";
-  if (tipo === "terno_dezena") return "Terno de Dezena (ex: 12-34-56)";
-  if (tipo === "milhar" || tipo === "milhar_seca") return "Milhar (4 digitos)";
-  if (tipo === "centena" || tipo === "centena_seca") return "Centena (3 digitos)";
-  if (tipo === "dezena" || tipo === "dezena_seca") return "Dezena (2 digitos)";
+  if (tipo === "terno_dezena_seco") return "Terno de Dezena Seco (ex: 12-34-56)";
+  if (tipo === "terno_dezena_1a5") return "Terno de Dezena 1º ao 5º (ex: 12-34-56)";
+  if (tipo === "milhar" || tipo === "milhar_brinde") return "Milhar (4 dígitos)";
+  if (tipo === "centena") return "Centena (3 dígitos)";
+  if (tipo === "dezena") return "Dezena (2 dígitos)";
+  if (tipo === "unidade") return "Unidade (1 dígito)";
   return "Palpite numerico";
 }
 
@@ -3452,7 +3732,8 @@ function renderizarSelecaoPalpiteGrupoPorImagem() {
       slots.classList.remove(
         "palpite-grupo-slots-qtd-1",
         "palpite-grupo-slots-qtd-2",
-        "palpite-grupo-slots-qtd-3"
+        "palpite-grupo-slots-qtd-3",
+        "palpite-grupo-slots-qtd-4"
       );
     }
     dica.innerText = "";
@@ -3466,9 +3747,10 @@ function renderizarSelecaoPalpiteGrupoPorImagem() {
     slots.classList.remove(
       "palpite-grupo-slots-qtd-1",
       "palpite-grupo-slots-qtd-2",
-      "palpite-grupo-slots-qtd-3"
+      "palpite-grupo-slots-qtd-3",
+      "palpite-grupo-slots-qtd-4"
     );
-    slots.classList.add(`palpite-grupo-slots-qtd-${Math.min(3, Math.max(1, quantidade))}`);
+    slots.classList.add(`palpite-grupo-slots-qtd-${Math.min(MAX_PALPITES_GRUPO, Math.max(1, quantidade))}`);
   }
 
   if (slotGrupoAtivo < 1 || slotGrupoAtivo > quantidade) {
@@ -3490,7 +3772,7 @@ function renderizarSelecaoPalpiteGrupoPorImagem() {
   editor.style.display = exibirEditor ? "grid" : "none";
   btnEditar.style.display = completo && !editorPalpiteGrupoAberto ? "block" : "none";
 
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= MAX_PALPITES_GRUPO; i++) {
     const slot = document.getElementById("palpiteGrupoSlot" + i);
     if (!slot) continue;
 
@@ -3578,7 +3860,7 @@ function selecionarBichoDaGradePalpiteGrupo(grupoTxt) {
 
 function limparSelecaoPalpiteGrupoPorImagem() {
   const quantidade = quantidadeGruposNoFormularioAposta();
-  for (let i = 1; i <= Math.max(quantidade, 3); i++) {
+  for (let i = 1; i <= Math.max(quantidade, MAX_PALPITES_GRUPO); i++) {
     definirValorPalpiteGrupo(i, "");
   }
   slotGrupoAtivo = 1;
@@ -3590,7 +3872,7 @@ function limparSelecaoPalpiteGrupoPorImagem() {
 function configurarPalpiteGrupoComImagens() {
   montarGradeBichosPalpiteGrupo();
 
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= MAX_PALPITES_GRUPO; i++) {
     const slot = document.getElementById("palpiteGrupoSlot" + i);
     if (!slot) continue;
     slot.addEventListener("click", () => {
@@ -3639,6 +3921,7 @@ function popularPalpitesGrupo() {
   popularSelectPalpiteGrupo("palpiteGrupo1", "Selecione o bicho");
   popularSelectPalpiteGrupo("palpiteGrupo2", "Selecione o 2º bicho");
   popularSelectPalpiteGrupo("palpiteGrupo3", "Selecione o 3º bicho");
+  popularSelectPalpiteGrupo("palpiteGrupo4", "Selecione o 4º bicho");
   renderizarSelecaoPalpiteGrupoPorImagem();
 }
 
@@ -3670,7 +3953,7 @@ function normalizarPalpiteNumericoDigitado() {
   const limite = limiteDigitosPalpitePorTipo(tipo);
   const digitos = extrairDigitos(palpiteInput.value).slice(0, limite);
 
-  if (tipo === "duque_dezena" || tipo === "terno_dezena") {
+  if (tipo === "duque_dezena" || tipo === "terno_dezena_seco" || tipo === "terno_dezena_1a5") {
     const partes = [];
     for (let i = 0; i < digitos.length; i += 2) {
       partes.push(digitos.slice(i, i + 2));
@@ -3702,7 +3985,7 @@ function atualizarModoCampoPalpiteAposta() {
     slotGrupoAtivo = 1;
     editorPalpiteGrupoAberto = true;
 
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= MAX_PALPITES_GRUPO; i++) {
       const select = document.getElementById("palpiteGrupo" + i);
       if (!select) continue;
       select.disabled = true;
@@ -3722,7 +4005,7 @@ function atualizarModoCampoPalpiteAposta() {
       editorPalpiteGrupoAberto = true;
     }
 
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= MAX_PALPITES_GRUPO; i++) {
       const select = document.getElementById("palpiteGrupo" + i);
       if (!select) continue;
       const ativo = i <= quantidade;
@@ -3753,7 +4036,7 @@ function atualizarModoCampoPalpiteAposta() {
   palpiteInput.placeholder = placeholderPalpitePorTipo(tipo);
   palpiteInput.dataset.modoGrupo = "0";
 
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= MAX_PALPITES_GRUPO; i++) {
     const select = document.getElementById("palpiteGrupo" + i);
     if (!select) continue;
     select.disabled = true;
@@ -3786,8 +4069,14 @@ function atualizarPreviewPremiacaoAposta() {
     return;
   }
 
+  const cotacao = multiplicadorTipoAposta(tipo);
   const premio = calcularPremiacaoFicticia(tipo, valor);
-  destaque.innerText = `Possível Prêmio: ${formatarMoedaBR(premio)}`;
+  const tipoLabel = TIPOS_APOSTA[tipo] || tipo;
+  destaque.innerHTML =
+    `Tipo: <b>${tipoLabel}</b><br>` +
+    `Valor apostado: <b>${formatarMoedaBR(valor)}</b><br>` +
+    `Cotação: <b>${formatarNumeroBR(cotacao)}</b><br>` +
+    `Possível prêmio: <b>${formatarMoedaBR(premio)}</b>`;
   destaque.classList.add("ativo");
   bloco.classList.add("ativa");
   atualizarAnimacaoPassoEscolhaLoteria(secaoApostasEncerrada);
@@ -4012,6 +4301,7 @@ function configurarCamposAposta() {
   const selectGrupo1 = document.getElementById("palpiteGrupo1");
   const selectGrupo2 = document.getElementById("palpiteGrupo2");
   const selectGrupo3 = document.getElementById("palpiteGrupo3");
+  const selectGrupo4 = document.getElementById("palpiteGrupo4");
 
   if (tipoInput) {
     tipoInput.addEventListener("change", () => {
@@ -4049,7 +4339,7 @@ function configurarCamposAposta() {
     palpiteInput.addEventListener("input", normalizarPalpiteNumericoDigitado);
   }
 
-  [selectGrupo1, selectGrupo2, selectGrupo3].forEach((select) => {
+  [selectGrupo1, selectGrupo2, selectGrupo3, selectGrupo4].forEach((select) => {
     if (!select) return;
     select.addEventListener("change", sincronizarPalpiteApostaGrupoParaInput);
   });
@@ -4913,6 +5203,7 @@ function entrarUsuario() {
   }
   limparCamposUsuario();
   mostrar();
+  sincronizarSaldoUsuarioLogadoComServidor();
 }
 
 function sairUsuario() {
@@ -5307,11 +5598,11 @@ function renderizarBilheteRascunhoAposta() {
       const tipoNormalizado = normalizarTipoAposta(item.tipo);
       const palpiteEhGrupo =
         tipoNormalizado === "grupo" ||
-        tipoNormalizado === "dupla_grupo" ||
+        tipoNormalizado === "duque_grupo" ||
         tipoNormalizado === "terno_grupo" ||
-        tipoNormalizado === "dupla_grupo_1a5" ||
-        tipoNormalizado === "terno_grupo_1a5" ||
-        tipoNormalizado === "passe_seco" ||
+        tipoNormalizado === "quadra_grupo" ||
+        tipoNormalizado === "palpitao" ||
+        tipoNormalizado === "passe_vai" ||
         tipoNormalizado === "passe_vai_vem";
       const classeLinhaPalpite = palpiteEhGrupo
         ? "bilhete-linha-palpite bilhete-linha-palpite-grupo"
@@ -5399,7 +5690,8 @@ function adicionarApostaAoBilhete() {
   mostrarConfirmacaoApostaRapida("Aposta finalizada. Você pode criar outra ou encerrar o bilhete.");
 }
 
-function salvarAposta() {
+async function salvarAposta() {
+  if (salvandoApostaEmAndamento) return;
   if (secaoApostasEncerrada) {
     mostrarConfirmacaoApostaRapida("Apostas encerradas para hoje.", "erro");
     return;
@@ -5416,6 +5708,10 @@ function salvarAposta() {
     return;
   }
 
+  salvandoApostaEmAndamento = true;
+  atualizarEstadoBotaoSalvarAposta(true);
+
+  try {
   const linhasParaSalvar = apostasBilheteRascunho.slice();
   let contexto = contextoBilheteRascunho;
 
@@ -5474,15 +5770,38 @@ function salvarAposta() {
   const valorBaseBilhete = linhasParaSalvar.reduce((acc, linha) => acc + Number(linha.valor || 0), 0);
   const valorTotalBilhete = valorBaseBilhete * loteriasSelecionadas.length;
 
-  const saldoDisponivel = normalizarSaldoUsuario(usuarioSincronizado.saldo);
-  if (valorTotalBilhete > saldoDisponivel) {
+  await sincronizarUsuarioCarteiraServidor(usuarioSincronizado);
+  const saldoServidorAntes = normalizarSaldoUsuario(usuarioSincronizado.saldo);
+  if (valorTotalBilhete > saldoServidorAntes) {
     const mensagemSaldo =
-      `Saldo insuficiente. Saldo atual: ${formatarMoedaBR(saldoDisponivel)}. ` +
+      `Saldo insuficiente. Saldo atual: ${formatarMoedaBR(saldoServidorAntes)}. ` +
       `Total do bilhete: ${formatarMoedaBR(valorTotalBilhete)}.`;
     atualizarStatusDepositoUsuario(mensagemSaldo, true);
     mostrarConfirmacaoApostaRapida(mensagemSaldo, "erro");
     return;
   }
+
+  const referenciaDebito = gerarReferenciaDebitoAposta(
+    usuarioSincronizado,
+    contexto,
+    loteriasSelecionadas,
+    linhasParaSalvar,
+    valorTotalBilhete
+  );
+
+  const retornoDebito = await debitarSaldoCarteiraServidorAposta(
+    usuarioSincronizado,
+    valorTotalBilhete,
+    referenciaDebito,
+    {
+      data: contexto.data,
+      praca: contexto.praca,
+      loterias: loteriasSelecionadas,
+      quantidadeApostas: linhasParaSalvar.length
+    }
+  );
+
+  const saldoServidorAtual = normalizarSaldoUsuario(retornoDebito && retornoDebito.saldoAtual);
 
   const agoraBase = Date.now();
   let seq = 0;
@@ -5519,7 +5838,7 @@ function salvarAposta() {
     apostas.unshift(itensNovos[i]);
   }
 
-  usuarioSincronizado.saldo = normalizarSaldoUsuario(saldoDisponivel - valorTotalBilhete);
+  usuarioSincronizado.saldo = saldoServidorAtual;
   salvarUsuarios({
     atualizarTimestamp: false,
     pularSyncRemoto: true
@@ -5547,6 +5866,14 @@ function salvarAposta() {
     `Bilhete salvo com ${linhasParaSalvar.length} aposta(s) em ${totalLoteriasBilhete} loteria(s). ` +
       `Total debitado: ${formatarMoedaBR(valorTotalBilhete)}.`
   );
+  } catch (err) {
+    const msgErro = String((err && err.message) || "Falha ao validar saldo no servidor.");
+    atualizarStatusDepositoUsuario(msgErro, true);
+    mostrarConfirmacaoApostaRapida(msgErro, "erro");
+  } finally {
+    salvandoApostaEmAndamento = false;
+    atualizarEstadoBotaoSalvarAposta(false);
+  }
 }
 
 function limparCamposAposta(opcoes) {
@@ -5564,6 +5891,7 @@ function limparCamposAposta(opcoes) {
   const palpiteGrupo1 = document.getElementById("palpiteGrupo1");
   const palpiteGrupo2 = document.getElementById("palpiteGrupo2");
   const palpiteGrupo3 = document.getElementById("palpiteGrupo3");
+  const palpiteGrupo4 = document.getElementById("palpiteGrupo4");
 
   if (tipo) tipo.value = "";
   if (subtipoDuplaGrupo) subtipoDuplaGrupo.value = "seca";
@@ -5578,6 +5906,7 @@ function limparCamposAposta(opcoes) {
   if (palpiteGrupo1) palpiteGrupo1.value = "";
   if (palpiteGrupo2) palpiteGrupo2.value = "";
   if (palpiteGrupo3) palpiteGrupo3.value = "";
+  if (palpiteGrupo4) palpiteGrupo4.value = "";
 
   const praca = String(pracaAposta ? pracaAposta.value : "").trim();
   const data = normalizarDataISO(dataAposta ? dataAposta.value : "");
@@ -7254,6 +7583,13 @@ async function init() {
   atualizarResumoData();
   await inicializarSincronizacaoResultadosRemotos();
   await inicializarSincronizacaoPainelRemoto();
+  if (usuarioAtual) {
+    try {
+      await sincronizarUsuarioCarteiraServidor(usuarioAtual);
+    } catch (_err) {
+      // Mantém fallback local quando a carteira SQL/API estiver indisponível.
+    }
+  }
   mostrar();
 }
 

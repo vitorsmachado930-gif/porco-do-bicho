@@ -352,6 +352,12 @@ button {
   margin: 0;
 }
 
+.palpite-grupo-slots.palpite-grupo-slots-qtd-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: none;
+  margin: 0;
+}
+
 .palpite-grupo-slot {
   margin: 0;
   padding: 6px 6px 8px;

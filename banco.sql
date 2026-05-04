@@ -48,6 +48,43 @@ CREATE TABLE IF NOT EXISTS usuarios (
   UNIQUE KEY uq_usuarios_asaas_customer_id (asaas_customer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Cria tabela de debitos de apostas (anti-duplicidade por referencia).
+CREATE TABLE IF NOT EXISTS carteira_apostas_debitos (
+  -- ID interno do debito.
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+
+  -- Usuario que sofreu o debito.
+  usuario_id BIGINT UNSIGNED NOT NULL,
+
+  -- Referencia unica da tentativa de debito.
+  referencia VARCHAR(120) NOT NULL,
+
+  -- Valor debitado.
+  valor DECIMAL(14,2) NOT NULL,
+
+  -- Metadados opcionais da aposta (JSON).
+  metadata_json JSON NULL,
+
+  -- Data de criacao.
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  -- Chave primaria.
+  PRIMARY KEY (id),
+
+  -- Garante que a mesma referencia nao debite duas vezes.
+  UNIQUE KEY uq_carteira_apostas_debitos_referencia (referencia),
+
+  -- Indice por usuario.
+  KEY idx_carteira_apostas_debitos_usuario (usuario_id),
+
+  -- Chave estrangeira para usuarios.
+  CONSTRAINT fk_carteira_apostas_debitos_usuario
+    FOREIGN KEY (usuario_id)
+    REFERENCES usuarios (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Cria tabela de depositos.
 CREATE TABLE IF NOT EXISTS depositos (
   -- ID interno do deposito.
