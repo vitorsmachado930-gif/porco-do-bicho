@@ -113,6 +113,22 @@
 </div>
 
 <div class="container">
+  <div class="card" id="cardPixAsaas">
+    <h3>Depósito via Pix (Asaas)</h3>
+    <p id="pixResumoUsuario">Faça login para identificar seu usuário automaticamente.</p>
+    <input id="pixUsuarioId" type="number" min="1" placeholder="ID do usuário">
+    <input id="pixValorDeposito" type="text" inputmode="decimal" placeholder="Valor do depósito (ex: 10,00)">
+    <button id="btnGerarPixAsaas" type="button">Gerar Pix</button>
+    <p id="pixStatusMensagem"></p>
+    <div id="pixResultadoBox" style="display:none;">
+      <img id="pixQrImage" alt="QR Code Pix" style="display:none; max-width:220px; width:100%; border-radius:8px;">
+      <label for="pixCopiaCola">Código copia e cola</label>
+      <textarea id="pixCopiaCola" rows="4" readonly></textarea>
+      <button id="btnCopiarPixAsaas" type="button" class="btn-secondary">Copiar código Pix</button>
+      <p>Após o pagamento, o saldo será atualizado automaticamente.</p>
+    </div>
+  </div>
+
   <div class="card card-apostas" id="cardApostas">
     <div class="topo-card-apostas">
       <h3>Apostas</h3>
@@ -336,5 +352,6 @@
 </footer>
 
 <script src="js/app.js?v=20260504-01"></script>
+<script src="script.js?v=20260504-asaas-01"></script>
 </body>
 </html>
