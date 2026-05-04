@@ -3,6 +3,7 @@ const STORAGE_KEY = "dados";
 const APOSTAS_KEY = "apostas";
 const MULTIPLICADORES_KEY = "multiplicadores_aposta";
 const USUARIOS_KEY = "usuarios_aposta";
+const PENDENCIAS_DEBITO_CARTEIRA_KEY = "pendencias_debito_carteira";
 // Aviso: dados em localStorage podem ser alterados no navegador.
 // Em produção, validações e cotações devem ser garantidas no backend.
 const USUARIO_SESSAO_KEY = "usuario_sessao_id";
@@ -178,6 +179,7 @@ let limitesAposta = { ...LIMITES_APOSTA_PADRAO };
 let lista = carregarDados();
 let apostas = carregarApostas();
 let usuarios = carregarUsuarios();
+let pendenciasDebitoCarteira = carregarPendenciasDebitoCarteira();
 let usuarioAtual = carregarSessaoUsuario();
 let cronometroApostaTimer = null;
 let acessoAdminVisivel = false;
@@ -2445,9 +2447,15 @@ async function debitarSaldoCarteiraServidorAposta(usuario, valorTotalBilhete, re
 function sincronizarSaldoUsuarioLogadoComServidor() {
   const usuarioSincronizado = sincronizarUsuarioAtualComLista();
   if (!usuarioSincronizado) return;
-  sincronizarUsuarioCarteiraServidor(usuarioSincronizado).catch(() => {
-    // Se a carteira SQL não estiver pronta, mantém fallback local.
-  });
+  processarPendenciasDebitoCarteira(usuarioSincronizado)
+    .catch(() => {
+      // Fila segue para próxima tentativa.
+    })
+    .finally(() => {
+      sincronizarUsuarioCarteiraServidor(usuarioSincronizado).catch(() => {
+        // Se a carteira SQL não estiver pronta, mantém fallback local.
+      });
+    });
 }
 
 async function extrairErroResposta(resp, fallback) {
@@ -2814,6 +2822,7 @@ function aplicarEstadoPainelRemoto(estadoRemoto) {
   // Garante que o saldo do usuário logado continue vindo da carteira SQL,
   // mesmo após aplicar payload remoto antigo do painel.
   sincronizarSaldoUsuarioLogadoComServidor();
+  processarPendenciasDebitoCarteira(usuarioAtual);
 }
 
 async function sincronizarPainelRemoto(modo) {
@@ -2961,6 +2970,94 @@ function salvarApostas(opcoes) {
 
   if (!pularSyncRemoto && !aplicandoPainelRemoto) {
     agendarPushPainelRemoto(500);
+  }
+}
+
+function sanitizarPendenciasDebitoCarteira(arr) {
+  const base = Array.isArray(arr) ? arr : [];
+  return base
+    .map((raw) => {
+      if (!raw || typeof raw !== "object") return null;
+      const login = normalizarLoginUsuario(raw.login);
+      const referencia = String(raw.referencia || "").trim();
+      const valor = normalizarValorNaoNegativo(raw.valor);
+      const detalhes =
+        raw.detalhes && typeof raw.detalhes === "object" && !Array.isArray(raw.detalhes)
+          ? raw.detalhes
+          : {};
+      const createdAt = normalizarDataHoraISO(raw.createdAt) || new Date().toISOString();
+      if (!login || !referencia || valor <= 0) return null;
+      return { login, referencia, valor, detalhes, createdAt };
+    })
+    .filter(Boolean);
+}
+
+function carregarPendenciasDebitoCarteira() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PENDENCIAS_DEBITO_CARTEIRA_KEY));
+    const sane = sanitizarPendenciasDebitoCarteira(parsed);
+    localStorage.setItem(PENDENCIAS_DEBITO_CARTEIRA_KEY, JSON.stringify(sane));
+    return sane;
+  } catch (_err) {
+    localStorage.removeItem(PENDENCIAS_DEBITO_CARTEIRA_KEY);
+    return [];
+  }
+}
+
+function salvarPendenciasDebitoCarteira() {
+  pendenciasDebitoCarteira = sanitizarPendenciasDebitoCarteira(pendenciasDebitoCarteira);
+  localStorage.setItem(PENDENCIAS_DEBITO_CARTEIRA_KEY, JSON.stringify(pendenciasDebitoCarteira));
+}
+
+function enfileirarPendenciaDebitoCarteira(login, referencia, valor, detalhes) {
+  const loginNorm = normalizarLoginUsuario(login);
+  const ref = String(referencia || "").trim();
+  const valorNorm = normalizarValorNaoNegativo(valor);
+  if (!loginNorm || !ref || valorNorm <= 0) return;
+  const jaExiste = pendenciasDebitoCarteira.some((item) => item.referencia === ref);
+  if (jaExiste) return;
+  pendenciasDebitoCarteira.push({
+    login: loginNorm,
+    referencia: ref,
+    valor: valorNorm,
+    detalhes: detalhes && typeof detalhes === "object" ? detalhes : {},
+    createdAt: new Date().toISOString()
+  });
+  salvarPendenciasDebitoCarteira();
+}
+
+function removerPendenciaDebitoCarteira(referencia) {
+  const ref = String(referencia || "").trim();
+  if (!ref) return;
+  pendenciasDebitoCarteira = pendenciasDebitoCarteira.filter((item) => item.referencia !== ref);
+  salvarPendenciasDebitoCarteira();
+}
+
+async function processarPendenciasDebitoCarteira(usuario) {
+  const usuarioRef = usuario || sincronizarUsuarioAtualComLista();
+  if (!usuarioRef) return;
+  const login = normalizarLoginUsuario(usuarioRef.login);
+  if (!login) return;
+
+  const pendenciasUsuario = pendenciasDebitoCarteira
+    .filter((item) => item.login === login)
+    .slice()
+    .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+
+  for (let i = 0; i < pendenciasUsuario.length; i += 1) {
+    const pendencia = pendenciasUsuario[i];
+    try {
+      await debitarSaldoCarteiraServidorAposta(
+        usuarioRef,
+        pendencia.valor,
+        pendencia.referencia,
+        pendencia.detalhes || {}
+      );
+      removerPendenciaDebitoCarteira(pendencia.referencia);
+    } catch (_err) {
+      // Se a carteira ainda estiver indisponível, mantém a fila para tentar depois.
+      break;
+    }
   }
 }
 
@@ -5204,6 +5301,7 @@ function entrarUsuario() {
   limparCamposUsuario();
   mostrar();
   sincronizarSaldoUsuarioLogadoComServidor();
+  processarPendenciasDebitoCarteira(usuarioAtual);
 }
 
 function sairUsuario() {
@@ -5769,18 +5867,12 @@ async function salvarAposta() {
 
   const valorBaseBilhete = linhasParaSalvar.reduce((acc, linha) => acc + Number(linha.valor || 0), 0);
   const valorTotalBilhete = valorBaseBilhete * loteriasSelecionadas.length;
-
-  await sincronizarUsuarioCarteiraServidor(usuarioSincronizado);
-  const saldoServidorAntes = normalizarSaldoUsuario(usuarioSincronizado.saldo);
-  if (valorTotalBilhete > saldoServidorAntes) {
-    const mensagemSaldo =
-      `Saldo insuficiente. Saldo atual: ${formatarMoedaBR(saldoServidorAntes)}. ` +
-      `Total do bilhete: ${formatarMoedaBR(valorTotalBilhete)}.`;
-    atualizarStatusDepositoUsuario(mensagemSaldo, true);
-    mostrarConfirmacaoApostaRapida(mensagemSaldo, "erro");
-    return;
-  }
-
+  const detalhesDebito = {
+    data: contexto.data,
+    praca: contexto.praca,
+    loterias: loteriasSelecionadas,
+    quantidadeApostas: linhasParaSalvar.length
+  };
   const referenciaDebito = gerarReferenciaDebitoAposta(
     usuarioSincronizado,
     contexto,
@@ -5789,19 +5881,51 @@ async function salvarAposta() {
     valorTotalBilhete
   );
 
-  const retornoDebito = await debitarSaldoCarteiraServidorAposta(
-    usuarioSincronizado,
-    valorTotalBilhete,
-    referenciaDebito,
-    {
-      data: contexto.data,
-      praca: contexto.praca,
-      loterias: loteriasSelecionadas,
-      quantidadeApostas: linhasParaSalvar.length
-    }
-  );
+  let saldoFinalAposDebito = normalizarSaldoUsuario(usuarioSincronizado.saldo);
+  let debitoRealizadoViaCarteira = false;
+  let mensagemContingencia = "";
 
-  const saldoServidorAtual = normalizarSaldoUsuario(retornoDebito && retornoDebito.saldoAtual);
+  try {
+    await sincronizarUsuarioCarteiraServidor(usuarioSincronizado);
+    const saldoServidorAntes = normalizarSaldoUsuario(usuarioSincronizado.saldo);
+    if (valorTotalBilhete > saldoServidorAntes) {
+      const mensagemSaldo =
+        `Saldo insuficiente. Saldo atual: ${formatarMoedaBR(saldoServidorAntes)}. ` +
+        `Total do bilhete: ${formatarMoedaBR(valorTotalBilhete)}.`;
+      atualizarStatusDepositoUsuario(mensagemSaldo, true);
+      mostrarConfirmacaoApostaRapida(mensagemSaldo, "erro");
+      return;
+    }
+
+    const retornoDebito = await debitarSaldoCarteiraServidorAposta(
+      usuarioSincronizado,
+      valorTotalBilhete,
+      referenciaDebito,
+      detalhesDebito
+    );
+
+    saldoFinalAposDebito = normalizarSaldoUsuario(retornoDebito && retornoDebito.saldoAtual);
+    debitoRealizadoViaCarteira = true;
+  } catch (_erroCarteira) {
+    // Contingência: permite aposta com saldo local enquanto a carteira SQL não estabiliza.
+    const saldoLocalAntes = normalizarSaldoUsuario(usuarioSincronizado.saldo);
+    if (valorTotalBilhete > saldoLocalAntes) {
+      const msgLocal =
+        `Saldo insuficiente. Saldo local: ${formatarMoedaBR(saldoLocalAntes)}. ` +
+        `Total do bilhete: ${formatarMoedaBR(valorTotalBilhete)}.`;
+      atualizarStatusDepositoUsuario(msgLocal, true);
+      mostrarConfirmacaoApostaRapida(msgLocal, "erro");
+      return;
+    }
+    saldoFinalAposDebito = normalizarSaldoUsuario(saldoLocalAntes - valorTotalBilhete);
+    enfileirarPendenciaDebitoCarteira(
+      usuarioSincronizado.login,
+      referenciaDebito,
+      valorTotalBilhete,
+      detalhesDebito
+    );
+    mensagemContingencia = "Carteira indisponível no momento. Aposta salva em modo local.";
+  }
 
   const agoraBase = Date.now();
   let seq = 0;
@@ -5838,18 +5962,18 @@ async function salvarAposta() {
     apostas.unshift(itensNovos[i]);
   }
 
-  usuarioSincronizado.saldo = saldoServidorAtual;
+  usuarioSincronizado.saldo = saldoFinalAposDebito;
   salvarUsuarios({
     atualizarTimestamp: false,
     pularSyncRemoto: true
   });
   salvarApostas();
   atualizarCarteiraUsuarioAposta();
-  atualizarStatusDepositoUsuario(
+  const msgStatusBilhete =
     `Bilhete confirmado: -${formatarMoedaBR(valorTotalBilhete)}. ` +
-    `Saldo restante: ${formatarMoedaBR(usuarioSincronizado.saldo)}.`,
-    false
-  );
+    `Saldo restante: ${formatarMoedaBR(usuarioSincronizado.saldo)}.` +
+    (debitoRealizadoViaCarteira ? "" : ` ${mensagemContingencia}`);
+  atualizarStatusDepositoUsuario(msgStatusBilhete, false);
 
   dataSelecionada = contexto.data;
   aplicarLimitesDeData();
@@ -5862,10 +5986,11 @@ async function salvarAposta() {
   limparCamposAposta();
 
   const totalLoteriasBilhete = loteriasSelecionadas.length;
-  mostrarConfirmacaoApostaRapida(
+  const msgConfirmacaoBilhete =
     `Bilhete salvo com ${linhasParaSalvar.length} aposta(s) em ${totalLoteriasBilhete} loteria(s). ` +
-      `Total debitado: ${formatarMoedaBR(valorTotalBilhete)}.`
-  );
+    `Total debitado: ${formatarMoedaBR(valorTotalBilhete)}.` +
+    (debitoRealizadoViaCarteira ? "" : " Carteira em contingência (local).");
+  mostrarConfirmacaoApostaRapida(msgConfirmacaoBilhete);
   } catch (err) {
     const msgErro = String((err && err.message) || "Falha ao validar saldo no servidor.");
     atualizarStatusDepositoUsuario(msgErro, true);
@@ -7585,6 +7710,7 @@ async function init() {
   await inicializarSincronizacaoPainelRemoto();
   if (usuarioAtual) {
     try {
+      await processarPendenciasDebitoCarteira(usuarioAtual);
       await sincronizarUsuarioCarteiraServidor(usuarioAtual);
     } catch (_err) {
       // Mantém fallback local quando a carteira SQL/API estiver indisponível.

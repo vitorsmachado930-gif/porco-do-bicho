@@ -164,3 +164,17 @@ ON DUPLICATE KEY UPDATE
   telefone = VALUES(telefone),
   cpf_cnpj = VALUES(cpf_cnpj),
   status = VALUES(status);
+
+-- =====================================================
+-- COMPATIBILIDADE BACKEND/ (INTEGRACAO PIX ASAAS)
+-- =====================================================
+-- Este bloco mantém o banco atual e adiciona colunas esperadas
+-- pelos novos endpoints backend/criar_pix.php e backend/webhook_asaas.php.
+
+ALTER TABLE usuarios
+  ADD COLUMN IF NOT EXISTS asaas_customer_id VARCHAR(64) NULL;
+
+ALTER TABLE depositos
+  ADD COLUMN IF NOT EXISTS payload_pix TEXT NULL,
+  ADD COLUMN IF NOT EXISTS criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  ADD COLUMN IF NOT EXISTS atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;

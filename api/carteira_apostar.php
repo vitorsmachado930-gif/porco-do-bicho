@@ -30,6 +30,7 @@ walletAplicarRateLimit('carteira-apostar', 80, 60);
 try {
     walletValidarConfiguracaoMinima(false);
     $pdo = walletPdo();
+    walletGarantirTabelaUsuarios($pdo);
     carteiraGarantirTabelaDebitosAposta($pdo);
 
     $payload = walletBodyJson();

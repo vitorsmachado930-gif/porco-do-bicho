@@ -12,6 +12,7 @@ walletAplicarRateLimit('carteira-saldo-usuario', 120, 60);
 try {
     walletValidarConfiguracaoMinima(false);
     $pdo = walletPdo();
+    walletGarantirTabelaUsuarios($pdo);
 
     $login = walletNormalizarLogin((string)($_GET['login'] ?? ''));
     if ($login === '') {

@@ -12,6 +12,7 @@ walletAplicarRateLimit('carteira-usuario-upsert', 40, 60);
 try {
     walletValidarConfiguracaoMinima(false);
     $pdo = walletPdo();
+    walletGarantirTabelaUsuarios($pdo);
 
     $payload = walletBodyJson();
     $login = walletNormalizarLogin($payload['login'] ?? '');
@@ -27,27 +28,59 @@ try {
         walletResponder(422, ['ok' => false, 'error' => 'Nome invalido.']);
     }
 
-    $stmt = $pdo->prepare(
-        'INSERT INTO usuarios (login, nome, email, telefone, cpf_cnpj, saldo, status)
-         VALUES (:login, :nome, :email, :telefone, :cpf, 0.00, \'ATIVO\')
-         ON DUPLICATE KEY UPDATE
-            nome = VALUES(nome),
-            email = CASE WHEN VALUES(email) <> \'\' THEN VALUES(email) ELSE email END,
-            telefone = CASE WHEN VALUES(telefone) <> \'\' THEN VALUES(telefone) ELSE telefone END,
-            cpf_cnpj = CASE WHEN (cpf_cnpj IS NULL OR cpf_cnpj = \'\') AND VALUES(cpf_cnpj) <> \'\' THEN VALUES(cpf_cnpj) ELSE cpf_cnpj END'
-    );
+    $pdo->beginTransaction();
 
-    $stmt->execute([
-        ':login' => $login,
-        ':nome' => $nome,
-        ':email' => $email,
-        ':telefone' => $telefone,
-        ':cpf' => $cpfCnpj,
-    ]);
+    $stmtBusca = $pdo->prepare(
+        'SELECT id, login, nome, email, telefone, cpf_cnpj, saldo, status
+         FROM usuarios
+         WHERE login = :login
+         LIMIT 1
+         FOR UPDATE'
+    );
+    $stmtBusca->execute([':login' => $login]);
+    $usuarioExistente = $stmtBusca->fetch();
+
+    if ($usuarioExistente) {
+        $stmtUpdate = $pdo->prepare(
+            'UPDATE usuarios
+             SET nome = :nome,
+                 email = CASE WHEN :email <> \'\' THEN :email ELSE email END,
+                 telefone = CASE WHEN :telefone <> \'\' THEN :telefone ELSE telefone END,
+                 cpf_cnpj = CASE
+                   WHEN (cpf_cnpj IS NULL OR cpf_cnpj = \'\') AND :cpf <> \'\' THEN :cpf
+                   ELSE cpf_cnpj
+                 END
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $stmtUpdate->execute([
+            ':id' => (int)$usuarioExistente['id'],
+            ':nome' => $nome,
+            ':email' => $email,
+            ':telefone' => $telefone,
+            ':cpf' => $cpfCnpj,
+        ]);
+    } else {
+        $stmtInsert = $pdo->prepare(
+            'INSERT INTO usuarios (login, nome, email, telefone, cpf_cnpj, saldo, status)
+             VALUES (:login, :nome, :email, :telefone, :cpf, 0.00, \'ATIVO\')'
+        );
+        $stmtInsert->execute([
+            ':login' => $login,
+            ':nome' => $nome,
+            ':email' => $email,
+            ':telefone' => $telefone,
+            ':cpf' => $cpfCnpj,
+        ]);
+    }
 
     $stmtSelect = $pdo->prepare('SELECT id, login, nome, saldo, status FROM usuarios WHERE login = :login LIMIT 1');
     $stmtSelect->execute([':login' => $login]);
     $user = $stmtSelect->fetch();
+    if (!$user) {
+        throw new RuntimeException('Usuario nao encontrado apos sincronizacao.');
+    }
+    $pdo->commit();
 
     walletResponder(200, [
         'ok' => true,
@@ -60,6 +93,9 @@ try {
         ],
     ]);
 } catch (Throwable $e) {
+    if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     $msg = 'Falha ao sincronizar usuario da carteira.';
     if ($e instanceof PDOException) {
         $sqlState = (string)($e->getCode() ?? '');
