@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel do Promotor | Porco do Bicho</title>
+  <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
+  <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
+  <link rel="stylesheet" href="../css/style.css?v=20260427-11">
+  <link rel="stylesheet" href="../css/paginas.css?v=20260425">
+  <link rel="stylesheet" href="../css/promotor.css?v=20260429-11">
+</head>
+<body>
+  <header class="topo-pagina">
+    <div class="topo-pagina-conteudo topo-promotor">
+      <a href="../index.html">← Voltar para Home</a>
+      <strong>Painel do Promotor</strong>
+    </div>
+  </header>
+
+  <main class="container container-promotor">
+    <div class="layout-promotor">
+      <aside id="menuPromotor" class="menu-promotor-fixo">
+        <div class="menu-promotor-topo">
+          <strong>Menu do Promotor</strong>
+        </div>
+        <p id="menuPromotorInfo" class="menu-promotor-info">Painel do Promotor</p>
+        <nav class="menu-promotor-lista" aria-label="Navegação do promotor">
+          <button type="button" class="menu-promotor-item" data-secao-promotor="dashboard" onclick="selecionarSecaoPromotor('dashboard')">Dashboard</button>
+          <button type="button" class="menu-promotor-item" data-secao-promotor="perfil" onclick="selecionarSecaoPromotor('perfil')">Meu Perfil</button>
+          <button type="button" class="menu-promotor-item" data-secao-promotor="cadastro" onclick="selecionarSecaoPromotor('cadastro')">Cadastrar Apostador</button>
+          <button type="button" class="menu-promotor-item" data-secao-promotor="apostadores" onclick="selecionarSecaoPromotor('apostadores')">Apostadores da Base</button>
+          <button type="button" class="menu-promotor-item" data-secao-promotor="repasse" onclick="selecionarSecaoPromotor('repasse')">Repassar Saldo</button>
+          <button type="button" class="menu-promotor-item menu-promotor-item-sair" onclick="sairPromotor()">Sair</button>
+        </nav>
+      </aside>
+
+      <section class="promotor-conteudo">
+        <div id="avisoPromotor" class="card" style="display:none;"></div>
+
+        <div id="painelPromotor" class="card" style="display:none;">
+          <section id="secaoDashboardPromotor" class="painel-admin-bloco secao-promotor">
+            <div class="topo-painel-promotor">
+              <h3>Dashboard da Base</h3>
+              <button type="button" class="btn-danger btn-sair-promotor" onclick="sairPromotor()">Sair</button>
+            </div>
+            <p id="resumoPromotor" class="resumo-painel-admin"></p>
+            <div class="dashboard-filtro-promotor">
+              <select id="dashFiltroModoPromotor" aria-label="Modo de filtro do dashboard">
+                <option value="dia">Dia</option>
+                <option value="periodo">De data até data</option>
+              </select>
+              <input id="dashFiltroDiaPromotor" type="date" aria-label="Dia do dashboard">
+              <input id="dashFiltroInicioPromotor" type="date" aria-label="Data inicial do dashboard" style="display:none;">
+              <input id="dashFiltroFimPromotor" type="date" aria-label="Data final do dashboard" style="display:none;">
+              <button id="btnDashFiltroHojePromotor" type="button" class="btn-secondary">Hoje</button>
+            </div>
+            <p id="dashFiltroResumoPromotor" class="dashboard-filtro-resumo-promotor"></p>
+
+            <div class="dashboard-promotor-grid">
+              <div class="dashboard-admin-card">
+                <span>Saldo próprio (apostas)</span>
+                <strong id="dashPromotorSaldoProprio">R$ 0,00</strong>
+              </div>
+              <div class="dashboard-admin-card">
+                <span>Saldo apostador (repasse)</span>
+                <strong id="dashPromotorSaldoApostador">R$ 0,00</strong>
+              </div>
+              <div class="dashboard-admin-card">
+                <span>Apostadores da base</span>
+                <strong id="dashPromotorApostadores">0</strong>
+              </div>
+              <div class="dashboard-admin-card">
+                <span>Depósitos da base</span>
+                <strong id="dashPromotorDepositos">R$ 0,00</strong>
+              </div>
+              <div class="dashboard-admin-card">
+                <span>Total de apostas</span>
+                <strong id="dashPromotorApostas">0</strong>
+              </div>
+              <div class="dashboard-admin-card">
+                <span>Valor apostado</span>
+                <strong id="dashPromotorApostado">R$ 0,00</strong>
+              </div>
+              <div class="dashboard-admin-card">
+                <span>Comissão disponível</span>
+                <strong id="dashPromotorComissaoSaldo">R$ 0,00</strong>
+              </div>
+              <div class="dashboard-admin-card">
+                <span>Comissão acumulada</span>
+                <strong id="dashPromotorComissaoTotal">R$ 0,00</strong>
+              </div>
+            </div>
+          </section>
+
+          <section id="secaoPerfilPromotor" class="painel-admin-bloco painel-promotor-perfil secao-promotor">
+            <h4>Meu Perfil (Promotor)</h4>
+            <p id="promotorPerfilResumo" class="resumo-painel-admin"></p>
+
+            <div id="promotorPerfilCamposEdicao" class="promotor-perfil-campos-edicao">
+              <label for="promotorPerfilNome">Nome</label>
+              <input id="promotorPerfilNome" type="text" placeholder="Seu nome completo" maxlength="80">
+
+              <label for="promotorPerfilTelefone">Telefone (DDD + número)</label>
+              <input id="promotorPerfilTelefone" type="tel" inputmode="tel" placeholder="(11) 98765-4321" maxlength="16">
+              <small class="promotor-perfil-dica">Informe um telefone válido com DDD (ex: 11 98765-4321).</small>
+
+              <label for="promotorPerfilPix">Chave Pix para recebimento</label>
+              <input id="promotorPerfilPix" type="text" placeholder="CPF, e-mail, telefone ou chave aleatória" maxlength="120">
+            </div>
+
+            <div class="promotor-perfil-acoes">
+              <button id="btnSalvarPerfilPromotor" type="button">Salvar alterações</button>
+            </div>
+            <p id="statusPerfilPromotor"></p>
+          </section>
+
+          <div class="painel-promotor-grid">
+            <section id="secaoCadastroBasePromotor" class="painel-admin-bloco secao-promotor">
+              <h4>Cadastrar Apostador da Base</h4>
+              <input id="baseNome" type="text" placeholder="Nome do apostador">
+              <input id="baseLogin" type="text" placeholder="Login do apostador">
+              <input id="baseSenha" type="password" placeholder="Senha do apostador">
+              <button type="button" onclick="cadastrarApostadorBasePromotor()">Cadastrar na Base</button>
+              <p id="statusPromotor"></p>
+            </section>
+
+            <section id="secaoApostadoresBasePromotor" class="painel-admin-bloco secao-promotor">
+              <h4>Apostadores da Base</h4>
+              <p id="resumoBasePromotor" class="resumo-painel-admin"></p>
+              <div id="listaApostadoresBasePromotor" class="lista-admin-scroll"></div>
+            </section>
+
+            <section id="secaoRepasseBasePromotor" class="painel-admin-bloco secao-promotor">
+              <h4>Repassar Saldo ao Apostador</h4>
+              <input id="repasseSaldoDisponivelPromotor" type="text" readonly value="Saldo disponível para repasse: R$ 0,00">
+              <select id="repasseApostadorPromotor">
+                <option value="">Selecione o apostador da base</option>
+              </select>
+              <input id="repasseValorPromotor" type="number" min="0.01" step="0.01" placeholder="Valor do repasse (R$)">
+              <button id="btnRepassarSaldoPromotor" type="button" onclick="repassarSaldoApostadorPromotor()">Repassar Saldo</button>
+              <p id="statusRepassePromotor"></p>
+            </section>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="rodape-pagina">
+    Porco do Bicho • Painel do Promotor.
+  </footer>
+
+  <script src="../js/promotor.js?v=20260504-01"></script>
+</body>
+</html>

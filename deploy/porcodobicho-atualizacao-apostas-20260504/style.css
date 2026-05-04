@@ -1,0 +1,2187 @@
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #0c141c;
+  color: white;
+}
+
+
+.toast-aposta-confirmacao {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%) translateY(8px);
+  background: #00c853;
+  color: #062510;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.toast-aposta-confirmacao.sucesso {
+  background: #00c853;
+  color: #062510;
+}
+
+.toast-aposta-confirmacao.erro {
+  background: #d32f2f;
+  color: #fff3f3;
+}
+
+.toast-aposta-confirmacao.visivel {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+a {
+  color: inherit;
+}
+
+.banner-topo {
+  width: 100%;
+  background: #081018;
+  border-bottom: 1px solid #ffffff1a;
+}
+
+.banner-topo-conteudo {
+  width: min(100%, 920px);
+  margin: 0 auto;
+  padding: 10px 20px;
+  box-sizing: border-box;
+}
+
+.banner-topo-img {
+  width: 100%;
+  display: block;
+  border-radius: 10px;
+  height: auto;
+}
+
+.melhores-cotacoes-wrap {
+  width: 100%;
+  background: #081018;
+}
+
+.melhores-cotacoes-conteudo {
+  width: min(100%, 920px);
+  margin: 0 auto;
+  padding: 0 20px 12px;
+  box-sizing: border-box;
+}
+
+.melhores-cotacoes-titulo {
+  margin: 2px 0 8px;
+  color: #9fd5ff;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.melhores-cotacoes-card {
+  border: 1px solid #00e67644;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #102030 0%, #0f1a24 100%);
+  padding: 10px 12px;
+  overflow: hidden;
+  display: grid;
+  gap: 0;
+}
+
+.melhores-cotacoes-janela {
+  display: flex;
+  overflow: hidden;
+  gap: 0;
+}
+
+.melhores-cotacoes-faixa {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  min-width: max-content;
+  white-space: nowrap;
+  color: #e8f3ff;
+  font-size: 13px;
+  animation: cotacoesRolando 20s linear infinite;
+  padding-right: 10px;
+}
+
+.melhores-cotacoes-sep {
+  color: #00e676;
+  font-weight: 700;
+}
+
+@keyframes cotacoesRolando {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.topo {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20px;
+  font-size: 22px;
+  text-align: center;
+  background: #081018;
+}
+
+.cabecalho-usuario {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #102030;
+  border-bottom: 1px solid #00c85333;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.btn-cabecalho-home {
+  width: auto;
+  margin-top: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.btn-cabecalho-perfil {
+  width: auto;
+  margin-top: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.cabecalho-usuario-nome {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 14px;
+  color: #d8e8f7;
+}
+
+.cabecalho-usuario-acoes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.cabecalho-saldo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #b9d7ef;
+  white-space: nowrap;
+}
+
+.cabecalho-saldo strong {
+  color: #00e676;
+}
+
+.btn-cabecalho-sair {
+  width: auto;
+  margin-top: 0;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.container {
+  width: min(100%, 1100px);
+  padding: 20px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.container-usuario-topo {
+  padding-bottom: 8px;
+}
+
+.container-usuario-topo .card-usuario {
+  margin-bottom: 0;
+}
+
+.card {
+  background: #121c26;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.card-usuario.compacto {
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.card-usuario.compacto h3 {
+  display: none;
+}
+
+.card-usuario.compacto #btnSairUsuario {
+  margin-top: 0;
+}
+
+.usuario-entrada-inicial button {
+  margin-top: 0;
+}
+
+.usuario-acoes-publicas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-link {
+  margin-top: 0;
+  background: transparent;
+  color: #9fd5ff;
+  border: 1px solid #2a4155;
+}
+
+.btn-link:hover {
+  background: #162534;
+}
+
+input,
+select {
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  box-sizing: border-box;
+}
+
+#dataResultado {
+  width: min(100%, 240px);
+  margin: 5px auto 8px auto;
+  text-align: center;
+}
+
+input[readonly] {
+  background: #20303f;
+  color: #d1e7ff;
+}
+
+button {
+  display: block;
+  width: 100%;
+  max-width: none;
+  padding: 10px;
+  background: #00c853;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  margin: 10px 0 0 0;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.filtro-data {
+  display: flex;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.filtro-data input {
+  margin: 0;
+  width: 220px;
+}
+
+#filtroPraca {
+  margin-bottom: 10px;
+}
+
+.palpite-grupo-container {
+  display: grid;
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.palpite-grupo-selects {
+  display: none;
+}
+
+.palpite-grupo-slots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.palpite-grupo-slots.palpite-grupo-slots-qtd-1 {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 120px;
+  margin: 0 auto;
+}
+
+.palpite-grupo-slots.palpite-grupo-slots-qtd-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 240px;
+  margin: 0 auto;
+}
+
+.palpite-grupo-slots.palpite-grupo-slots-qtd-3 {
+  max-width: none;
+  margin: 0;
+}
+
+.palpite-grupo-slots.palpite-grupo-slots-qtd-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: none;
+  margin: 0;
+}
+
+.palpite-grupo-slot {
+  margin: 0;
+  padding: 6px 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #00c85344;
+  background: #0f1a24;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.palpite-grupo-slot img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  opacity: 0.38;
+}
+
+.palpite-grupo-slot.ativo {
+  border-color: #00e676;
+  box-shadow: 0 0 0 1px #00e67655;
+}
+
+.palpite-grupo-slot:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.palpite-grupo-slot-titulo {
+  font-size: 11px;
+  color: #9fb3c8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.palpite-grupo-slot-nome {
+  font-size: 12px;
+  color: #d6e4f2;
+  text-align: center;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.palpite-grupo-dica {
+  margin: 0;
+  font-size: 12px;
+  color: #9fb3c8;
+  text-align: center;
+}
+
+.btn-palpite-grupo-editar {
+  display: none;
+  margin: 0;
+  max-width: 220px;
+  justify-self: center;
+}
+
+.palpite-grupo-editor {
+  display: grid;
+  gap: 6px;
+}
+
+.palpite-grupo-nav {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-palpite-grupo-nav {
+  margin: 0;
+  padding: 7px 8px;
+}
+
+.palpite-grupo-carrossel {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 10px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.palpite-bicho-card {
+  flex: 0 0 86px;
+  margin: 0;
+  padding: 5px 3px 6px;
+  border-radius: 8px;
+  border: 1px solid #00c85333;
+  background: #13202d;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  scroll-snap-align: center;
+}
+
+.palpite-bicho-card img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.palpite-bicho-card-nome {
+  font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+  color: #d8e8f7;
+}
+
+.palpite-bicho-card-grupo {
+  font-size: 10px;
+  color: #9fb3c8;
+}
+
+.palpite-bicho-card.selecionado {
+  border-color: #ffd60099;
+  background: #1f2c18;
+}
+
+.palpite-bicho-card.selecionado-ativo {
+  border-color: #ffd600;
+  box-shadow: 0 0 0 1px #ffd60055;
+}
+
+.btn-palpite-grupo-limpar {
+  margin: 0;
+  max-width: 210px;
+  justify-self: center;
+}
+
+#listaApostas {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+#listaApostas > p {
+  margin: 0;
+  font-size: 13px;
+  color: #9fb3c8;
+  text-align: center;
+}
+
+#listaApostasHistorico {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+#listaApostasHistorico > p {
+  margin: 0;
+  font-size: 13px;
+  color: #9fb3c8;
+  text-align: center;
+}
+
+#listaApostasHistorico.apostas-unico {
+  justify-items: center;
+}
+
+#listaApostasHistorico.apostas-unico .aposta-item {
+  width: min(100%, 360px);
+}
+
+#listaApostas.apostas-unico {
+  justify-items: center;
+}
+
+#listaApostas.apostas-unico .aposta-item {
+  width: min(100%, 360px);
+}
+
+.aposta-item {
+  background: #0f1a24;
+  border: 1px solid #00c85333;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.minhas-apostas-bloco {
+  margin-top: 14px;
+  padding: 10px 10px 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #00c8533d;
+  background: #0c1721;
+}
+
+.minhas-apostas-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.minhas-apostas-topo h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #e8fff1;
+}
+
+#minhasApostasData {
+  font-size: 12px;
+  color: #9fb3c8;
+  font-weight: 700;
+}
+
+.minhas-apostas-resumo {
+  margin: 6px 0 2px 0;
+  font-size: 12px;
+  color: #9fb3c8;
+  text-align: left;
+}
+
+.historico-apostas-bloco {
+  margin-top: 12px;
+  padding: 10px 10px 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #2b4254;
+  background: #0a1520;
+}
+
+.historico-apostas-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.historico-apostas-topo h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #d9ebff;
+}
+
+.historico-apostas-filtros {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.historico-apostas-filtros input {
+  width: 150px;
+  margin: 0;
+  padding: 8px 10px;
+}
+
+.btn-historico-hoje {
+  margin: 0;
+  width: auto;
+  min-width: 72px;
+  padding: 8px 12px;
+}
+
+.status-aposta {
+  font-weight: bold;
+}
+
+.status-pendente {
+  color: #fbc02d;
+}
+
+.status-ganhou {
+  color: #00e676;
+}
+
+.status-perdeu {
+  color: #ff6b6b;
+}
+
+.btn-nav {
+  width: auto;
+  min-width: 50px;
+  margin-top: 0;
+}
+
+.btn-hoje {
+  min-width: 68px;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-danger {
+  background: #d32f2f;
+}
+
+.btn-secondary {
+  background: #455a64;
+}
+
+.bloco-premiacao-aposta {
+  display: grid;
+  gap: 4px;
+  min-height: 44px;
+  align-items: center;
+  justify-items: center;
+  border-radius: 8px;
+  border: 1px solid #2a4155;
+  background: #101b26;
+  padding: 8px 10px;
+}
+
+#cardApostas #blocoPremiacaoAposta {
+  width: min(100%, 320px);
+  margin: 4px auto 0 auto;
+}
+
+.bloco-premiacao-aposta.ativa {
+  border-color: #ffd60088;
+  background: linear-gradient(160deg, #18231a 0%, #203128 100%);
+  box-shadow: 0 0 0 1px #ffd60033;
+}
+
+.acoes-bilhete-aposta {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.acoes-bilhete-aposta button {
+  margin: 0;
+  width: 100%;
+}
+
+#cardApostas .acoes-bilhete-aposta {
+  width: min(100%, 320px);
+  margin: 8px auto 0 auto;
+}
+
+.bilhete-rascunho-aposta {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #00c85344;
+  background: #0f1a24;
+}
+
+#cardApostas .bilhete-rascunho-aposta {
+  width: min(100%, 320px);
+  margin: 8px auto 0 auto;
+  box-sizing: border-box;
+}
+
+.resumo-bilhete-rascunho {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: #9fd5ff;
+}
+
+.lista-bilhete-rascunho {
+  display: grid;
+  gap: 6px;
+}
+
+.item-bilhete-rascunho {
+  background: #13202d;
+  border: 1px solid #2a4155;
+  border-radius: 6px;
+  padding: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+  display: grid;
+  gap: 4px;
+}
+
+.item-bilhete-rascunho-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.item-bilhete-rascunho strong {
+  color: #e8f3ff;
+}
+
+.valor-aposta-bilhete-criacao {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #ffd54f;
+  color: #1d1400;
+  font-weight: 900;
+}
+
+.bilhete-linha-palpite-grupo {
+  text-align: center;
+}
+
+.btn-remover-rascunho {
+  margin: 0;
+  width: auto;
+  min-width: auto;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+#destaquePremiacaoAposta {
+  margin: 0;
+  min-height: 24px;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #ffd600;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#destaquePremiacaoAposta.ativo {
+  opacity: 1;
+  transform: translateY(0);
+  animation: destaque-premio-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes destaque-premio-pulse {
+  0%,
+  100% {
+    text-shadow: 0 0 0 rgba(255, 214, 0, 0);
+  }
+  50% {
+    text-shadow: 0 0 10px rgba(255, 214, 0, 0.42);
+  }
+}
+
+#multiplicadoresStatus {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#usuarioStatus {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#statusDepositoUsuario {
+  margin: 6px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+#limitesApostaStatus {
+  margin: 8px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+.resumo-painel-admin {
+  margin: 8px 0 10px;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+.painel-admin-listas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.painel-admin-bloco {
+  background: #0f1a24;
+  border: 1px solid #00c85333;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.painel-admin-bloco h4 {
+  margin: 0 0 8px;
+  color: #9fd5ff;
+  font-size: 14px;
+}
+
+.lista-admin-scroll {
+  max-height: 240px;
+  overflow: auto;
+  display: grid;
+  gap: 6px;
+}
+
+.item-admin-linha {
+  background: #13202d;
+  border: 1px solid #2a4155;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.item-admin-linha b {
+  color: #e8f3ff;
+}
+
+#infoLimitesAposta,
+#cronometroAposta {
+  margin: 6px 0 0;
+  color: #9fb3c8;
+  font-size: 13px;
+}
+
+.linha-carteira-aposta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0 8px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #00c85366;
+  background: #0f1a24;
+}
+
+.rotulo-carteira-aposta {
+  font-size: 13px;
+  color: #9fb3c8;
+}
+
+#saldoUsuarioAposta {
+  display: inline-block;
+  min-width: 96px;
+  text-align: center;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  color: #ffd600;
+}
+
+.loterias-aposta-bloco {
+  width: min(100%, 360px);
+  margin: 6px auto 4px auto;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #00c85333;
+  background: #0f1a24;
+}
+
+.loterias-aposta-bloco.loterias-aposta-bloco-destaque {
+  border-color: #00e67688;
+  box-shadow: 0 0 0 1px #00e67633, 0 0 14px #00e6762e;
+  animation: passoLoteriaPulso 1.8s ease-in-out infinite;
+}
+
+.loterias-aposta-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.rotulo-loterias-aposta {
+  font-size: 13px;
+  color: #9fb3c8;
+  font-weight: 700;
+}
+
+.loterias-aposta-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.loteria-aposta-opcao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #2a4155;
+  background: #13202d;
+  color: #d6e4f2;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.loterias-aposta-lista-destaque .loteria-aposta-opcao.sugerida-passo {
+  animation: loteriaOpcaoPulso 1.6s ease-in-out infinite;
+  animation-delay: var(--loteria-step-delay, 0s);
+}
+
+.loteria-aposta-opcao.ativa {
+  border-color: #00e676;
+  background: #00c853;
+  color: #062312;
+}
+
+.loteria-aposta-opcao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loteria-aposta-vazia {
+  font-size: 12px;
+  color: #9fb3c8;
+}
+
+.loterias-aposta-resumo {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #9fb3c8;
+  text-align: center;
+}
+
+.loterias-aposta-resumo.passo-loteria-destaque {
+  color: #00e676;
+  font-weight: 700;
+}
+
+#cardApostas .etapa-aposta-ativa {
+  position: relative;
+  box-shadow: 0 0 0 1px #ffd54f55, 0 0 14px #ffd54f2d;
+  animation: etapaApostaPulso 1.45s ease-in-out infinite;
+}
+
+#cardApostas #tipoAposta.etapa-aposta-ativa,
+#cardApostas #palpiteAposta.etapa-aposta-ativa,
+#cardApostas #valorAposta.etapa-aposta-ativa,
+#cardApostas .acoes-bilhete-aposta button.etapa-aposta-ativa,
+#cardApostas > button[onclick="salvarAposta()"].etapa-aposta-ativa {
+  border-color: #ffd54f;
+}
+
+#cardApostas > button[onclick="salvarAposta()"].botao-salvar-aposta-pronto {
+  box-shadow: 0 0 0 1px #00e67666;
+  animation: salvarBilhetePronto 1.4s ease-in-out 2;
+}
+
+@keyframes passoLoteriaPulso {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px #00e67622, 0 0 0 #00e67600;
+  }
+  50% {
+    box-shadow: 0 0 0 1px #00e67666, 0 0 16px #00e6763d;
+  }
+}
+
+@keyframes loteriaOpcaoPulso {
+  0%,
+  100% {
+    transform: translateY(0);
+    border-color: #2a4155;
+  }
+  50% {
+    transform: translateY(-1px);
+    border-color: #00e67688;
+  }
+}
+
+@keyframes etapaApostaPulso {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px #ffd54f33, 0 0 0 #ffd54f00;
+  }
+  50% {
+    box-shadow: 0 0 0 1px #ffd54faa, 0 0 16px #ffd54f42;
+  }
+}
+
+@keyframes salvarBilhetePronto {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.01);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loterias-aposta-bloco.loterias-aposta-bloco-destaque,
+  .loterias-aposta-lista-destaque .loteria-aposta-opcao.sugerida-passo,
+  .btn-aposte-agora-cta,
+  #cardApostas .etapa-aposta-ativa,
+  #cardApostas > button[onclick="salvarAposta()"].botao-salvar-aposta-pronto {
+    animation: none;
+  }
+}
+
+#cardApostas #tipoAposta,
+#cardApostas #subtipoDuplaGrupo,
+#cardApostas #subtipoTernoGrupo,
+#cardApostas #subtipoNumericoAposta,
+#cardApostas #palpiteAposta,
+#cardApostas #valorAposta {
+  width: min(100%, 320px);
+  margin: 4px auto;
+  text-align: center;
+}
+
+#cardApostas #palpiteGrupoContainer,
+#cardApostas #blocoPremiacaoAposta,
+#cardApostas .acoes-bilhete-aposta,
+#cardApostas #bilheteRascunhoAposta,
+#cardApostas .loterias-aposta-bloco,
+#cardApostas .linha-praca-fixa,
+#cardApostas #infoLimitesAposta,
+#cardApostas #cronometroAposta,
+#cardApostas > button[onclick="salvarAposta()"] {
+  width: min(100%, 320px);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.btn-aposte-agora-cta {
+  display: none;
+  width: min(100%, 320px);
+  margin: 10px auto 8px;
+  padding: 11px 14px;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  color: #052312;
+  background: linear-gradient(180deg, #00f07a 0%, #00c853 100%);
+  border: 1px solid #00e676;
+  box-shadow: 0 8px 20px #00e67644;
+  animation: ctaApostaPulso 1.8s ease-in-out infinite;
+}
+
+.botao-bloqueado-saldo {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+#cardApostas.modo-aposta-cta .btn-aposte-agora-cta {
+  display: block;
+}
+
+#cardApostas.modo-aposta-cta .linha-praca-fixa,
+#cardApostas.modo-aposta-cta #tipoAposta,
+#cardApostas.modo-aposta-cta #subtipoDuplaGrupo,
+#cardApostas.modo-aposta-cta #subtipoTernoGrupo,
+#cardApostas.modo-aposta-cta #subtipoNumericoAposta,
+#cardApostas.modo-aposta-cta #palpiteGrupoContainer,
+#cardApostas.modo-aposta-cta #palpiteAposta,
+#cardApostas.modo-aposta-cta #valorAposta,
+#cardApostas.modo-aposta-cta #blocoPremiacaoAposta,
+#cardApostas.modo-aposta-cta .acoes-bilhete-aposta,
+#cardApostas.modo-aposta-cta #bilheteRascunhoAposta,
+#cardApostas.modo-aposta-cta .loterias-aposta-bloco,
+#cardApostas.modo-aposta-cta #infoLimitesAposta,
+#cardApostas.modo-aposta-cta #cronometroAposta,
+#cardApostas.modo-aposta-cta > button[onclick="salvarAposta()"] {
+  display: none !important;
+}
+
+@keyframes ctaApostaPulso {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 8px 20px #00e67633;
+  }
+  50% {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px #00e67666;
+  }
+}
+
+#cardApostas .linha-praca-fixa {
+  margin: 6px auto 8px auto;
+  padding: 8px 10px;
+}
+
+#cronometroAposta.cronometro-encerrado {
+  color: #ff6b6b;
+}
+
+#cronometroAposta.cronometro-aberto {
+  color: #00e676;
+}
+
+.aviso-apostas-encerradas {
+  width: min(100%, 920px);
+  margin: 16px auto 8px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #ff6b6b88;
+  background: #2a1318;
+  color: #ff9ea9;
+  font-size: 17px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.cronometro-resultado {
+  margin: 6px 0 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9fb3c8;
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+
+.cronometro-resultado.cronometro-sorteio-aberto {
+  color: #00e676;
+}
+
+.cronometro-resultado.cronometro-sorteio-encerrado {
+  color: #ffd54f;
+}
+
+#listaApostas .acoes-aposta {
+  margin-top: 8px;
+}
+
+.linha-cronometro {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #9fb3c8;
+}
+
+.linha-horario-aposta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #9fb3c8;
+}
+
+.valor-potencial-destaque {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #00e676;
+  color: #062312;
+  font-weight: 700;
+}
+
+.palpite-premiado {
+  color: #00e676;
+  font-weight: 800;
+  text-shadow: 0 0 10px #00e67666;
+}
+
+.valor-aposta-premiada {
+  color: #00e676;
+  font-weight: 800;
+}
+
+.btn-inline {
+  width: auto;
+  margin-top: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.acao-admin {
+  display: none !important;
+}
+
+body.admin-logado .acao-admin {
+  display: block !important;
+}
+
+#resumoData {
+  margin: 0 0 10px 0;
+  color: #9fb3c8;
+  font-size: 13px;
+  text-align: left;
+}
+
+.navegacao-resultados {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  margin: 0 0 10px 0;
+}
+
+.btn-nav-horizontal {
+  width: auto;
+  flex: 1;
+  margin-top: 0;
+  padding: 8px 10px;
+}
+
+.titulo-premiacoes-destaque {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.titulo-premiacoes-destaque h3 {
+  margin: 0;
+}
+
+.data-premiacoes-destaque {
+  display: inline-block;
+  font-size: 13px;
+  color: #00e676;
+  font-weight: 700;
+}
+
+.lista-premiacoes-destaque {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.premiacao-destaque-item {
+  background: linear-gradient(160deg, #0f1a24 0%, #162534 100%);
+  border: 1px solid #00c85355;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+  position: relative;
+  overflow: hidden;
+  animation: premiacao-card-entrada 0.55s ease both;
+  animation-delay: var(--premiacao-delay, 0s);
+}
+
+.premiacao-destaque-item::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 214, 0, 0.16) 48%, transparent 100%);
+  transform: translateX(-140%);
+  animation: premiacao-card-brilho 3.2s ease-in-out infinite;
+  animation-delay: calc(var(--premiacao-delay, 0s) + 0.35s);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.premiacao-confirmacao {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+  z-index: 3;
+}
+
+.premiacao-confirmacao-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid #ffd600;
+  background: #081018;
+  box-shadow: 0 0 0 2px #00c85333, 0 0 12px #ffd60055;
+  animation: premiacao-logo-flutuar 1.8s ease-in-out infinite;
+}
+
+.premiacao-destaque-tipo {
+  position: relative;
+  z-index: 2;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #9fd5ff;
+}
+
+.premiacao-destaque-item > div:not(.premiacao-confirmacao) {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes premiacao-card-entrada {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes premiacao-card-brilho {
+  0%,
+  74% {
+    transform: translateX(-140%);
+  }
+  100% {
+    transform: translateX(140%);
+  }
+}
+
+@keyframes premiacao-logo-flutuar {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.premiacao-destaque-valor {
+  margin-top: 8px;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ffd600;
+  color: #1b1b1b;
+  font-weight: 700;
+}
+
+.premiacao-destaque-referencia {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9fb3c8;
+}
+
+.premiacao-destaque-vazio {
+  margin: 0;
+  color: #9fb3c8;
+  font-size: 14px;
+  text-align: center;
+}
+
+@keyframes aviso-bingo-pulso {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 0 0 rgba(0, 200, 83, 0);
+  }
+  50% {
+    transform: translateY(-1px);
+    box-shadow: 0 0 18px rgba(0, 230, 118, 0.2);
+  }
+}
+
+.aviso-bingo-breve {
+  width: min(100%, 920px);
+  margin: 16px auto 8px auto;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #00e67688;
+  background: linear-gradient(120deg, #112233 0%, #0f1a24 45%, #153d22 100%);
+  text-align: center;
+  animation: aviso-bingo-pulso 1.8s ease-in-out infinite;
+}
+
+.aviso-bingo-breve p {
+  margin: 0;
+  color: #e8fff1;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.banner-premiacoes-destaque {
+  width: min(100%, 920px);
+  margin-top: 12px;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #00c85344;
+  background: #0f1a24;
+}
+
+.banner-premiacoes-destaque img {
+  width: 100%;
+  display: block;
+  height: auto;
+}
+
+.card-apostas > button {
+  width: 220px;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.topo-card-apostas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(100%, 320px);
+  gap: 6px;
+  margin: 6px auto 8px auto;
+}
+
+.topo-card-apostas h3 {
+  margin: 0;
+}
+
+.linha-praca-fixa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0 8px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #00c85333;
+  background: #0f1a24;
+}
+
+.rotulo-praca-fixa {
+  font-size: 13px;
+  color: #9fb3c8;
+}
+
+.linha-praca-fixa-filtro {
+  margin-top: 0;
+}
+
+.select-praca-oculta {
+  display: none !important;
+}
+
+#dataApostaAtual {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 86px;
+  padding: 3px 9px;
+  text-align: center;
+  font-size: 14px;
+  border-radius: 999px;
+  border: 1px solid #00c85355;
+  background: #0f1a24;
+  letter-spacing: 0.4px;
+  color: #00e676;
+}
+
+/* RESULTADOS */
+
+#resultados {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 32px) / 5);
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 4px 10px 2px;
+  scroll-snap-type: x mandatory;
+}
+
+#resultados.resultados-unico {
+  justify-content: center;
+  grid-auto-columns: min(100%, 300px);
+  overflow-x: hidden;
+}
+
+#resultados > p {
+  min-width: 100%;
+}
+
+.resultado-card {
+  background: #0f1a24;
+  border-radius: 12px;
+  padding: 7px;
+  border: 1px solid #00c85333;
+  scroll-snap-align: start;
+  text-align: center;
+}
+
+.resultado-titulo {
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #00e676;
+}
+
+.resultado-pendente {
+  margin: 4px 0 2px;
+  color: #9fb3c8;
+  font-size: 12px;
+}
+
+.resultado-pendente-bloco {
+  min-height: 108px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.resultado-chamada-aposta {
+  margin: 2px 0 4px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border: 0;
+  background: transparent;
+  color: #ffd600;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  animation: aposta-agora-pulse 1.15s ease-in-out infinite;
+  cursor: pointer;
+}
+
+@keyframes aposta-agora-pulse {
+  0% {
+    transform: translateY(0) scale(1);
+    text-shadow: 0 0 0 rgba(255, 214, 0, 0);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.06);
+    text-shadow: 0 0 10px rgba(255, 214, 0, 0.4);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    text-shadow: 0 0 0 rgba(255, 214, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resultado-chamada-aposta {
+    animation: none;
+  }
+}
+
+.premio {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 6px;
+  background: #121c26;
+  margin-bottom: 3px;
+  padding: 3px;
+  border-radius: 8px;
+}
+
+.premio::after {
+  content: "";
+  width: 24px;
+}
+
+.premio img {
+  width: 48px;
+  height: 48px;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+}
+
+.premio-bicho {
+  grid-column: 2;
+  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.premio-numero {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.posicao {
+  grid-column: 1;
+  min-width: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: #00e676;
+  opacity: 1;
+}
+
+.rodape-site {
+  margin-top: 8px;
+  background: linear-gradient(180deg, #081018 0%, #09131f 100%);
+  border-top: 1px solid #00c85355;
+  border-bottom: 1px solid #00c85333;
+}
+
+.rodape-conteudo {
+  width: min(100%, 1100px);
+  margin: 0 auto;
+  padding: 32px 20px 26px 20px;
+  box-sizing: border-box;
+}
+
+.rodape-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+.rodape-coluna {
+  display: grid;
+  gap: 10px;
+}
+
+.rodape-coluna h4 {
+  margin: 0 0 6px 0;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-size: 14px;
+  color: #00e6a8;
+}
+
+.rodape-coluna a {
+  color: #d9e8dc;
+  text-decoration: none;
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.rodape-coluna a:hover {
+  color: #00e676;
+}
+
+.rodape-divisor {
+  height: 1px;
+  background: #00c85355;
+  margin: 26px 0;
+}
+
+.rodape-selos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.rodape-selo-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(160deg, #161c38 0%, #131c32 100%);
+  border: 1px solid #3f4fcf66;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+
+.rodape-selo-card strong {
+  display: block;
+  font-size: 30px;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.rodape-selo-card p {
+  margin: 0;
+  color: #d2deff;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.selo-idade,
+.selo-certificado {
+  width: 62px;
+  height: 62px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.selo-idade {
+  border: 5px solid #f44336;
+  color: #ffffff;
+  font-size: 22px;
+}
+
+.selo-certificado {
+  border: 4px solid #ffd54f;
+  color: #ffd54f;
+  font-size: 17px;
+}
+
+.rodape-base {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.rodape-texto p {
+  margin: 0;
+  color: #d9e8dc;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.rodape-redes {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rodape-redes a {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid #00c85388;
+  color: #e7fff2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  background: #122230;
+}
+
+.rodape-redes a:hover {
+  border-color: #00e676;
+  color: #00e676;
+}
+
+@media (max-width: 1024px) {
+  #resultados {
+    grid-auto-columns: calc((100% - 18px) / 4);
+    gap: 6px;
+  }
+}
+
+@media (max-width: 820px) {
+  #resultados {
+    grid-auto-columns: min(54vw, 198px);
+    gap: 6px;
+    padding: 2px 2px 8px 2px;
+    scroll-padding-inline: 4px;
+  }
+
+  #resultados.tem-carrossel {
+    scroll-padding-inline: 14px;
+  }
+
+  #resultados.tem-carrossel .resultado-card {
+    scroll-snap-align: center;
+    opacity: 0.72;
+    transform: scale(0.95);
+    transition: transform 0.22s ease, opacity 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  }
+
+  #resultados.tem-carrossel .resultado-card.resultado-card-ativo {
+    opacity: 1;
+    transform: scale(1);
+    border-color: #00e67699;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.24);
+  }
+
+  .banner-topo-conteudo {
+    width: min(100%, 460px);
+    padding: 6px 12px;
+  }
+
+  .banner-topo-img {
+    border-radius: 6px;
+  }
+
+  .melhores-cotacoes-conteudo {
+    width: min(100%, 460px);
+    padding: 0 12px 10px;
+  }
+
+  .melhores-cotacoes-card {
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+
+  .melhores-cotacoes-titulo {
+    font-size: 13px;
+    margin: 0 0 7px;
+  }
+
+  .melhores-cotacoes-faixa {
+    font-size: 12px;
+    gap: 8px;
+    animation-duration: 18s;
+  }
+
+  .aviso-bingo-breve {
+    width: min(100%, 460px);
+    margin-top: 12px;
+    padding: 9px 10px;
+    border-radius: 8px;
+  }
+
+  .aviso-bingo-breve p {
+    font-size: 15px;
+  }
+
+  .aviso-apostas-encerradas {
+    width: min(100%, 460px);
+    margin-top: 12px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 15px;
+  }
+
+  .banner-premiacoes-destaque {
+    width: min(100%, 460px);
+    border-radius: 6px;
+  }
+
+  .cabecalho-usuario {
+    width: min(100%, 560px);
+    margin: 0 auto;
+    padding: 8px 10px;
+    flex-wrap: wrap;
+  }
+
+  .cabecalho-usuario-nome {
+    order: 3;
+    flex-basis: 100%;
+    text-align: left;
+    font-size: 11px;
+  }
+
+  .cabecalho-usuario-acoes {
+    order: 2;
+    margin-left: auto;
+    gap: 4px;
+  }
+
+  .cabecalho-saldo {
+    font-size: 10px;
+  }
+
+  .btn-cabecalho-home,
+  .btn-cabecalho-perfil,
+  .btn-cabecalho-sair {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .container {
+    width: min(100%, 560px);
+    padding: 16px;
+  }
+
+  .container-usuario-topo {
+    padding-bottom: 6px;
+  }
+
+  .card {
+    text-align: center;
+  }
+
+  input,
+  select {
+    max-width: 520px;
+    margin: 5px auto;
+  }
+
+  .palpite-grupo-container {
+    max-width: 520px;
+    margin: 5px auto 0 auto;
+  }
+
+  .palpite-grupo-carrossel {
+    scroll-padding-inline: 20px;
+  }
+
+  .usuario-acoes-publicas {
+    max-width: 520px;
+    margin: 8px auto 0 auto;
+  }
+
+  button {
+    max-width: 520px;
+    margin: 10px auto 0 auto;
+  }
+
+  .filtro-data {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .filtro-data input {
+    width: min(100%, 230px);
+  }
+
+  #resumoData {
+    text-align: center;
+  }
+
+  .navegacao-resultados {
+    justify-content: center;
+  }
+
+  .lista-premiacoes-destaque {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  .premiacao-destaque-item {
+    text-align: left;
+  }
+
+  .premiacao-confirmacao-logo {
+    width: 24px;
+    height: 24px;
+  }
+
+  .resultado-card {
+    text-align: center;
+    padding: 7px;
+  }
+
+  .premio {
+    gap: 4px;
+    padding: 3px;
+  }
+
+  .premio img {
+    width: 46px;
+    height: 46px;
+  }
+
+  .premio-numero {
+    font-size: 16px;
+  }
+
+  .resultado-pendente {
+    font-size: 11px;
+  }
+
+  .resultado-chamada-aposta {
+    font-size: 13px;
+  }
+
+  .cronometro-resultado {
+    font-size: 11px;
+  }
+
+  .topo-card-apostas {
+    max-width: 320px;
+    margin: 6px auto 8px auto;
+  }
+
+  .linha-carteira-aposta {
+    max-width: 520px;
+    margin: 6px auto 8px auto;
+  }
+
+  .loterias-aposta-bloco {
+    max-width: 320px;
+    margin: 8px auto 4px auto;
+  }
+
+  .acoes-bilhete-aposta {
+    max-width: 520px;
+    margin: 8px auto 0 auto;
+    grid-template-columns: 1fr;
+  }
+
+  .minhas-apostas-bloco {
+    max-width: 520px;
+    margin: 12px auto 0 auto;
+    padding: 9px 8px 7px 8px;
+  }
+
+  .minhas-apostas-topo h4 {
+    font-size: 14px;
+  }
+
+  .historico-apostas-bloco {
+    max-width: 520px;
+    margin: 10px auto 0 auto;
+    padding: 9px 8px 7px 8px;
+  }
+
+  .historico-apostas-topo h4 {
+    font-size: 14px;
+  }
+
+  .historico-apostas-filtros {
+    width: 100%;
+  }
+
+  .historico-apostas-filtros input {
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .linha-praca-fixa {
+    max-width: 520px;
+    margin: 6px auto 8px auto;
+  }
+
+  #cardApostas .linha-praca-fixa {
+    max-width: 320px;
+  }
+
+  .rodape-conteudo {
+    width: min(100%, 560px);
+    padding: 28px 16px 24px 16px;
+  }
+
+  .rodape-links {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    text-align: left;
+  }
+
+  .rodape-coluna a {
+    font-size: 16px;
+  }
+
+  .rodape-selos {
+    grid-template-columns: 1fr;
+  }
+
+  .rodape-selo-card strong {
+    font-size: 20px;
+  }
+
+  .rodape-base {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .rodape-texto p {
+    font-size: 15px;
+  }
+
+  .painel-admin-listas {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premiacao-destaque-item,
+  .premiacao-destaque-item::before,
+  .premiacao-confirmacao-logo,
+  #destaquePremiacaoAposta.ativo {
+    animation: none !important;
+  }
+
+  .toast-aposta-confirmacao {
+    transition: none !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .usuario-acoes-publicas {
+    grid-template-columns: 1fr;
+  }
+
+  .palpite-grupo-slots {
+    grid-template-columns: 1fr;
+  }
+
+  .palpite-grupo-slot {
+    min-height: 112px;
+  }
+
+  .palpite-grupo-nav {
+    gap: 5px;
+  }
+
+  .btn-palpite-grupo-nav {
+    padding: 7px 6px;
+    font-size: 12px;
+  }
+
+  #destaquePremiacaoAposta {
+    font-size: 16px;
+  }
+
+  .palpite-bicho-card {
+    flex-basis: 82px;
+  }
+
+  .palpite-bicho-card img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .palpite-grupo-carrossel {
+    scroll-padding-inline: 8px;
+  }
+
+  #resultados {
+    grid-auto-columns: min(52vw, 176px);
+    gap: 6px;
+    padding: 2px 2px 8px 2px;
+  }
+
+  #resultados.tem-carrossel {
+    scroll-padding-inline: 12px;
+  }
+
+  #resultados.tem-carrossel .resultado-card {
+    transform: scale(0.96);
+  }
+
+  .resultado-titulo {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .rodape-coluna h4 {
+    font-size: 12px;
+  }
+
+  .rodape-coluna a {
+    font-size: 14px;
+  }
+
+  .rodape-selo-card {
+    padding: 12px;
+  }
+
+  .rodape-selo-card strong {
+    font-size: 17px;
+  }
+
+  .rodape-texto p {
+    font-size: 14px;
+  }
+}

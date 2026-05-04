@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin | Porco do Bicho</title>
+  <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
+  <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
+  <link rel="stylesheet" href="../css/style.css?v=20260427-11">
+  <link rel="stylesheet" href="../css/paginas.css?v=20260425">
+  <link rel="stylesheet" href="../css/admin.css?v=20260429-21">
+</head>
+<body>
+  <header class="topo-pagina">
+    <div class="topo-pagina-conteudo topo-admin">
+      <a href="../index.html">← Voltar para Home</a>
+      <strong>Painel Admin</strong>
+    </div>
+  </header>
+
+  <main class="container container-admin layout-admin">
+    <aside id="menuAdminLateral" class="menu-admin-fixo" style="display:none;">
+      <div class="menu-admin-topo">
+        <strong>Menu Admin</strong>
+      </div>
+      <div class="menu-admin-lista">
+        <button type="button" class="menu-admin-item ativo" data-secao-admin="dashboard" onclick="selecionarSecaoAdmin('dashboard')">Dashboard</button>
+        <button type="button" class="menu-admin-item" data-secao-admin="cadastros" onclick="selecionarSecaoAdmin('cadastros')">Cadastros e Apostas</button>
+        <button type="button" class="menu-admin-item" data-secao-admin="promotores" onclick="selecionarSecaoAdmin('promotores')">Gestão de Promotores</button>
+        <button type="button" class="menu-admin-item" data-secao-admin="saldos" onclick="selecionarSecaoAdmin('saldos')">Gestão de Saldos</button>
+        <button type="button" class="menu-admin-item" data-secao-admin="edicao" onclick="selecionarSecaoAdmin('edicao')">Editar Usuário/Promotor</button>
+        <button type="button" class="menu-admin-item" data-secao-admin="operacoes" onclick="selecionarSecaoAdmin('operacoes')">Resultados e Multiplicadores</button>
+      </div>
+    </aside>
+
+    <section class="admin-conteudo">
+      <div class="card" id="acessoAdmin" style="display:none;">
+        <h3>🔐 Admin</h3>
+        <input id="senhaAdmin" type="password" placeholder="Senha">
+        <button onclick="loginAdmin()">Entrar</button>
+        <button id="btnSairAdmin" class="btn-danger" onclick="logoutAdmin()" style="display:none;">Sair</button>
+        <p id="adminStatus"></p>
+      </div>
+
+      <div class="card" id="painelAdmin" style="display:none;">
+        <section class="secao-admin ativa" id="secaoAdminDashboard">
+          <h3>Dashboard</h3>
+          <div class="dashboard-filtro-admin" id="dashboardFiltroAdmin">
+            <select id="dashModoApuracao" aria-label="Modo do dashboard">
+              <option value="hoje">Hoje</option>
+              <option value="intervalo">Somatório de data até data</option>
+            </select>
+            <div class="dashboard-data-intervalo">
+              <input id="dashDataInicio" type="date" aria-label="Data inicial do dashboard">
+              <span>até</span>
+              <input id="dashDataFim" type="date" aria-label="Data final do dashboard">
+            </div>
+            <button id="btnDashHoje" type="button">Hoje</button>
+          </div>
+          <div class="dashboard-admin-grid">
+            <div class="dashboard-admin-card">
+              <span>Usuários cadastrados</span>
+              <strong id="dashUsuariosTotal">0</strong>
+            </div>
+            <div class="dashboard-admin-card">
+              <span>Total de bilhetes</span>
+              <strong id="dashBilhetesTotal">0</strong>
+            </div>
+            <div class="dashboard-admin-card">
+              <span>Total de apostas</span>
+              <strong id="dashApostasTotal">0</strong>
+            </div>
+            <div class="dashboard-admin-card">
+              <span>Valor total apostado</span>
+              <strong id="dashValorApostado">R$ 0,00</strong>
+            </div>
+            <div class="dashboard-admin-card">
+              <span>Apostas premiadas</span>
+              <strong id="dashPremiadasTotal">0</strong>
+            </div>
+            <div class="dashboard-admin-card">
+              <span>Premiação apurada</span>
+              <strong id="dashPremiacaoApurada">R$ 0,00</strong>
+            </div>
+            <div class="dashboard-admin-card">
+              <span>Total de entrada</span>
+              <strong id="dashEntradaTotal">R$ 0,00</strong>
+            </div>
+            <div class="dashboard-admin-card">
+              <span>Total de saída</span>
+              <strong id="dashSaidaTotal">R$ 0,00</strong>
+            </div>
+          </div>
+          <p id="dashInfoFinanceiro" class="resumo-painel-admin">
+            Entrada = valor total apostado. Saída = premiação apurada das apostas vencedoras.
+          </p>
+        </section>
+
+        <section class="secao-admin" id="secaoAdminCadastros">
+          <h3>Painel de Cadastros e Apostas</h3>
+          <p id="resumoPainelAdmin" class="resumo-painel-admin">Carregando...</p>
+
+          <div class="painel-admin-listas">
+            <div class="painel-admin-bloco">
+              <h4>Usuários Cadastrados</h4>
+              <div id="listaUsuariosAdmin" class="lista-admin-scroll"></div>
+            </div>
+
+            <div class="painel-admin-bloco">
+              <h4>Apostas do dia</h4>
+              <div id="listaApostasAdmin" class="lista-admin-scroll"></div>
+            </div>
+
+            <div class="painel-admin-bloco">
+              <h4>Premiadas do dia</h4>
+              <div id="listaApostasPremiadasAdmin" class="lista-admin-scroll"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="secao-admin" id="secaoAdminPromotores">
+          <h3>Gestão de Promotores</h3>
+          <div class="painel-admin-listas">
+            <div class="painel-admin-bloco">
+              <h4>Cadastrar Usuário</h4>
+              <input id="usuarioNomeAdmin" type="text" placeholder="Nome do usuário">
+              <input id="usuarioLoginAdmin" type="text" placeholder="Login do usuário">
+              <input id="usuarioSenhaAdmin" type="password" placeholder="Senha do usuário">
+              <select id="usuarioBasePromotorAdmin">
+                <option value="">Base do Admin</option>
+              </select>
+              <button type="button" onclick="criarUsuarioAdmin()">Criar Usuário</button>
+              <p id="statusUsuarioAdmin"></p>
+            </div>
+
+            <div class="painel-admin-bloco">
+              <h4>Cadastrar Promotor</h4>
+              <input id="promotorNomeAdmin" type="text" placeholder="Nome do promotor">
+              <input id="promotorLoginAdmin" type="text" placeholder="Login do promotor">
+              <input id="promotorSenhaAdmin" type="password" placeholder="Senha do promotor">
+              <input id="promotorPercentualAdmin" type="number" min="0" max="100" step="0.01" placeholder="% comissão por depósito">
+              <button type="button" onclick="criarPromotorAdmin()">Criar Promotor</button>
+              <p id="statusPromotorAdmin"></p>
+            </div>
+
+            <div class="painel-admin-bloco">
+              <h4>Comissão do Promotor</h4>
+              <select id="promotorComissaoAdmin">
+                <option value="">Selecione o promotor</option>
+              </select>
+              <input id="percentualComissaoPromotor" type="number" min="0" max="100" step="0.01" placeholder="Percentual de comissão">
+              <button type="button" onclick="salvarComissaoPromotorAdmin()">Salvar Comissão</button>
+              <p id="statusComissaoPromotorAdmin"></p>
+            </div>
+
+            <div class="painel-admin-bloco">
+              <h4>Vincular Apostador</h4>
+              <select id="apostadorVinculoAdmin">
+                <option value="">Selecione o apostador</option>
+              </select>
+              <select id="promotorVinculoAdmin">
+                <option value="">Base do Admin</option>
+              </select>
+              <button type="button" onclick="vincularApostadorPromotorAdmin()">Salvar Vínculo</button>
+              <p id="statusVinculoPromotorAdmin"></p>
+            </div>
+          </div>
+
+          <div class="painel-admin-bloco">
+            <h4>Resumo dos Promotores</h4>
+            <div id="listaPromotoresAdmin" class="lista-admin-scroll"></div>
+          </div>
+        </section>
+
+        <section class="secao-admin" id="secaoAdminSaldos">
+          <h3>Gestão de Saldos</h3>
+          <div class="painel-admin-listas">
+            <div class="painel-admin-bloco">
+              <h4>Recarga (somente Admin)</h4>
+              <select id="recargaDestinoAdmin">
+                <option value="">Selecione promotor ou apostador</option>
+              </select>
+              <input id="recargaValorAdmin" type="number" min="0.01" step="0.01" placeholder="Valor da recarga (R$)">
+              <button type="button" onclick="recarregarSaldoAdmin()">Recarregar Saldo</button>
+              <p id="statusRecargaAdmin"></p>
+            </div>
+
+            <div class="painel-admin-bloco">
+              <h4>Editar Saldo de Usuário</h4>
+              <select id="editarSaldoUsuarioAdmin">
+                <option value="">Selecione o usuário</option>
+              </select>
+              <input id="editarSaldoPrincipalAdmin" type="number" min="0" step="0.01" placeholder="Saldo principal (R$)">
+              <input id="editarSaldoApostadorAdmin" type="number" min="0" step="0.01" placeholder="Saldo apostador (promotor)">
+              <button type="button" onclick="salvarEdicaoSaldoAdmin()">Salvar Edição</button>
+              <p id="statusEdicaoSaldoAdmin"></p>
+            </div>
+          </div>
+
+          <div class="painel-admin-bloco">
+            <h4>Visão de Saldos</h4>
+            <div id="listaSaldosAdmin" class="lista-admin-scroll"></div>
+          </div>
+        </section>
+
+        <section class="secao-admin" id="secaoAdminEdicao">
+          <h3>Editar Usuário/Promotor</h3>
+          <div class="painel-admin-listas">
+            <div class="painel-admin-bloco">
+              <h4>Dados de Cadastro e Perfil</h4>
+              <label class="rotulo-edicao-admin" for="editarUsuarioAdmin">Usuário/Promotor</label>
+              <select id="editarUsuarioAdmin">
+                <option value="">Selecione usuário ou promotor</option>
+              </select>
+              <small class="dica-edicao-admin">Escolha quem será editado.</small>
+
+              <label class="rotulo-edicao-admin" for="editarNomeUsuarioAdmin">Nome</label>
+              <input id="editarNomeUsuarioAdmin" type="text" placeholder="Nome completo">
+              <small class="dica-edicao-admin">Altera o nome exibido no sistema.</small>
+
+              <label class="rotulo-edicao-admin" for="editarLoginUsuarioAdmin">Login</label>
+              <input id="editarLoginUsuarioAdmin" type="text" placeholder="login_usuario">
+              <small class="dica-edicao-admin">Altera o login de acesso (único, sem repetir).</small>
+
+              <label class="rotulo-edicao-admin" for="editarSenhaUsuarioAdmin">Senha</label>
+              <input id="editarSenhaUsuarioAdmin" type="password" placeholder="Nova senha (opcional)">
+              <small class="dica-edicao-admin">Preencha somente se quiser trocar a senha.</small>
+
+              <label class="rotulo-edicao-admin" for="editarPerfilUsuarioAdmin">Perfil</label>
+              <select id="editarPerfilUsuarioAdmin">
+                <option value="apostador">Apostador</option>
+                <option value="promotor">Promotor</option>
+              </select>
+              <small class="dica-edicao-admin">Define se o cadastro é apostador ou promotor.</small>
+
+              <label class="rotulo-edicao-admin" for="editarStatusAcessoUsuarioAdmin">Status de Acesso</label>
+              <select id="editarStatusAcessoUsuarioAdmin">
+                <option value="ativo">Ativo</option>
+                <option value="bloqueado">Bloqueado</option>
+              </select>
+              <small class="dica-edicao-admin">Bloqueado não consegue fazer login na plataforma.</small>
+
+              <div id="blocoBaseEdicaoUsuarioAdmin">
+                <label class="rotulo-edicao-admin" for="editarPromotorBaseUsuarioAdmin">Base do Apostador</label>
+                <select id="editarPromotorBaseUsuarioAdmin">
+                  <option value="">Base do Admin</option>
+                </select>
+                <small class="dica-edicao-admin">Escolhe em qual base o apostador ficará.</small>
+              </div>
+
+              <div id="blocoComissaoEdicaoUsuarioAdmin" style="display:none;">
+                <label class="rotulo-edicao-admin" for="editarComissaoUsuarioAdmin">Comissão do Promotor (%)</label>
+                <input id="editarComissaoUsuarioAdmin" type="number" min="0" max="100" step="0.01" placeholder="% comissão do promotor">
+                <small class="dica-edicao-admin">Percentual sobre depósitos da base do promotor.</small>
+              </div>
+
+              <label class="rotulo-edicao-admin" for="editarSaldoPrincipalUsuarioAdmin">Saldo Principal (R$)</label>
+              <input id="editarSaldoPrincipalUsuarioAdmin" type="number" min="0" step="0.01" placeholder="Saldo principal (R$)">
+              <small class="dica-edicao-admin">Saldo usado para apostas do usuário/promotor.</small>
+
+              <div id="blocoSaldoApostadorEdicaoUsuarioAdmin" style="display:none;">
+                <label class="rotulo-edicao-admin" for="editarSaldoApostadorUsuarioAdmin">Saldo Apostador (Promotor)</label>
+                <input id="editarSaldoApostadorUsuarioAdmin" type="number" min="0" step="0.01" placeholder="Saldo apostador (promotor)">
+                <small class="dica-edicao-admin">Saldo que o promotor repassa para apostadores da base.</small>
+              </div>
+              <button type="button" onclick="salvarEdicaoUsuarioAdmin()">Salvar Cadastro/Perfil</button>
+              <p id="statusEdicaoUsuarioAdmin"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="secao-admin" id="secaoAdminOperacoes">
+          <div class="admin-operacao-grid">
+            <section class="painel-admin-bloco admin-operacao-bloco bloco-resultado-admin">
+              <h3>Cadastrar Resultado</h3>
+
+              <input id="dataResultado" type="date">
+
+              <div class="linha-praca-fixa">
+                <span class="rotulo-praca-fixa">Praça</span>
+                <strong>Rio</strong>
+              </div>
+              <select id="praca" class="select-praca-oculta" aria-hidden="true" tabindex="-1"></select>
+
+              <select id="loteria">
+                <option value="">Selecione a loteria</option>
+              </select>
+
+              <div class="linha-numero-bicho">
+                <input id="n1" placeholder="1º número (4 dígitos)" inputmode="numeric">
+                <div id="g1" class="grupo-bicho-auto" data-grupo="" data-animal="">--</div>
+              </div>
+
+              <div class="linha-numero-bicho">
+                <input id="n2" placeholder="2º número (4 dígitos)" inputmode="numeric">
+                <div id="g2" class="grupo-bicho-auto" data-grupo="" data-animal="">--</div>
+              </div>
+
+              <div class="linha-numero-bicho">
+                <input id="n3" placeholder="3º número (4 dígitos)" inputmode="numeric">
+                <div id="g3" class="grupo-bicho-auto" data-grupo="" data-animal="">--</div>
+              </div>
+
+              <div class="linha-numero-bicho">
+                <input id="n4" placeholder="4º número (4 dígitos)" inputmode="numeric">
+                <div id="g4" class="grupo-bicho-auto" data-grupo="" data-animal="">--</div>
+              </div>
+
+              <div class="linha-numero-bicho">
+                <input id="n5" placeholder="5º número (4 dígitos)" inputmode="numeric">
+                <div id="g5" class="grupo-bicho-auto" data-grupo="" data-animal="">--</div>
+              </div>
+
+              <button class="btn-salvar-resultado-admin" onclick="salvar()">Salvar</button>
+              <button class="btn-danger btn-salvar-resultado-admin" type="button" onclick="limparResultadoSelecionadoAdmin()">Limpar Resultado da Loteria</button>
+
+              <div class="bloco-limites-admin">
+                <h3 class="titulo-subsecao-admin">Limites de Aposta</h3>
+
+                <input id="limiteMinimoAposta" type="number" min="0.01" step="0.01" placeholder="Valor mínimo (R$)">
+                <input id="limiteMaximoAposta" type="number" min="0.01" step="0.01" placeholder="Valor máximo (R$)">
+
+                <button class="btn-multiplicador-admin" onclick="salvarLimitesAposta()">Salvar Limites</button>
+                <button class="btn-secondary btn-multiplicador-admin" onclick="restaurarLimitesPadrao()">Restaurar Limites Padrão</button>
+                <p id="limitesApostaStatus"></p>
+              </div>
+            </section>
+
+            <section class="painel-admin-bloco admin-operacao-bloco">
+              <h3>Multiplicadores de Aposta</h3>
+
+              <div class="linha-multiplicador">
+                <label for="multUnidade">Unidade</label>
+                <input id="multUnidade" type="text" inputmode="decimal" placeholder="Ex: 9">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multDezena">Dezena</label>
+                <input id="multDezena" type="text" inputmode="decimal" placeholder="Ex: 90">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multCentena">Centena</label>
+                <input id="multCentena" type="text" inputmode="decimal" placeholder="Ex: 900">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multMilhar">Milhar</label>
+                <input id="multMilhar" type="text" inputmode="decimal" placeholder="Ex: 9500">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multMilharBrinde">Milhar Brinde</label>
+                <input id="multMilharBrinde" type="text" inputmode="decimal" placeholder="Ex: 400">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multGrupo">Grupo</label>
+                <input id="multGrupo" type="text" inputmode="decimal" placeholder="Ex: 23">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multDuqueDezena">Duque de Dezena</label>
+                <input id="multDuqueDezena" type="text" inputmode="decimal" placeholder="Ex: 300">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multTernoDezenaSeco">Terno de Dezena Seco</label>
+                <input id="multTernoDezenaSeco" type="text" inputmode="decimal" placeholder="Ex: 10000">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multTernoDezena1a5">Terno de Dezena 1º ao 5º</label>
+                <input id="multTernoDezena1a5" type="text" inputmode="decimal" placeholder="Ex: 5000">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multDuqueGrupo">Duque de Grupo</label>
+                <input id="multDuqueGrupo" type="text" inputmode="decimal" placeholder="Ex: 200">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multTernoGrupo">Terno de Grupo</label>
+                <input id="multTernoGrupo" type="text" inputmode="decimal" placeholder="Ex: 1500">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multQuadraGrupo">Quadra de Grupo</label>
+                <input id="multQuadraGrupo" type="text" inputmode="decimal" placeholder="Ex: 1000">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multPalpitao">Palpitão</label>
+                <input id="multPalpitao" type="text" inputmode="decimal" placeholder="Ex: 800">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multPasseVai">Passe Vai</label>
+                <input id="multPasseVai" type="text" inputmode="decimal" placeholder="Ex: 90">
+              </div>
+              <div class="linha-multiplicador">
+                <label for="multPasseVaiVem">Passe Vai e Vem</label>
+                <input id="multPasseVaiVem" type="text" inputmode="decimal" placeholder="Ex: 45">
+              </div>
+
+              <button class="btn-multiplicador-admin" onclick="salvarMultiplicadores()">Salvar Multiplicadores</button>
+              <button class="btn-secondary btn-multiplicador-admin" onclick="restaurarMultiplicadoresPadrao()">Restaurar Padrão</button>
+              <p id="multiplicadoresStatus"></p>
+            </section>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape-pagina">
+    Porco do Bicho • Painel Admin • Atualizado em 25/04/2026.
+  </footer>
+
+  <script src="../js/app.js?v=20260504-01"></script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resultados</title>
+<link rel="icon" type="image/png" href="img/mascote/icone.png?v=20260425">
+<link rel="apple-touch-icon" href="img/mascote/icone.png?v=20260425">
+
+<link rel="stylesheet" href="css/style.css?v=20260429-18">
+</head>
+
+<body>
+
+<div id="cabecalhoUsuario" class="cabecalho-usuario" style="display:none;">
+  <button class="btn-secondary btn-cabecalho-home" onclick="irHomeCabecalho()">Home</button>
+  <span id="cabecalhoUsuarioNome" class="cabecalho-usuario-nome"></span>
+  <div class="cabecalho-usuario-acoes">
+    <button id="btnMeuPerfil" class="btn-secondary btn-cabecalho-perfil" onclick="abrirMeuPerfil()">Meu Perfil</button>
+    <button id="btnPainelPromotor" class="btn-secondary btn-cabecalho-perfil" onclick="abrirPainelPromotor()" style="display:none;">Painel Promotor</button>
+    <span class="cabecalho-saldo">Saldo: <strong id="saldoUsuarioCabecalho">R$ 0,00</strong></span>
+    <button class="btn-danger btn-cabecalho-sair" onclick="sairUsuarioCabecalho()">Sair</button>
+  </div>
+</div>
+
+<div class="container container-usuario-topo" id="blocoUsuarioTopo">
+
+  <!-- USUÁRIO -->
+  <div class="card card-usuario" id="cardUsuario">
+    <h3>👤 Usuário</h3>
+
+    <div id="usuarioEntradaInicial" class="usuario-entrada-inicial">
+      <button type="button" onclick="abrirPainelLoginUsuario()">Entrar</button>
+    </div>
+
+    <div id="usuarioAreaPublica">
+      <div id="usuarioModoLogin">
+        <input id="loginUsuario" placeholder="Login">
+        <input id="senhaUsuario" type="password" placeholder="Senha">
+        <button onclick="entrarUsuario()">Entrar para apostar</button>
+
+        <div class="usuario-acoes-publicas">
+          <button class="btn-link" type="button" onclick="abrirRecuperacaoSenha()">Esqueci minha senha</button>
+          <button class="btn-link" type="button" onclick="abrirCadastroUsuario()">Cadastro</button>
+        </div>
+      </div>
+
+      <div id="usuarioModoCadastro" style="display:none;">
+        <input id="cadastroNome" placeholder="Nome">
+        <input id="cadastroLogin" placeholder="Login de acesso">
+        <input id="cadastroSenha" type="password" placeholder="Senha">
+        <input id="cadastroIndicador" placeholder="Login do indicador (opcional)">
+        <button onclick="cadastrarUsuario()">Criar cadastro</button>
+        <button class="btn-secondary" type="button" onclick="voltarLoginUsuario()">Voltar ao login</button>
+      </div>
+
+      <div id="usuarioModoRecuperar" style="display:none;">
+        <input id="recuperarLogin" placeholder="Login cadastrado">
+        <input id="recuperarSenha" type="password" placeholder="Nova senha">
+        <button onclick="redefinirSenhaUsuario()">Salvar nova senha</button>
+        <button class="btn-secondary" type="button" onclick="voltarLoginUsuario()">Voltar ao login</button>
+      </div>
+    </div>
+
+    <div id="usuarioAreaLogado" style="display:none;">
+      <button id="btnSairUsuario" class="btn-danger" onclick="sairUsuario()">Sair</button>
+    </div>
+
+    <p id="usuarioStatus"></p>
+  </div>
+</div>
+
+<div class="banner-topo">
+  <div class="banner-topo-conteudo">
+    <img class="banner-topo-img" src="img/mascote/banner.png" alt="Banner do site">
+  </div>
+</div>
+
+<div class="melhores-cotacoes-wrap">
+  <div class="melhores-cotacoes-conteudo">
+    <h3 class="melhores-cotacoes-titulo">Melhores Cotacoes</h3>
+    <div class="melhores-cotacoes-card">
+      <div class="melhores-cotacoes-janela" aria-label="Melhores cotações da banca">
+        <div class="melhores-cotacoes-faixa">
+          <span>Milhar R$ 4.000,00</span>
+          <span class="melhores-cotacoes-sep">-</span>
+          <span>Centena R$ 600,00</span>
+          <span class="melhores-cotacoes-sep">-</span>
+          <span>Dezena R$ 60,00</span>
+          <span class="melhores-cotacoes-sep">-</span>
+          <span>Grupo R$ 18,00</span>
+          <span class="melhores-cotacoes-sep">-</span>
+          <span>Dupla de Grupo R$ 90,00</span>
+          <span class="melhores-cotacoes-sep">-</span>
+          <span>Terno de Grupo R$ 320,00</span>
+        </div>
+        <div class="melhores-cotacoes-faixa" aria-hidden="true">
+          <span>Unidade R$ 9,00</span>
+          <span class="melhores-cotacoes-sep">-</span>
+          <span>Dezena R$ 90,00</span>
+          <span class="melhores-cotacoes-sep">-</span>
+          <span>Centena R$ 900,00</span>
+          <span class="melhores-cotacoes-sep">-</span>
+          <span>Milhar R$ 9.500,00</span>
+          <span class="melhores-cotacoes-sep">-</span>
+          <span>Grupo R$ 23,00</span>
+          <span class="melhores-cotacoes-sep">-</span>
+          <span>Terno de Dezena Seco R$ 10.000,00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card card-apostas" id="cardApostas">
+    <div class="topo-card-apostas">
+      <h3>Apostas</h3>
+      <strong id="dataApostaAtual" title="Data automática da aposta (dia atual)">--/--/--</strong>
+    </div>
+    <input id="dataAposta" type="hidden">
+    <button id="btnAposteAgora" class="btn-aposte-agora-cta" type="button" onclick="abrirApostasAgora()" style="display:none;">Aposte Agora!</button>
+
+    <div class="linha-praca-fixa">
+      <span class="rotulo-praca-fixa">Praça da aposta</span>
+      <strong>Rio</strong>
+    </div>
+    <select id="pracaAposta" class="select-praca-oculta" aria-hidden="true" tabindex="-1"></select>
+
+    <select id="tipoAposta">
+      <option value="">Selecione o tipo de aposta</option>
+      <option value="unidade">Unidade</option>
+      <option value="dezena">Dezena</option>
+      <option value="centena">Centena</option>
+      <option value="milhar">Milhar</option>
+      <option value="milhar_brinde">Milhar Brinde</option>
+      <option value="grupo">Grupo</option>
+      <option value="duque_dezena">Duque de Dezena</option>
+      <option value="terno_dezena_seco">Terno de Dezena Seco</option>
+      <option value="terno_dezena_1a5">Terno de Dezena 1º ao 5º</option>
+      <option value="duque_grupo">Duque de Grupo</option>
+      <option value="terno_grupo">Terno de Grupo</option>
+      <option value="quadra_grupo">Quadra de Grupo</option>
+      <option value="palpitao">Palpitão</option>
+      <option value="passe_vai">Passe Vai</option>
+      <option value="passe_vai_vem">Passe Vai e Vem</option>
+    </select>
+    <select id="subtipoDuplaGrupo" style="display:none;">
+      <option value="seca">--</option>
+    </select>
+    <select id="subtipoTernoGrupo" style="display:none;">
+      <option value="seco">--</option>
+    </select>
+    <select id="subtipoNumericoAposta" style="display:none;">
+      <option value="seca">--</option>
+    </select>
+
+    <div id="palpiteGrupoContainer" class="palpite-grupo-container" style="display:none;">
+      <div class="palpite-grupo-selects" aria-hidden="true">
+        <select id="palpiteGrupo1">
+          <option value="">Selecione o bicho</option>
+        </select>
+        <select id="palpiteGrupo2">
+          <option value="">Selecione o 2º bicho</option>
+        </select>
+        <select id="palpiteGrupo3">
+          <option value="">Selecione o 3º bicho</option>
+        </select>
+        <select id="palpiteGrupo4">
+          <option value="">Selecione o 4º bicho</option>
+        </select>
+      </div>
+      <div class="palpite-grupo-slots">
+        <button type="button" class="palpite-grupo-slot" id="palpiteGrupoSlot1" data-slot="1">
+          <img alt="">
+          <span class="palpite-grupo-slot-titulo">1º Bicho</span>
+          <strong class="palpite-grupo-slot-nome">Toque em um bicho</strong>
+        </button>
+        <button type="button" class="palpite-grupo-slot" id="palpiteGrupoSlot2" data-slot="2">
+          <img alt="">
+          <span class="palpite-grupo-slot-titulo">2º Bicho</span>
+          <strong class="palpite-grupo-slot-nome">Toque em um bicho</strong>
+        </button>
+        <button type="button" class="palpite-grupo-slot" id="palpiteGrupoSlot3" data-slot="3">
+          <img alt="">
+          <span class="palpite-grupo-slot-titulo">3º Bicho</span>
+          <strong class="palpite-grupo-slot-nome">Toque em um bicho</strong>
+        </button>
+        <button type="button" class="palpite-grupo-slot" id="palpiteGrupoSlot4" data-slot="4">
+          <img alt="">
+          <span class="palpite-grupo-slot-titulo">4º Bicho</span>
+          <strong class="palpite-grupo-slot-nome">Toque em um bicho</strong>
+        </button>
+      </div>
+      <p id="palpiteGrupoDica" class="palpite-grupo-dica"></p>
+      <button type="button" class="btn-secondary btn-palpite-grupo-editar" id="btnEditarPalpiteGrupo">Editar escolha</button>
+      <div id="palpiteGrupoEditor" class="palpite-grupo-editor">
+        <div class="palpite-grupo-nav">
+          <button type="button" class="btn-nav-horizontal btn-palpite-grupo-nav" id="btnPalpiteGrupoPrev">Anterior</button>
+          <button type="button" class="btn-nav-horizontal btn-palpite-grupo-nav" id="btnPalpiteGrupoNext">Proximo</button>
+        </div>
+        <div id="palpiteGrupoGrade" class="palpite-grupo-grade palpite-grupo-carrossel"></div>
+        <button type="button" class="btn-secondary btn-palpite-grupo-limpar" id="btnLimparPalpiteGrupo">Limpar selecao</button>
+      </div>
+    </div>
+
+    <input id="palpiteAposta" placeholder="Palpite numérico (ex: 1234)" inputmode="numeric">
+    <input id="valorAposta" value="R$ 0,00" placeholder="Valor da aposta" inputmode="numeric">
+    <div id="blocoPremiacaoAposta" class="bloco-premiacao-aposta">
+      <p id="destaquePremiacaoAposta"></p>
+    </div>
+    <div class="acoes-bilhete-aposta">
+      <button type="button" class="btn-secondary" onclick="adicionarApostaAoBilhete()">Confirma</button>
+      <button type="button" class="btn-secondary" onclick="limparBilheteRascunho()">Limpar bilhete</button>
+    </div>
+    <div id="bilheteRascunhoAposta" class="bilhete-rascunho-aposta" style="display:none;">
+      <div id="listaBilheteRascunho" class="lista-bilhete-rascunho"></div>
+      <p id="resumoBilheteRascunho" class="resumo-bilhete-rascunho"></p>
+    </div>
+    <div class="loterias-aposta-bloco">
+      <div class="loterias-aposta-topo">
+        <span class="rotulo-loterias-aposta">Loteria(s) do bilhete (escolha ao final)</span>
+      </div>
+      <div id="loteriasApostaLista" class="loterias-aposta-lista"></div>
+      <p id="loteriasApostaResumo" class="loterias-aposta-resumo"></p>
+    </div>
+    <select id="loteriaAposta" class="select-praca-oculta" aria-hidden="true" tabindex="-1">
+      <option value="">Selecione a loteria</option>
+    </select>
+    <p id="infoLimitesAposta"></p>
+    <p id="cronometroAposta"></p>
+    <button onclick="salvarAposta()">Salvar Bilhete</button>
+  </div>
+  <div id="avisoApostasEncerradas" class="aviso-apostas-encerradas" style="display:none;">Apostas Encerradas!</div>
+
+  <div class="card">
+    <h3>Resultados</h3>
+    <div class="filtro-data">
+      <button id="btnDiaAnterior" class="btn-nav" onclick="voltarDia()">◀</button>
+      <input id="filtroData" type="date" onchange="selecionarData(this.value)">
+      <button id="btnDiaHoje" class="btn-nav btn-hoje" onclick="irHoje()">Hoje</button>
+      <button id="btnDiaProximo" class="btn-nav" onclick="avancarDia()">▶</button>
+    </div>
+    <div class="linha-praca-fixa linha-praca-fixa-filtro">
+      <span class="rotulo-praca-fixa">Praça</span>
+      <strong>Rio</strong>
+    </div>
+    <select id="filtroPraca" class="select-praca-oculta" aria-hidden="true" tabindex="-1"></select>
+    <p id="resumoData"></p>
+    <div class="navegacao-resultados">
+      <button id="btnResultadosPrev" class="btn-nav-horizontal" type="button">◀ Anteriores</button>
+      <button id="btnResultadosNext" class="btn-nav-horizontal" type="button">Próximos ▶</button>
+    </div>
+    <div id="resultados"></div>
+  </div>
+
+  <div class="card card-premiacoes-destaque">
+    <div class="titulo-premiacoes-destaque">
+      <h3>Premiações do dia em destaque</h3>
+      <span id="dataPremiacoesDestaque" class="data-premiacoes-destaque">--/--/--</span>
+    </div>
+    <p><small>Os destaques aparecem automaticamente conforme os resultados apurados.</small></p>
+    <div id="listaPremiacoesDestaque" class="lista-premiacoes-destaque"></div>
+  </div>
+
+</div>
+
+<div class="aviso-bingo-breve" aria-live="polite">
+  <p>Em breve teremos bingo!</p>
+</div>
+
+<div class="banner-premiacoes-destaque">
+  <img src="img/mascote/banner2.png" alt="Banner promocional">
+</div>
+
+<footer class="rodape-site">
+  <div class="rodape-conteudo">
+    <div class="rodape-links">
+      <div class="rodape-coluna">
+        <h4>Legal</h4>
+        <a href="paginas/termos-condicoes.html">Termos e Condições</a>
+        <a href="paginas/politica-privacidade.html">Política de Privacidade</a>
+        <a href="paginas/jogo-responsavel.html">Jogo Responsável</a>
+        <a href="paginas/politica-cookies.html">Política de Cookies</a>
+        <a href="paginas/politica-registro.html">Política de Registro</a>
+        <a href="paginas/politica-bonus.html">Política de Bônus</a>
+        <a href="paginas/programa-fidelidade.html">Programa de Fidelidade</a>
+      </div>
+
+      <div class="rodape-coluna">
+        <h4>Informações</h4>
+        <a href="paginas/sobre-nos.html">Sobre Nós</a>
+        <a href="paginas/contato.html">Contato</a>
+        <a href="paginas/perguntas-frequentes.html">Perguntas Frequentes</a>
+        <a href="paginas/regras-dos-jogos.html">Regras dos Jogos</a>
+        <a href="paginas/tipos-de-apostas.html">Tipos de Apostas</a>
+        <a href="paginas/grupos-de-animais.html">Grupos de Animais</a>
+        <a href="paginas/blog.html">Blog</a>
+      </div>
+    </div>
+
+    <div class="rodape-divisor"></div>
+
+    <div class="rodape-selos">
+      <div class="rodape-selo-card">
+        <div class="selo-idade">18+</div>
+        <div>
+          <strong>+18 Anos</strong>
+          <p>Proibido para menores de 18 anos</p>
+        </div>
+      </div>
+
+      <div class="rodape-selo-card">
+        <div class="selo-certificado">RNG</div>
+        <div>
+          <strong>Ambiente Monitorado</strong>
+          <p>Plataforma com verificação contínua</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rodape-divisor"></div>
+
+    <div class="rodape-base">
+      <div class="rodape-texto">
+        <p>© 2026 Todos os direitos reservados</p>
+        <p>Jogue com responsabilidade. Proibido para menores de 18 anos.</p>
+      </div>
+      <div class="rodape-redes">
+        <a href="#" aria-label="Telegram">TG</a>
+        <a href="#" aria-label="X">X</a>
+        <a href="#" aria-label="Instagram">IG</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="js/app.js?v=20260504-01"></script>
+</body>
+</html>

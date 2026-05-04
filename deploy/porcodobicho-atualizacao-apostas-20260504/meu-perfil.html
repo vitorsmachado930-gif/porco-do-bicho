@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Perfil | Porco do Bicho</title>
+  <link rel="icon" type="image/png" href="../img/mascote/icone.png?v=20260425">
+  <link rel="apple-touch-icon" href="../img/mascote/icone.png?v=20260425">
+  <link rel="stylesheet" href="../css/paginas.css?v=20260425">
+  <link rel="stylesheet" href="../css/perfil.css?v=20260429-10">
+</head>
+<body>
+  <header class="topo-pagina">
+    <div class="topo-pagina-conteudo topo-perfil">
+      <a href="../index.html">← Voltar para Home</a>
+      <strong>Meu Perfil</strong>
+    </div>
+  </header>
+
+  <main class="conteudo-pagina">
+    <div class="layout-perfil">
+      <aside class="menu-perfil-fixo">
+        <div class="menu-perfil-topo">
+          <strong>Menu do Perfil</strong>
+        </div>
+        <p id="menuPerfilInfo" class="menu-perfil-info">Acesso rápido</p>
+        <nav class="menu-perfil-lista" aria-label="Navegação do perfil">
+          <button type="button" class="menu-perfil-item ativo" data-secao-perfil="info" onclick="selecionarSecaoPerfil('info')">Informações Pessoais</button>
+          <button type="button" class="menu-perfil-item" data-secao-perfil="indicacao" onclick="selecionarSecaoPerfil('indicacao')">Programa de Indicação</button>
+          <button type="button" class="menu-perfil-item" data-secao-perfil="apostas" onclick="selecionarSecaoPerfil('apostas')">Minhas Apostas</button>
+        </nav>
+      </aside>
+
+      <section class="perfil-conteudo">
+    <article id="secaoPerfilInfo" class="card-pagina card-perfil secao-perfil ativa">
+      <h1>Informações Pessoais</h1>
+      <p id="perfilResumoUsuario" class="perfil-resumo-usuario"></p>
+      <div id="perfilSaldoCard" class="perfil-saldo-card">
+        <span>Saldo Atual</span>
+        <strong id="perfilSaldoAtual">R$ 0,00</strong>
+        <small id="perfilSaldoAnimacao" aria-live="polite"></small>
+      </div>
+
+      <div id="perfilCamposEdicao" class="perfil-campos-edicao" hidden>
+        <label for="perfilNome">Nome</label>
+        <input id="perfilNome" type="text" placeholder="Seu nome completo" maxlength="80">
+
+        <label for="perfilTelefone">Telefone (DDD + número)</label>
+        <input id="perfilTelefone" type="tel" inputmode="tel" placeholder="(11) 98765-4321" maxlength="16">
+        <small class="perfil-dica-campo">Informe um telefone válido com DDD (ex: 11 98765-4321).</small>
+
+        <label for="perfilChavePix">Chave Pix para recebimento</label>
+        <input id="perfilChavePix" type="text" placeholder="CPF, e-mail, telefone ou chave aleatória" maxlength="120">
+      </div>
+
+      <div class="perfil-acoes-edicao">
+        <button id="btnEditarPerfil" type="button" class="btn-secundario">Editar informações pessoais</button>
+        <button id="btnCancelarPerfil" type="button" class="btn-secundario" style="display:none;">Cancelar</button>
+        <button id="btnSalvarPerfil" type="button" style="display:none;">Salvar alterações</button>
+      </div>
+      <p id="perfilStatus" class="perfil-status"></p>
+    </article>
+
+    <article id="secaoPerfilIndicacao" class="card-pagina card-perfil secao-perfil">
+      <div class="perfil-apostas-topo">
+        <h2>Programa de Indicação</h2>
+      </div>
+      <p id="perfilIndicacaoResumo" class="perfil-apostas-resumo"></p>
+      <p class="perfil-dica-campo">
+        Seu login para indicar: <strong id="perfilLoginIndicacao">@--</strong>
+      </p>
+      <div class="perfil-bonus-grid">
+        <div class="perfil-status-dia-item">
+          Bônus disponível
+          <b id="perfilBonusDisponivel">R$ 0,00</b>
+        </div>
+        <div class="perfil-status-dia-item">
+          Convertido hoje
+          <b id="perfilBonusConvertidoHoje">R$ 0,00</b>
+        </div>
+        <div class="perfil-status-dia-item">
+          Limite diário
+          <b id="perfilBonusLimiteHoje">R$ 100,00</b>
+        </div>
+      </div>
+      <button id="btnConverterBonusPerfil" type="button">
+        Converter bônus em saldo (+R$ 10,00)
+      </button>
+      <p id="perfilBonusStatus" class="perfil-status"></p>
+    </article>
+
+    <article id="secaoPerfilApostas" class="card-pagina card-perfil secao-perfil">
+      <div class="perfil-apostas-topo">
+        <h2>Minhas Apostas</h2>
+        <div class="perfil-apostas-filtro">
+          <select id="perfilModoDataApostas" aria-label="Modo de data das apostas">
+            <option value="dia">Dia</option>
+            <option value="periodo">De data até data</option>
+          </select>
+          <input id="perfilDataApostas" type="date" aria-label="Data das apostas">
+          <input id="perfilDataApostasInicio" type="date" aria-label="Data inicial das apostas" style="display:none;">
+          <input id="perfilDataApostasFim" type="date" aria-label="Data final das apostas" style="display:none;">
+          <select id="perfilFiltroApostas" aria-label="Filtro de status das apostas">
+            <option value="todas">Todas as Apostas</option>
+            <option value="pendentes">Apostas em Andamento</option>
+            <option value="premiadas">Apostas Premiadas</option>
+            <option value="perdidas">Apostas Perdidas</option>
+          </select>
+          <button id="btnPerfilHoje" type="button" class="btn-secundario">Hoje</button>
+        </div>
+      </div>
+      <p id="perfilApostasResumo" class="perfil-apostas-resumo"></p>
+      <div id="perfilResumoStatusDia" class="perfil-resumo-status-dia"></div>
+      <div id="perfilListaApostas" class="perfil-lista-apostas"></div>
+    </article>
+      </section>
+    </div>
+  </main>
+
+  <footer class="rodape-pagina">
+    Porco do Bicho • Área de perfil • Atualizado em 25/04/2026.
+  </footer>
+
+  <script src="../js/perfil.js?v=20260504-01"></script>
+</body>
+</html>
