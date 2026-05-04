@@ -14,13 +14,13 @@ date_default_timezone_set('America/Sao_Paulo');
 */
 const DB_HOST = 'localhost';
 const DB_NAME = 'u952566011_porco_wallet';
-const DB_USER = 'u952566011_porco_wallet'; // (ou o usuário que aparece na Hostinger)
+const DB_USER = 'u952566011_porco_user'; // (ou o usuário que aparece na Hostinger)
 const DB_PASS = '1965917Vi!';
 
 // Sandbox: https://api-sandbox.asaas.com/v3
 // Produção: https://api.asaas.com/v3
 const ASAAS_BASE_URL = 'https://api-sandbox.asaas.com/v3';
-const ASAAS_API_KEY = 'SUA_API_KEY_ASAAS';
+const ASAAS_API_KEY = '$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmM2MmI1NjljLTUxMTEtNDczMS1hNWI4LTU4ZjAwNWViNzdmYTo6JGFhY2hfMjRlNTEyOTQtMjc4Ny00MTg3LWEyYTktYTFmOWRkYWEyNDAz';
 
 // Token opcional de validação do webhook (header asaas-access-token).
 const ASAAS_WEBHOOK_TOKEN = 'whsec_r-WXEweg9cYycRuov_QMs83g5de_PuA-Q64-dkEGqJM';
