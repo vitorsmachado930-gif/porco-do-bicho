@@ -4,6 +4,7 @@
   "use strict";
 
   const IDS = {
+    card: "cardPixAsaas",
     resumo: "pixResumoUsuario",
     usuarioId: "pixUsuarioId",
     valor: "pixValorDeposito",
@@ -17,6 +18,7 @@
 
   const USUARIOS_KEY = "usuarios_aposta";
   const USUARIO_SESSAO_KEY = "usuario_sessao_id";
+  let sessaoAtual = "";
 
   function el(id) {
     return document.getElementById(id);
@@ -56,12 +58,47 @@
 
     const usuario = carregarUsuarioLogado();
     if (!usuario) {
-      resumo.textContent = "Informe o ID do usuário para gerar o Pix.";
+      inputId.value = "";
+      inputId.readOnly = false;
+      resumo.textContent = "Faça login para liberar o depósito via Pix.";
       return;
     }
 
     inputId.value = String(usuario.id || "");
+    inputId.readOnly = true;
     resumo.textContent = `Usuário logado: @${usuario.login || "--"} (ID: ${usuario.id || "--"})`;
+  }
+
+  function limparResultadoPix() {
+    const box = el(IDS.box);
+    const qr = el(IDS.qr);
+    const copia = el(IDS.copia);
+    const valor = el(IDS.valor);
+
+    if (valor) valor.value = "";
+    if (copia) copia.value = "";
+    if (qr) {
+      qr.removeAttribute("src");
+      qr.style.display = "none";
+    }
+    if (box) box.style.display = "none";
+    setStatus("", false);
+  }
+
+  function atualizarVisibilidadePix() {
+    const card = el(IDS.card);
+    if (!card) return;
+
+    const usuario = carregarUsuarioLogado();
+    if (!usuario) {
+      card.style.display = "none";
+      limparResultadoPix();
+      preencherUsuarioAutomatico();
+      return;
+    }
+
+    card.style.display = "";
+    preencherUsuarioAutomatico();
   }
 
   function mostrarResultadoPix(payload) {
@@ -91,7 +128,13 @@
     const btn = el(IDS.btnGerar);
     if (!inputId || !inputValor || !btn) return;
 
-    const usuarioId = Number(inputId.value);
+    const usuarioLogado = carregarUsuarioLogado();
+    if (!usuarioLogado || !Number.isFinite(Number(usuarioLogado.id)) || Number(usuarioLogado.id) <= 0) {
+      setStatus("Faça login para gerar o Pix.", true);
+      return;
+    }
+
+    const usuarioId = Number(usuarioLogado.id);
     const valor = normalizarValor(inputValor.value);
 
     if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
@@ -156,12 +199,24 @@
 
   function iniciar() {
     if (!el(IDS.btnGerar)) return; // Não quebra outras páginas.
-    preencherUsuarioAutomatico();
+    sessaoAtual = String(localStorage.getItem(USUARIO_SESSAO_KEY) || "");
+    atualizarVisibilidadePix();
 
     const btnGerar = el(IDS.btnGerar);
     const btnCopiar = el(IDS.btnCopiar);
     if (btnGerar) btnGerar.addEventListener("click", gerarPix);
     if (btnCopiar) btnCopiar.addEventListener("click", copiarPix);
+
+    window.addEventListener("storage", atualizarVisibilidadePix);
+
+    // Detecta login/logout no mesmo navegador sem recarregar a página.
+    setInterval(() => {
+      const novaSessao = String(localStorage.getItem(USUARIO_SESSAO_KEY) || "");
+      if (novaSessao !== sessaoAtual) {
+        sessaoAtual = novaSessao;
+        atualizarVisibilidadePix();
+      }
+    }, 600);
   }
 
   if (document.readyState === "loading") {
