@@ -70,6 +70,11 @@ function walletNormalizarLogin($login): string
     return strtolower(preg_replace('/\s+/', '', trim((string)$login)) ?? '');
 }
 
+function walletValidarSenhaTexto($senha): string
+{
+    return trim((string)$senha);
+}
+
 function walletDigitos(string $valor): string
 {
     return preg_replace('/\D+/', '', $valor) ?? '';
@@ -183,4 +188,19 @@ function walletAsaasResolveHeader(string $nome): string
     $key = 'HTTP_' . strtoupper(str_replace('-', '_', $nome));
     $valor = $_SERVER[$key] ?? '';
     return trim((string)$valor);
+}
+
+function walletSenhaHashValido($hash): bool
+{
+    $texto = trim((string)$hash);
+    return $texto !== '' && strlen($texto) >= 40;
+}
+
+function walletSenhaConfere(string $senhaInformada, $hash): bool
+{
+    $hashTexto = trim((string)$hash);
+    if ($hashTexto === '' || $senhaInformada === '') {
+        return false;
+    }
+    return password_verify($senhaInformada, $hashTexto);
 }

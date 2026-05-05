@@ -15,11 +15,15 @@ try {
 
     $payload = walletBodyJson();
     $login = walletNormalizarLogin($payload['login'] ?? '');
+    $senha = walletValidarSenhaTexto($payload['senha'] ?? '');
     $valor = walletNormalizarValor($payload['valor'] ?? 0);
     $cpfCnpj = walletNormalizarCpfCnpj(isset($payload['cpfCnpj']) ? (string)$payload['cpfCnpj'] : '');
 
     if ($login === '') {
         walletResponder(422, ['ok' => false, 'error' => 'Login obrigatorio.']);
+    }
+    if ($senha === '') {
+        walletResponder(422, ['ok' => false, 'error' => 'Senha obrigatoria.']);
     }
     if ($valor < 1.00) {
         walletResponder(422, ['ok' => false, 'error' => 'Valor minimo para deposito: R$ 1,00.']);
@@ -28,7 +32,7 @@ try {
     $pdo->beginTransaction();
 
     $stmtUser = $pdo->prepare(
-        'SELECT id, nome, login, email, telefone, cpf_cnpj, asaas_customer_id, saldo, status
+        'SELECT id, nome, login, senha_hash, email, telefone, cpf_cnpj, asaas_customer_id, saldo, status
          FROM usuarios
          WHERE login = :login
          LIMIT 1
@@ -40,6 +44,10 @@ try {
     if (!$usuario) {
         $pdo->rollBack();
         walletResponder(404, ['ok' => false, 'error' => 'Usuario nao encontrado na carteira.']);
+    }
+    if (!walletSenhaConfere($senha, $usuario['senha_hash'] ?? '')) {
+        $pdo->rollBack();
+        walletResponder(403, ['ok' => false, 'error' => 'Credenciais invalidas.']);
     }
 
     if (strtoupper((string)$usuario['status']) !== 'ATIVO') {

@@ -35,12 +35,16 @@ try {
 
     $payload = walletBodyJson();
     $login = walletNormalizarLogin((string)($payload['login'] ?? ''));
+    $senha = walletValidarSenhaTexto($payload['senha'] ?? '');
     $referencia = trim((string)($payload['referencia'] ?? ''));
     $valor = walletNormalizarValor($payload['valor'] ?? 0);
     $detalhes = isset($payload['detalhes']) && is_array($payload['detalhes']) ? $payload['detalhes'] : [];
 
     if ($login === '') {
         walletResponder(422, ['ok' => false, 'error' => 'Login obrigatorio.']);
+    }
+    if ($senha === '') {
+        walletResponder(422, ['ok' => false, 'error' => 'Senha obrigatoria.']);
     }
 
     if ($referencia === '' || strlen($referencia) < 8 || strlen($referencia) > 120) {
@@ -54,7 +58,7 @@ try {
     $pdo->beginTransaction();
 
     $stmtUsuario = $pdo->prepare(
-        'SELECT id, login, saldo, status
+        'SELECT id, login, senha_hash, saldo, status
          FROM usuarios
          WHERE login = :login
          LIMIT 1
@@ -66,6 +70,10 @@ try {
     if (!$usuario) {
         $pdo->rollBack();
         walletResponder(404, ['ok' => false, 'error' => 'Usuario nao encontrado na carteira.']);
+    }
+    if (!walletSenhaConfere($senha, $usuario['senha_hash'] ?? '')) {
+        $pdo->rollBack();
+        walletResponder(403, ['ok' => false, 'error' => 'Credenciais invalidas.']);
     }
 
     if (strtoupper((string)$usuario['status']) !== 'ATIVO') {

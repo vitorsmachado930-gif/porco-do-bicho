@@ -2,5 +2,8 @@
 .vscode/
 api/wallet_secrets.php
 backend/.secrets.php
+backend/secrets.php
+backend/*cópia.php
+backend/htaccess.php
 backend/asaas_log.txt
 storage/*.log

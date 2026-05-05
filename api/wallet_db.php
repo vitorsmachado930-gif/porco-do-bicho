@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   login VARCHAR(80) NOT NULL,
   nome VARCHAR(120) NOT NULL,
+  senha_hash VARCHAR(255) NULL,
   email VARCHAR(120) NULL,
   telefone VARCHAR(20) NULL,
   cpf_cnpj VARCHAR(18) NULL,
@@ -77,6 +78,7 @@ SQL;
     $colunas = [
         'login' => "ALTER TABLE usuarios ADD COLUMN login VARCHAR(80) NOT NULL DEFAULT '' FIRST",
         'nome' => "ALTER TABLE usuarios ADD COLUMN nome VARCHAR(120) NOT NULL DEFAULT 'Usuário' AFTER login",
+        'senha_hash' => "ALTER TABLE usuarios ADD COLUMN senha_hash VARCHAR(255) NULL AFTER nome",
         'email' => "ALTER TABLE usuarios ADD COLUMN email VARCHAR(120) NULL AFTER nome",
         'telefone' => "ALTER TABLE usuarios ADD COLUMN telefone VARCHAR(20) NULL AFTER email",
         'cpf_cnpj' => "ALTER TABLE usuarios ADD COLUMN cpf_cnpj VARCHAR(18) NULL AFTER telefone",

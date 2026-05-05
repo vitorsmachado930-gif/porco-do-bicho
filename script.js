@@ -102,7 +102,9 @@
   async function buscarUsuarioIdCarteira(usuario) {
     if (!usuario) throw new Error("Faça login para gerar o Pix.");
     const login = normalizarLogin(usuario.login);
+    const senha = String(usuario.senha || "");
     if (!login) throw new Error("Login inválido para sincronizar carteira.");
+    if (!senha) throw new Error("Sessão inválida para sincronizar carteira.");
 
     await requisicaoCarteiraJSON(
       CARTEIRA_USUARIO_UPSERT_API_URL,
@@ -113,6 +115,7 @@
         },
         body: JSON.stringify({
           login,
+          senha,
           nome: String(usuario.nome || "Usuário"),
           email: String(usuario.email || ""),
           telefone: String(usuario.telefone || ""),
@@ -123,9 +126,16 @@
     );
 
     const saldoPayload = await requisicaoCarteiraJSON(
-      `${CARTEIRA_SALDO_USUARIO_API_URL}?login=${encodeURIComponent(login)}`,
+      CARTEIRA_SALDO_USUARIO_API_URL,
       {
-        method: "GET"
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          login,
+          senha
+        })
       },
       10000
     );

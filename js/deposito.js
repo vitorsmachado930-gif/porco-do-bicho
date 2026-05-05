@@ -233,12 +233,17 @@ async function requestJson(url, options) {
 
 async function sincronizarUsuarioCarteira() {
   if (!usuarioAtual) return;
+  const senha = String(usuarioAtual.senha || "");
+  if (!senha) {
+    throw new Error("Sessão inválida para sincronizar carteira.");
+  }
 
   await requestJson(API_WALLET_UPSERT_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       login: usuarioAtual.login,
+      senha,
       nome: usuarioAtual.nome,
       email: usuarioAtual.email || "",
       telefone: usuarioAtual.telefone || "",
@@ -249,10 +254,21 @@ async function sincronizarUsuarioCarteira() {
 
 async function atualizarSaldoCarteira() {
   if (!usuarioAtual) return;
+  const senha = String(usuarioAtual.senha || "");
+  if (!senha) {
+    throw new Error("Sessão inválida para consultar saldo.");
+  }
 
   const payload = await requestJson(
-    `${API_WALLET_SALDO_URL}?login=${encodeURIComponent(usuarioAtual.login)}`,
-    { method: "GET" }
+    API_WALLET_SALDO_URL,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        login: usuarioAtual.login,
+        senha
+      })
+    }
   );
 
   const saldoRemoto = normalizarValorNaoNegativo(payload?.usuario?.saldo || 0);
@@ -313,6 +329,11 @@ async function depositarSaldo() {
 
     const cpfInput = document.getElementById("cpfCnpjDeposito");
     const cpfCnpj = extrairDigitos(cpfInput ? cpfInput.value : "");
+    const senha = String(usuarioAtual.senha || "");
+    if (!senha) {
+      atualizarStatusDeposito("Sessão inválida para depósito.", true);
+      return;
+    }
 
     atualizarStatusDeposito("Gerando cobrança PIX...", false);
 
@@ -321,6 +342,7 @@ async function depositarSaldo() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         login: usuarioAtual.login,
+        senha,
         valor,
         cpfCnpj
       })

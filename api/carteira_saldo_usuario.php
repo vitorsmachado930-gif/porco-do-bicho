@@ -5,7 +5,7 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'wallet_common.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'wallet_db.php';
 
 walletTratarPreflight();
-walletValidarMetodo('GET');
+walletValidarMetodo('POST');
 walletValidarClienteWeb();
 walletAplicarRateLimit('carteira-saldo-usuario', 120, 60);
 
@@ -14,19 +14,27 @@ try {
     $pdo = walletPdo();
     walletGarantirTabelaUsuarios($pdo);
 
-    $login = walletNormalizarLogin((string)($_GET['login'] ?? ''));
+    $payload = walletBodyJson();
+    $login = walletNormalizarLogin((string)($payload['login'] ?? ''));
+    $senha = walletValidarSenhaTexto($payload['senha'] ?? '');
     if ($login === '') {
         walletResponder(422, ['ok' => false, 'error' => 'Login obrigatorio.']);
     }
+    if ($senha === '') {
+        walletResponder(422, ['ok' => false, 'error' => 'Senha obrigatoria.']);
+    }
 
     $stmt = $pdo->prepare(
-        'SELECT id, login, nome, saldo, status FROM usuarios WHERE login = :login LIMIT 1'
+        'SELECT id, login, nome, senha_hash, saldo, status FROM usuarios WHERE login = :login LIMIT 1'
     );
     $stmt->execute([':login' => $login]);
     $user = $stmt->fetch();
 
     if (!$user) {
         walletResponder(404, ['ok' => false, 'error' => 'Usuario nao encontrado na carteira.']);
+    }
+    if (!walletSenhaConfere($senha, $user['senha_hash'] ?? '')) {
+        walletResponder(403, ['ok' => false, 'error' => 'Credenciais invalidas.']);
     }
 
     walletResponder(200, [

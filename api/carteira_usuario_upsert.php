@@ -24,6 +24,7 @@ try {
 
     $payload = walletBodyJson();
     $login = walletNormalizarLogin($payload['login'] ?? '');
+    $senha = walletValidarSenhaTexto($payload['senha'] ?? '');
     $nome = trim((string)($payload['nome'] ?? ''));
     $cpfCnpj = walletNormalizarCpfCnpj(isset($payload['cpfCnpj']) ? (string)$payload['cpfCnpj'] : '');
     $email = trim((string)($payload['email'] ?? ''));
@@ -32,6 +33,9 @@ try {
     if ($login === '' || strlen($login) < 3) {
         walletResponder(422, ['ok' => false, 'error' => 'Login invalido.']);
     }
+    if ($senha === '' || strlen($senha) < 4) {
+        walletResponder(422, ['ok' => false, 'error' => 'Senha invalida. Minimo de 4 caracteres.']);
+    }
     if ($nome === '' || walletComprimentoTexto($nome) < 2) {
         walletResponder(422, ['ok' => false, 'error' => 'Nome invalido.']);
     }
@@ -39,7 +43,7 @@ try {
     $pdo->beginTransaction();
 
     $stmtBusca = $pdo->prepare(
-        'SELECT id, login, nome, email, telefone, cpf_cnpj, saldo, status
+        'SELECT id, login, nome, senha_hash, email, telefone, cpf_cnpj, saldo, status
          FROM usuarios
          WHERE login = :login
          LIMIT 1
@@ -47,11 +51,22 @@ try {
     );
     $stmtBusca->execute([':login' => $login]);
     $usuarioExistente = $stmtBusca->fetch();
+    $senhaHashNova = password_hash($senha, PASSWORD_DEFAULT);
+    if (!is_string($senhaHashNova) || $senhaHashNova === '') {
+        throw new RuntimeException('Falha ao proteger senha do usuario.');
+    }
 
     if ($usuarioExistente) {
+        $hashAtual = (string)($usuarioExistente['senha_hash'] ?? '');
+        if (walletSenhaHashValido($hashAtual) && !walletSenhaConfere($senha, $hashAtual)) {
+            $pdo->rollBack();
+            walletResponder(403, ['ok' => false, 'error' => 'Credenciais invalidas para sincronizar carteira.']);
+        }
+
         $stmtUpdate = $pdo->prepare(
             'UPDATE usuarios
              SET nome = :nome,
+                 senha_hash = CASE WHEN COALESCE(senha_hash, \'\') = \'\' THEN :senhaHash ELSE senha_hash END,
                  email = CASE WHEN :email <> \'\' THEN :email ELSE email END,
                  telefone = CASE WHEN :telefone <> \'\' THEN :telefone ELSE telefone END,
                  cpf_cnpj = CASE WHEN :cpf <> \'\' THEN :cpf ELSE cpf_cnpj END
@@ -61,18 +76,20 @@ try {
         $stmtUpdate->execute([
             ':id' => (int)$usuarioExistente['id'],
             ':nome' => $nome,
+            ':senhaHash' => $senhaHashNova,
             ':email' => $email,
             ':telefone' => $telefone,
             ':cpf' => $cpfCnpj,
         ]);
     } else {
         $stmtInsert = $pdo->prepare(
-            'INSERT INTO usuarios (login, nome, email, telefone, cpf_cnpj, saldo, status)
-             VALUES (:login, :nome, :email, :telefone, :cpf, 0.00, \'ATIVO\')'
+            'INSERT INTO usuarios (login, nome, senha_hash, email, telefone, cpf_cnpj, saldo, status)
+             VALUES (:login, :nome, :senhaHash, :email, :telefone, :cpf, 0.00, \'ATIVO\')'
         );
         $stmtInsert->execute([
             ':login' => $login,
             ':nome' => $nome,
+            ':senhaHash' => $senhaHashNova,
             ':email' => $email,
             ':telefone' => $telefone,
             ':cpf' => $cpfCnpj,
@@ -128,7 +145,5 @@ try {
     walletResponder(500, [
         'ok' => false,
         'error' => $msg,
-        'detail' => $e->getMessage(),
-        'code' => (string)$e->getCode(),
     ]);
 }

@@ -724,16 +724,23 @@ function sincronizarPerfilComStorage(forcar) {
 
 async function sincronizarSaldoPerfilComServidor() {
   if (!usuarioAtual || !usuarioAtual.login) return;
+  const senha = String(usuarioAtual.senha || "");
+  if (!senha) return;
   try {
     const resp = await fetch(
-      `${CARTEIRA_SALDO_USUARIO_API_URL}?login=${encodeURIComponent(usuarioAtual.login)}`,
+      CARTEIRA_SALDO_USUARIO_API_URL,
       {
-        method: "GET",
+        method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Accept: "application/json",
           "X-Requested-With": "XMLHttpRequest",
           "X-App-Client": "porcodobicho-web"
         },
+        body: JSON.stringify({
+          login: usuarioAtual.login,
+          senha
+        }),
         cache: "no-store"
       }
     );

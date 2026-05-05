@@ -2387,7 +2387,9 @@ async function requisicaoCarteiraJSON(url, opcoes, timeoutMs) {
 async function sincronizarUsuarioCarteiraServidor(usuario) {
   if (!usuario) return;
   const login = normalizarLoginUsuario(usuario.login);
+  const senha = String(usuario.senha || "");
   if (!login) return;
+  if (!senha) return;
 
   await requisicaoCarteiraJSON(
     CARTEIRA_USUARIO_UPSERT_API_URL,
@@ -2398,6 +2400,7 @@ async function sincronizarUsuarioCarteiraServidor(usuario) {
       },
       body: JSON.stringify({
         login,
+        senha,
         nome: String(usuario.nome || "Usuário"),
         email: String(usuario.email || ""),
         telefone: String(usuario.telefone || ""),
@@ -2408,9 +2411,16 @@ async function sincronizarUsuarioCarteiraServidor(usuario) {
   );
 
   const saldoPayload = await requisicaoCarteiraJSON(
-    `${CARTEIRA_SALDO_USUARIO_API_URL}?login=${encodeURIComponent(login)}`,
+    CARTEIRA_SALDO_USUARIO_API_URL,
     {
-      method: "GET"
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        login,
+        senha
+      })
     },
     10000
   );
@@ -2432,8 +2442,12 @@ async function sincronizarUsuarioCarteiraServidor(usuario) {
 
 async function debitarSaldoCarteiraServidorAposta(usuario, valorTotalBilhete, referencia, detalhes) {
   const login = normalizarLoginUsuario(usuario && usuario.login);
+  const senha = String(usuario && usuario.senha || "");
   if (!login) {
     throw new Error("Usuário inválido para débito em carteira.");
+  }
+  if (!senha) {
+    throw new Error("Sessão inválida para débito em carteira.");
   }
 
   const payload = await requisicaoCarteiraJSON(
@@ -2445,6 +2459,7 @@ async function debitarSaldoCarteiraServidorAposta(usuario, valorTotalBilhete, re
       },
       body: JSON.stringify({
         login,
+        senha,
         valor: normalizarValorNaoNegativo(valorTotalBilhete),
         referencia: String(referencia || "").trim(),
         detalhes: detalhes && typeof detalhes === "object" ? detalhes : {}
