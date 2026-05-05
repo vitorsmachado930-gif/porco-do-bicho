@@ -13,6 +13,7 @@ date_default_timezone_set('America/Sao_Paulo');
 | NUNCA coloque estes valores no frontend.
 */
 const DB_HOST = 'localhost';
+const DB_PORT = 3306;
 const DB_NAME = 'u952566011_porco_wallet';
 const DB_USER = 'u952566011_porco_user'; // (ou o usuário que aparece na Hostinger)
 const DB_PASS = '1965917Vi!';
@@ -135,6 +136,37 @@ function parseMoney(mixed $value): float
 function onlyDigits(string $value): string
 {
     return preg_replace('/\D+/', '', $value) ?? '';
+}
+
+/**
+ * Gera CPF válido determinístico a partir de uma semente numérica.
+ * Útil para ambiente de teste quando usuário ainda não informou CPF.
+ */
+function generateValidCpfFromSeed(int $seed): string
+{
+    $base = str_pad((string)($seed % 1000000000), 9, '0', STR_PAD_LEFT);
+    $digits = str_split($base);
+
+    $sum1 = 0;
+    for ($i = 0, $w = 10; $i < 9; $i++, $w--) {
+        $sum1 += ((int)$digits[$i]) * $w;
+    }
+    $d1 = 11 - ($sum1 % 11);
+    if ($d1 >= 10) {
+        $d1 = 0;
+    }
+
+    $sum2 = 0;
+    for ($i = 0, $w = 11; $i < 9; $i++, $w--) {
+        $sum2 += ((int)$digits[$i]) * $w;
+    }
+    $sum2 += $d1 * 2;
+    $d2 = 11 - ($sum2 % 11);
+    if ($d2 >= 10) {
+        $d2 = 0;
+    }
+
+    return $base . (string)$d1 . (string)$d2;
 }
 
 /**
@@ -276,6 +308,7 @@ function ensureWalletSchema(PDO $pdo): void
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS usuarios (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            login VARCHAR(80) NULL,
             nome VARCHAR(120) NOT NULL,
             email VARCHAR(150) NULL,
             saldo DECIMAL(14,2) NOT NULL DEFAULT 0.00,
@@ -320,6 +353,9 @@ function ensureWalletSchema(PDO $pdo): void
     if (!hasColumn($pdo, 'usuarios', 'nome')) {
         $pdo->exec("ALTER TABLE usuarios ADD COLUMN nome VARCHAR(120) NOT NULL DEFAULT 'Usuário'");
     }
+    if (!hasColumn($pdo, 'usuarios', 'login')) {
+        $pdo->exec("ALTER TABLE usuarios ADD COLUMN login VARCHAR(80) NULL");
+    }
     if (!hasColumn($pdo, 'usuarios', 'email')) {
         $pdo->exec("ALTER TABLE usuarios ADD COLUMN email VARCHAR(150) NULL");
     }
@@ -363,6 +399,74 @@ function findUserById(PDO $pdo, int $usuarioId): ?array
 }
 
 /**
+ * Localiza usuário por login normalizado.
+ */
+function findUserByLogin(PDO $pdo, string $login): ?array
+{
+    $loginNormalizado = strtolower(preg_replace('/\s+/', '', trim($login)) ?? '');
+    if ($loginNormalizado === '') {
+        return null;
+    }
+
+    $stmt = $pdo->prepare('SELECT * FROM usuarios WHERE login = :login LIMIT 1');
+    $stmt->execute([':login' => $loginNormalizado]);
+    $row = $stmt->fetch();
+    return is_array($row) ? $row : null;
+}
+
+/**
+ * Cria ou atualiza usuário por login para uso no fluxo de depósito Pix.
+ */
+function upsertUserByLogin(PDO $pdo, string $login, string $nome, string $email = ''): array
+{
+    $loginNormalizado = strtolower(preg_replace('/\s+/', '', trim($login)) ?? '');
+    if ($loginNormalizado === '') {
+        throw new RuntimeException('Login inválido para sincronizar usuário do depósito.');
+    }
+
+    $nomeFinal = trim($nome) !== '' ? trim($nome) : ('Usuário ' . $loginNormalizado);
+    $emailFinal = trim($email);
+
+    $existente = findUserByLogin($pdo, $loginNormalizado);
+    if ($existente) {
+        $stmt = $pdo->prepare(
+            'UPDATE usuarios
+             SET nome = :nome,
+                 email = CASE WHEN :email <> "" THEN :email ELSE email END
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $stmt->execute([
+            ':nome' => $nomeFinal,
+            ':email' => $emailFinal,
+            ':id' => (int)$existente['id'],
+        ]);
+        $atualizado = findUserById($pdo, (int)$existente['id']);
+        if (!$atualizado) {
+            throw new RuntimeException('Falha ao atualizar usuário do depósito.');
+        }
+        return $atualizado;
+    }
+
+    $stmt = $pdo->prepare(
+        'INSERT INTO usuarios (login, nome, email, saldo)
+         VALUES (:login, :nome, :email, 0.00)'
+    );
+    $stmt->execute([
+        ':login' => $loginNormalizado,
+        ':nome' => $nomeFinal,
+        ':email' => $emailFinal,
+    ]);
+
+    $novoId = (int)$pdo->lastInsertId();
+    $novo = findUserById($pdo, $novoId);
+    if (!$novo) {
+        throw new RuntimeException('Falha ao criar usuário do depósito.');
+    }
+    return $novo;
+}
+
+/**
  * Cria ou localiza customer no Asaas.
  */
 function getOrCreateAsaasCustomer(PDO $pdo, array $usuario): string
@@ -379,7 +483,7 @@ function getOrCreateAsaasCustomer(PDO $pdo, array $usuario): string
     // Fallback de teste (sandbox) quando CPF ainda não existe no cadastro.
     // Em produção, o ideal é salvar o CPF/CNPJ real do usuário.
     if ($cpf === '') {
-        $cpf = str_pad((string)max(1, $userId), 11, '0', STR_PAD_LEFT);
+        $cpf = generateValidCpfFromSeed(max(1, $userId));
     }
 
     $nome = trim((string)($usuario['nome'] ?? 'Usuário'));

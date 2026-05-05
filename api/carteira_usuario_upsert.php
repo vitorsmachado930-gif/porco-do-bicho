@@ -9,6 +9,14 @@ walletValidarMetodo('POST');
 walletValidarClienteWeb();
 walletAplicarRateLimit('carteira-usuario-upsert', 40, 60);
 
+function walletComprimentoTexto(string $texto): int
+{
+    if (function_exists('mb_strlen')) {
+        return (int)mb_strlen($texto, 'UTF-8');
+    }
+    return (int)strlen($texto);
+}
+
 try {
     walletValidarConfiguracaoMinima(false);
     $pdo = walletPdo();
@@ -24,7 +32,7 @@ try {
     if ($login === '' || strlen($login) < 3) {
         walletResponder(422, ['ok' => false, 'error' => 'Login invalido.']);
     }
-    if ($nome === '' || mb_strlen($nome) < 2) {
+    if ($nome === '' || walletComprimentoTexto($nome) < 2) {
         walletResponder(422, ['ok' => false, 'error' => 'Nome invalido.']);
     }
 
@@ -96,6 +104,21 @@ try {
     if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
         $pdo->rollBack();
     }
+
+    // Log local para depuração em produção (Hostinger).
+    $logDir = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'storage';
+    if (is_dir($logDir) || @mkdir($logDir, 0775, true)) {
+        $linha = json_encode([
+            'when' => date('Y-m-d H:i:s'),
+            'endpoint' => 'carteira_usuario_upsert',
+            'error' => $e->getMessage(),
+            'code' => (string)$e->getCode(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (is_string($linha)) {
+            @file_put_contents($logDir . DIRECTORY_SEPARATOR . 'wallet_error.log', $linha . PHP_EOL, FILE_APPEND);
+        }
+    }
+
     $msg = 'Falha ao sincronizar usuario da carteira.';
     if ($e instanceof PDOException) {
         $sqlState = (string)($e->getCode() ?? '');
@@ -108,5 +131,7 @@ try {
     walletResponder(500, [
         'ok' => false,
         'error' => $msg,
+        'detail' => $e->getMessage(),
+        'code' => (string)$e->getCode(),
     ]);
 }

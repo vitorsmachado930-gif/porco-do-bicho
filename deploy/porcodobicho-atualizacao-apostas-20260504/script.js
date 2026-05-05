@@ -18,6 +18,8 @@
 
   const USUARIOS_KEY = "usuarios_aposta";
   const USUARIO_SESSAO_KEY = "usuario_sessao_id";
+  const CARTEIRA_USUARIO_UPSERT_API_URL = "api/carteira_usuario_upsert.php";
+  const CARTEIRA_SALDO_USUARIO_API_URL = "api/carteira_saldo_usuario.php";
   let sessaoAtual = "";
 
   function el(id) {
@@ -51,6 +53,91 @@
     }
   }
 
+  function normalizarLogin(login) {
+    return String(login || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "");
+  }
+
+  async function requisicaoCarteiraJSON(url, opcoes, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), Number(timeoutMs) > 0 ? Number(timeoutMs) : 12000);
+    try {
+      const resp = await fetch(url, {
+        ...(opcoes || {}),
+        headers: {
+          Accept: "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+          "X-App-Client": "porcodobicho-web",
+          ...((opcoes && opcoes.headers) || {})
+        },
+        cache: "no-store",
+        signal: controller.signal
+      });
+
+      let payload = null;
+      try {
+        payload = await resp.json();
+      } catch (_err) {
+        payload = null;
+      }
+
+      if (!resp.ok || !(payload && payload.ok)) {
+        const detalhe = payload && typeof payload.error === "string" ? payload.error : "";
+        const base = `Falha na carteira (${resp.status}).`;
+        throw new Error(detalhe ? `${base} ${detalhe}` : base);
+      }
+
+      return payload;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function buscarUsuarioIdCarteira(usuario) {
+    if (!usuario) throw new Error("Faça login para gerar o Pix.");
+    const login = normalizarLogin(usuario.login);
+    if (!login) throw new Error("Login inválido para sincronizar carteira.");
+
+    await requisicaoCarteiraJSON(
+      CARTEIRA_USUARIO_UPSERT_API_URL,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          login,
+          nome: String(usuario.nome || "Usuário"),
+          email: String(usuario.email || ""),
+          telefone: String(usuario.telefone || "")
+        })
+      },
+      12000
+    );
+
+    const saldoPayload = await requisicaoCarteiraJSON(
+      `${CARTEIRA_SALDO_USUARIO_API_URL}?login=${encodeURIComponent(login)}`,
+      {
+        method: "GET"
+      },
+      10000
+    );
+
+    const carteiraId = Number(
+      saldoPayload &&
+      saldoPayload.usuario &&
+      saldoPayload.usuario.id
+    );
+
+    if (!Number.isFinite(carteiraId) || carteiraId <= 0) {
+      throw new Error("Usuário não encontrado na carteira.");
+    }
+
+    return carteiraId;
+  }
+
   function preencherUsuarioAutomatico() {
     const inputId = el(IDS.usuarioId);
     const resumo = el(IDS.resumo);
@@ -66,7 +153,7 @@
 
     inputId.value = String(usuario.id || "");
     inputId.readOnly = true;
-    resumo.textContent = `Usuário logado: @${usuario.login || "--"} (ID: ${usuario.id || "--"})`;
+    resumo.textContent = `Usuário logado: @${usuario.login || "--"} (pronto para depósito Pix)`;
   }
 
   function limparResultadoPix() {
@@ -134,22 +221,37 @@
       return;
     }
 
-    const usuarioId = Number(usuarioLogado.id);
     const valor = normalizarValor(inputValor.value);
 
-    if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
-      setStatus("Informe um ID de usuário válido.", true);
-      return;
-    }
     if (valor <= 0) {
       setStatus("Informe um valor maior que zero.", true);
       return;
     }
 
     btn.disabled = true;
-    setStatus("Gerando Pix...", false);
+    setStatus("Sincronizando usuário da carteira...", false);
 
     try {
+      let usuarioId = 0;
+      try {
+        usuarioId = await buscarUsuarioIdCarteira(usuarioLogado);
+      } catch (_syncErr) {
+        // Fallback: segue com backend direto pelo login do usuário.
+        usuarioId = Number(usuarioLogado.id || 0);
+      }
+
+      inputId.value = String(usuarioId > 0 ? usuarioId : "");
+      const resumo = el(IDS.resumo);
+      if (resumo) {
+        if (usuarioId > 0) {
+          resumo.textContent = `Usuário logado: @${usuarioLogado.login || "--"} (ID carteira: ${usuarioId})`;
+        } else {
+          resumo.textContent = `Usuário logado: @${usuarioLogado.login || "--"} (fallback por login ativo)`;
+        }
+      }
+
+      setStatus("Gerando Pix...", false);
+
       const resp = await fetch("backend/criar_pix.php", {
         method: "POST",
         headers: {
@@ -158,6 +260,9 @@
         },
         body: JSON.stringify({
           usuario_id: usuarioId,
+          login: String(usuarioLogado.login || ""),
+          nome: String(usuarioLogado.nome || ""),
+          email: String(usuarioLogado.email || ""),
           valor
         })
       });

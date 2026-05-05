@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 
+// Fallback opcional: reaproveita constantes já configuradas no backend.
+// Isso evita erro 500 quando variáveis de ambiente do /api não foram definidas.
+$backendConfig = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'backend' . DIRECTORY_SEPARATOR . 'config.php';
+if (is_file($backendConfig)) {
+    require_once $backendConfig;
+}
+
 function walletEnv(string $key, ?string $default = null): ?string
 {
     $valor = getenv($key);
@@ -24,16 +31,26 @@ function walletConfig(): array
     $asaasBase = walletEnv('ASAAS_BASE_URL', 'https://api-sandbox.asaas.com/v3');
     $asaasBase = rtrim((string)$asaasBase, '/');
 
-    $cfg = [
-        'db_host' => walletEnv('DB_HOST', '127.0.0.1'),
-        'db_port' => (int)(walletEnv('DB_PORT', '3306') ?? '3306'),
-        'db_name' => walletEnv('DB_NAME', ''),
-        'db_user' => walletEnv('DB_USER', ''),
-        'db_pass' => walletEnv('DB_PASS', ''),
+    $defaultDbHost = defined('DB_HOST') ? (string)constant('DB_HOST') : '127.0.0.1';
+    $defaultDbPort = defined('DB_PORT') ? (string)constant('DB_PORT') : '3306';
+    $defaultDbName = defined('DB_NAME') ? (string)constant('DB_NAME') : '';
+    $defaultDbUser = defined('DB_USER') ? (string)constant('DB_USER') : '';
+    $defaultDbPass = defined('DB_PASS') ? (string)constant('DB_PASS') : '';
 
-        'asaas_base_url' => $asaasBase,
-        'asaas_api_key' => walletEnv('ASAAS_API_KEY', ''),
-        'asaas_webhook_token' => walletEnv('ASAAS_WEBHOOK_TOKEN', ''),
+    $defaultAsaasBase = defined('ASAAS_BASE_URL') ? (string)constant('ASAAS_BASE_URL') : 'https://api-sandbox.asaas.com/v3';
+    $defaultAsaasKey = defined('ASAAS_API_KEY') ? (string)constant('ASAAS_API_KEY') : '';
+    $defaultWebhookToken = defined('ASAAS_WEBHOOK_TOKEN') ? (string)constant('ASAAS_WEBHOOK_TOKEN') : '';
+
+    $cfg = [
+        'db_host' => walletEnv('DB_HOST', $defaultDbHost),
+        'db_port' => (int)(walletEnv('DB_PORT', $defaultDbPort) ?? $defaultDbPort),
+        'db_name' => walletEnv('DB_NAME', $defaultDbName),
+        'db_user' => walletEnv('DB_USER', $defaultDbUser),
+        'db_pass' => walletEnv('DB_PASS', $defaultDbPass),
+
+        'asaas_base_url' => walletEnv('ASAAS_BASE_URL', $defaultAsaasBase) ?: $asaasBase,
+        'asaas_api_key' => walletEnv('ASAAS_API_KEY', $defaultAsaasKey),
+        'asaas_webhook_token' => walletEnv('ASAAS_WEBHOOK_TOKEN', $defaultWebhookToken),
 
         // Quantos dias para vencimento da cobranca PIX
         'pix_due_days' => max(1, (int)(walletEnv('ASAAS_PIX_DUE_DAYS', '1') ?? '1')),

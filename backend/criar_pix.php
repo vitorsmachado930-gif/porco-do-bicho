@@ -25,11 +25,9 @@ try {
     // Também aceita application/x-www-form-urlencoded como fallback.
     $usuarioId = (int)($body['usuario_id'] ?? $_POST['usuario_id'] ?? 0);
     $valor = parseMoney($body['valor'] ?? $_POST['valor'] ?? 0);
-
-    // Valida usuário.
-    if ($usuarioId <= 0) {
-        jsonResponse(422, ['ok' => false, 'error' => 'usuario_id inválido.']);
-    }
+    $login = trim((string)($body['login'] ?? $_POST['login'] ?? ''));
+    $nome = trim((string)($body['nome'] ?? $_POST['nome'] ?? ''));
+    $email = trim((string)($body['email'] ?? $_POST['email'] ?? ''));
 
     // Valida valor > 0.
     if ($valor <= 0) {
@@ -40,10 +38,21 @@ try {
     $pdo = db();
     ensureWalletSchema($pdo);
 
-    // Busca usuário.
-    $usuario = findUserById($pdo, $usuarioId);
+    // Busca usuário por ID, com fallback por login para não depender da carteira /api.
+    $usuario = null;
+    if ($usuarioId > 0) {
+        $usuario = findUserById($pdo, $usuarioId);
+    }
+    if (!$usuario && $login !== '') {
+        $usuario = upsertUserByLogin($pdo, $login, $nome, $email);
+        $usuarioId = (int)($usuario['id'] ?? 0);
+    }
     if (!$usuario) {
-        jsonResponse(404, ['ok' => false, 'error' => 'Usuário não encontrado.']);
+        jsonResponse(404, [
+            'ok' => false,
+            'error' => 'Usuário não encontrado para depósito.',
+            'detail' => 'Informe usuario_id válido ou login do usuário logado.',
+        ]);
     }
 
     // Cria ou localiza customer no Asaas.

@@ -75,10 +75,12 @@ SQL;
 
     // Compatibilidade com bases antigas: adiciona colunas que podem estar ausentes.
     $colunas = [
+        'login' => "ALTER TABLE usuarios ADD COLUMN login VARCHAR(80) NOT NULL DEFAULT '' FIRST",
+        'nome' => "ALTER TABLE usuarios ADD COLUMN nome VARCHAR(120) NOT NULL DEFAULT 'Usuário' AFTER login",
         'email' => "ALTER TABLE usuarios ADD COLUMN email VARCHAR(120) NULL AFTER nome",
         'telefone' => "ALTER TABLE usuarios ADD COLUMN telefone VARCHAR(20) NULL AFTER email",
         'cpf_cnpj' => "ALTER TABLE usuarios ADD COLUMN cpf_cnpj VARCHAR(18) NULL AFTER telefone",
-        'asaas_customer_id' => "ALTER TABLE usuarios ADD COLUMN asaas_customer_id VARCHAR(32) NULL AFTER cpf_cnpj",
+        'asaas_customer_id' => "ALTER TABLE usuarios ADD COLUMN asaas_customer_id VARCHAR(64) NULL AFTER cpf_cnpj",
         'saldo' => "ALTER TABLE usuarios ADD COLUMN saldo DECIMAL(14,2) NOT NULL DEFAULT 0.00 AFTER asaas_customer_id",
         'status' => "ALTER TABLE usuarios ADD COLUMN status ENUM('ATIVO','BLOQUEADO') NOT NULL DEFAULT 'ATIVO' AFTER saldo",
         'created_at' => "ALTER TABLE usuarios ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
@@ -88,5 +90,12 @@ SQL;
         if (!walletTabelaTemColuna($pdo, 'usuarios', $nomeColuna)) {
             $pdo->exec($sqlAlter);
         }
+    }
+
+    // Garante índice único de login quando ainda não existir.
+    $idxStmt = $pdo->query("SHOW INDEX FROM usuarios WHERE Key_name = 'uq_usuarios_login'");
+    $idxExiste = $idxStmt && $idxStmt->fetch();
+    if (!$idxExiste) {
+        $pdo->exec("ALTER TABLE usuarios ADD UNIQUE KEY uq_usuarios_login (login)");
     }
 }
