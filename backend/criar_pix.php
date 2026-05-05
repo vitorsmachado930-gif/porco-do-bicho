@@ -26,9 +26,6 @@ try {
     $usuarioId = (int)($body['usuario_id'] ?? $_POST['usuario_id'] ?? 0);
     $valor = parseMoney($body['valor'] ?? $_POST['valor'] ?? 0);
     $login = trim((string)($body['login'] ?? $_POST['login'] ?? ''));
-    $nome = trim((string)($body['nome'] ?? $_POST['nome'] ?? ''));
-    $email = trim((string)($body['email'] ?? $_POST['email'] ?? ''));
-    $cpfCnpj = normalizeCpf11((string)($body['cpf_cnpj'] ?? $body['cpfCnpj'] ?? $_POST['cpf_cnpj'] ?? $_POST['cpfCnpj'] ?? ''));
 
     // Valida valor > 0.
     if ($valor <= 0) {
@@ -39,41 +36,29 @@ try {
     $pdo = db();
     ensureWalletSchema($pdo);
 
-    // Busca usuário por ID, com fallback por login para não depender da carteira /api.
+    // Busca usuário por ID, com fallback por login.
     $usuario = null;
     if ($usuarioId > 0) {
         $usuario = findUserById($pdo, $usuarioId);
-        if ($usuario && $cpfCnpj !== '') {
-            $upCpf = $pdo->prepare(
-                'UPDATE usuarios
-                 SET cpf_cnpj = :cpf
-                 WHERE id = :id
-                 LIMIT 1'
-            );
-            $upCpf->execute([
-                ':cpf' => $cpfCnpj,
-                ':id' => $usuarioId,
-            ]);
-            $usuario = findUserById($pdo, $usuarioId);
-        }
     }
     if (!$usuario && $login !== '') {
-        $usuario = upsertUserByLogin($pdo, $login, $nome, $email, $cpfCnpj);
-        $usuarioId = (int)($usuario['id'] ?? 0);
+        $usuario = findUserByLogin($pdo, $login);
     }
     if (!$usuario) {
         jsonResponse(404, [
             'ok' => false,
             'error' => 'Usuário não encontrado para depósito.',
-            'detail' => 'Informe usuario_id válido ou login do usuário logado.',
         ]);
     }
-    if (normalizeCpf11((string)($usuario['cpf_cnpj'] ?? '')) === '') {
+
+    if (!userReadyForPix($usuario)) {
         jsonResponse(422, [
             'ok' => false,
-            'error' => 'CPF obrigatório para depósito Pix. Cadastre um CPF com 11 dígitos.',
+            'error' => 'Complete seu cadastro para gerar PIX',
         ]);
     }
+
+    $usuarioId = (int)($usuario['id'] ?? 0);
 
     // Cria ou localiza customer no Asaas.
     $customerId = getOrCreateAsaasCustomer($pdo, $usuario);
@@ -230,6 +215,5 @@ try {
     jsonResponse(500, [
         'ok' => false,
         'error' => 'Erro interno ao criar Pix.',
-        'detail' => $e->getMessage(),
     ]);
 }

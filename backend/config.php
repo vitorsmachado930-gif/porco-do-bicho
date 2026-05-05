@@ -171,6 +171,14 @@ function onlyDigits(string $value): string
 }
 
 /**
+ * Normaliza login para minúsculo e sem espaços.
+ */
+function normalizeLogin(string $value): string
+{
+    return strtolower(preg_replace('/\s+/', '', trim($value)) ?? '');
+}
+
+/**
  * Normaliza CPF para 11 dígitos.
  */
 function normalizeCpf11(string $value): string
@@ -183,6 +191,14 @@ function normalizeCpf11(string $value): string
         return '';
     }
     return $cpf;
+}
+
+/**
+ * Normaliza WhatsApp para apenas dígitos.
+ */
+function normalizeWhatsapp(string $value): string
+{
+    return onlyDigits($value);
 }
 
 /**
@@ -320,6 +336,27 @@ function hasColumn(PDO $pdo, string $table, string $column): bool
 }
 
 /**
+ * Verifica se índice já existe.
+ */
+function hasIndex(PDO $pdo, string $table, string $indexName): bool
+{
+    $sql = 'SELECT COUNT(*) AS total
+            FROM information_schema.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = :table
+              AND INDEX_NAME = :index_name';
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        ':table' => $table,
+        ':index_name' => $indexName,
+    ]);
+
+    $row = $stmt->fetch();
+    return (int)($row['total'] ?? 0) > 0;
+}
+
+/**
  * Garante estrutura mínima no banco sem apagar nada existente.
  */
 function ensureWalletSchema(PDO $pdo): void
@@ -328,15 +365,18 @@ function ensureWalletSchema(PDO $pdo): void
     $pdo->exec(
         "CREATE TABLE IF NOT EXISTS usuarios (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            login VARCHAR(80) NULL,
+            login VARCHAR(80) NOT NULL,
             nome VARCHAR(120) NOT NULL,
+            senha VARCHAR(255) NOT NULL,
+            cpf_cnpj VARCHAR(18) NOT NULL,
+            whatsapp VARCHAR(20) NOT NULL,
             email VARCHAR(150) NULL,
             saldo DECIMAL(14,2) NOT NULL DEFAULT 0.00,
             asaas_customer_id VARCHAR(64) NULL,
-            cpf_cnpj VARCHAR(18) NULL,
             criado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             atualizado_em DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
+            UNIQUE KEY uq_usuarios_login (login),
             KEY idx_usuarios_email (email),
             UNIQUE KEY uq_usuarios_asaas_customer (asaas_customer_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
@@ -374,7 +414,16 @@ function ensureWalletSchema(PDO $pdo): void
         $pdo->exec("ALTER TABLE usuarios ADD COLUMN nome VARCHAR(120) NOT NULL DEFAULT 'Usuário'");
     }
     if (!hasColumn($pdo, 'usuarios', 'login')) {
-        $pdo->exec("ALTER TABLE usuarios ADD COLUMN login VARCHAR(80) NULL");
+        $pdo->exec("ALTER TABLE usuarios ADD COLUMN login VARCHAR(80) NOT NULL DEFAULT ''");
+    }
+    if (!hasColumn($pdo, 'usuarios', 'senha')) {
+        $pdo->exec("ALTER TABLE usuarios ADD COLUMN senha VARCHAR(255) NOT NULL DEFAULT '' AFTER login");
+    }
+    if (!hasColumn($pdo, 'usuarios', 'cpf_cnpj')) {
+        $pdo->exec("ALTER TABLE usuarios ADD COLUMN cpf_cnpj VARCHAR(18) NOT NULL DEFAULT ''");
+    }
+    if (!hasColumn($pdo, 'usuarios', 'whatsapp')) {
+        $pdo->exec("ALTER TABLE usuarios ADD COLUMN whatsapp VARCHAR(20) NOT NULL DEFAULT '' AFTER cpf_cnpj");
     }
     if (!hasColumn($pdo, 'usuarios', 'email')) {
         $pdo->exec("ALTER TABLE usuarios ADD COLUMN email VARCHAR(150) NULL");
@@ -385,8 +434,25 @@ function ensureWalletSchema(PDO $pdo): void
     if (!hasColumn($pdo, 'usuarios', 'asaas_customer_id')) {
         $pdo->exec("ALTER TABLE usuarios ADD COLUMN asaas_customer_id VARCHAR(64) NULL");
     }
-    if (!hasColumn($pdo, 'usuarios', 'cpf_cnpj')) {
-        $pdo->exec("ALTER TABLE usuarios ADD COLUMN cpf_cnpj VARCHAR(18) NULL");
+
+    // Tenta garantir login único sem quebrar base com duplicados legados.
+    if (!hasIndex($pdo, 'usuarios', 'uq_usuarios_login')) {
+        $dupStmt = $pdo->query(
+            "SELECT login
+             FROM usuarios
+             GROUP BY login
+             HAVING COUNT(*) > 1
+             LIMIT 1"
+        );
+        $temDuplicado = (bool)$dupStmt->fetch();
+        if (!$temDuplicado) {
+            $pdo->exec("ALTER TABLE usuarios ADD UNIQUE KEY uq_usuarios_login (login)");
+        } else {
+            appendAsaasLog('schema_warning_login_duplicado', [
+                'tabela' => 'usuarios',
+                'indice' => 'uq_usuarios_login',
+            ]);
+        }
     }
 
     // Adaptação para bancos antigos na tabela de depositos.
@@ -423,7 +489,7 @@ function findUserById(PDO $pdo, int $usuarioId): ?array
  */
 function findUserByLogin(PDO $pdo, string $login): ?array
 {
-    $loginNormalizado = strtolower(preg_replace('/\s+/', '', trim($login)) ?? '');
+    $loginNormalizado = normalizeLogin($login);
     if ($loginNormalizado === '') {
         return null;
     }
@@ -439,7 +505,7 @@ function findUserByLogin(PDO $pdo, string $login): ?array
  */
 function upsertUserByLogin(PDO $pdo, string $login, string $nome, string $email = '', string $cpfCnpj = ''): array
 {
-    $loginNormalizado = strtolower(preg_replace('/\s+/', '', trim($login)) ?? '');
+    $loginNormalizado = normalizeLogin($login);
     if ($loginNormalizado === '') {
         throw new RuntimeException('Login inválido para sincronizar usuário do depósito.');
     }
@@ -488,6 +554,16 @@ function upsertUserByLogin(PDO $pdo, string $login, string $nome, string $email 
         throw new RuntimeException('Falha ao criar usuário do depósito.');
     }
     return $novo;
+}
+
+/**
+ * Verifica se cadastro mínimo para Pix está completo.
+ */
+function userReadyForPix(array $usuario): bool
+{
+    $nome = trim((string)($usuario['nome'] ?? ''));
+    $cpf = normalizeCpf11((string)($usuario['cpf_cnpj'] ?? ''));
+    return $nome !== '' && $cpf !== '';
 }
 
 /**
