@@ -524,6 +524,26 @@ function normalizarTelefoneUsuario(valor) {
   return telefone.slice(0, 24);
 }
 
+function normalizarCpfCnpjUsuario(valor) {
+  const digitos = extrairDigitos(valor);
+  if (!digitos) return "";
+  return digitos.slice(0, 14);
+}
+
+function validarCpfCadastroUsuario(valor) {
+  const cpf = normalizarCpfCnpjUsuario(valor);
+  if (cpf.length !== 11) {
+    return {
+      ok: false,
+      mensagem: "Informe um CPF com 11 dígitos (somente números)."
+    };
+  }
+  return {
+    ok: true,
+    valor: cpf
+  };
+}
+
 function normalizarChavePixUsuario(valor) {
   const chavePix = String(valor || "").trim();
   if (!chavePix) return "";
@@ -554,6 +574,7 @@ function criarUsuarioTesteFixo(rawExistente) {
     bonusIndicacaoConvertidoHoje: 0,
     bonusIndicacaoConvertidoHojeData: bonusConvertidoHojeData || "",
     indicadosTotal: 0,
+    cpfCnpj: normalizarCpfCnpjUsuario(raw.cpfCnpj || raw.cpf_cnpj),
     telefone: normalizarTelefoneUsuario(raw.telefone),
     chavePix: normalizarChavePixUsuario(raw.chavePix),
     bloqueado: false
@@ -585,6 +606,7 @@ function normalizarUsuarioItem(raw, index) {
   const bonusIndicacaoConvertidoHoje = normalizarValorNaoNegativo(raw.bonusIndicacaoConvertidoHoje);
   const bonusIndicacaoConvertidoHojeData = normalizarDataBonusIndicacao(raw.bonusIndicacaoConvertidoHojeData);
   const indicadosTotal = normalizarContadorNaoNegativo(raw.indicadosTotal);
+  const cpfCnpj = normalizarCpfCnpjUsuario(raw.cpfCnpj || raw.cpf_cnpj);
   const telefone = normalizarTelefoneUsuario(raw.telefone);
   const chavePix = normalizarChavePixUsuario(raw.chavePix);
   const bloqueado = Boolean(raw.bloqueado || raw.blocked || raw.suspenso);
@@ -618,6 +640,7 @@ function normalizarUsuarioItem(raw, index) {
     bonusIndicacaoConvertidoHoje: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoConvertidoHoje,
     bonusIndicacaoConvertidoHojeData: role === PAPEL_USUARIO_PROMOTOR ? "" : bonusIndicacaoConvertidoHojeData,
     indicadosTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : indicadosTotal,
+    cpfCnpj,
     telefone,
     chavePix,
     bloqueado
@@ -2196,6 +2219,7 @@ function serializarPainelParaHash(listaUsuarios, listaApostas) {
     bonusIndicacaoConvertidoHoje: normalizarValorNaoNegativo(item.bonusIndicacaoConvertidoHoje),
     bonusIndicacaoConvertidoHojeData: normalizarDataBonusIndicacao(item.bonusIndicacaoConvertidoHojeData),
     indicadosTotal: normalizarContadorNaoNegativo(item.indicadosTotal),
+    cpfCnpj: normalizarCpfCnpjUsuario(item.cpfCnpj || item.cpf_cnpj),
     telefone: normalizarTelefoneUsuario(item.telefone),
     chavePix: normalizarChavePixUsuario(item.chavePix),
     bloqueado: Boolean(item.bloqueado)
@@ -2376,7 +2400,8 @@ async function sincronizarUsuarioCarteiraServidor(usuario) {
         login,
         nome: String(usuario.nome || "Usuário"),
         email: String(usuario.email || ""),
-        telefone: String(usuario.telefone || "")
+        telefone: String(usuario.telefone || ""),
+        cpfCnpj: normalizarCpfCnpjUsuario(usuario.cpfCnpj || usuario.cpf_cnpj || "")
       })
     },
     12000
@@ -5067,6 +5092,7 @@ function limparCamposUsuario() {
   const cadastroNome = document.getElementById("cadastroNome");
   const cadastroLogin = document.getElementById("cadastroLogin");
   const cadastroSenha = document.getElementById("cadastroSenha");
+  const cadastroCpf = document.getElementById("cadastroCpf");
   const cadastroIndicador = document.getElementById("cadastroIndicador");
   const loginUsuario = document.getElementById("loginUsuario");
   const senhaUsuario = document.getElementById("senhaUsuario");
@@ -5076,6 +5102,7 @@ function limparCamposUsuario() {
   if (cadastroNome) cadastroNome.value = "";
   if (cadastroLogin) cadastroLogin.value = "";
   if (cadastroSenha) cadastroSenha.value = "";
+  if (cadastroCpf) cadastroCpf.value = "";
   if (cadastroIndicador) cadastroIndicador.value = "";
   const usuarioTeste = usuarios.find((item) => Number(item.id) === Number(USUARIO_TESTE_FIXO.id)) || null;
   if (loginUsuario) {
@@ -5092,6 +5119,9 @@ function cadastrarUsuario() {
   const nome = String(document.getElementById("cadastroNome").value || "").trim();
   const login = normalizarLoginUsuario(document.getElementById("cadastroLogin").value);
   const senha = String(document.getElementById("cadastroSenha").value || "");
+  const validacaoCpf = validarCpfCadastroUsuario(
+    (document.getElementById("cadastroCpf") && document.getElementById("cadastroCpf").value) || ""
+  );
   const indicadorLogin = normalizarLoginUsuario(
     (document.getElementById("cadastroIndicador") &&
       document.getElementById("cadastroIndicador").value) ||
@@ -5122,6 +5152,11 @@ function cadastrarUsuario() {
   if (senha.length < 4) {
     atualizarStatusUsuario("A senha deve ter pelo menos 4 caracteres.", true);
     mostrarConfirmacaoApostaRapida("A senha deve ter pelo menos 4 caracteres.", "erro");
+    return;
+  }
+  if (!validacaoCpf.ok) {
+    atualizarStatusUsuario(validacaoCpf.mensagem, true);
+    mostrarConfirmacaoApostaRapida(validacaoCpf.mensagem, "erro");
     return;
   }
 
@@ -5180,6 +5215,7 @@ function cadastrarUsuario() {
     bonusIndicacaoConvertidoHoje: 0,
     bonusIndicacaoConvertidoHojeData: "",
     indicadosTotal: 0,
+    cpfCnpj: validacaoCpf.valor,
     telefone: "",
     chavePix: "",
     bloqueado: false
@@ -6505,6 +6541,7 @@ function criarUsuarioAdmin() {
     bonusIndicacaoConvertidoHoje: 0,
     bonusIndicacaoConvertidoHojeData: "",
     indicadosTotal: 0,
+    cpfCnpj: "",
     telefone: "",
     chavePix: "",
     bloqueado: false
@@ -6584,6 +6621,7 @@ function criarPromotorAdmin() {
     bonusIndicacaoConvertidoHoje: 0,
     bonusIndicacaoConvertidoHojeData: "",
     indicadosTotal: 0,
+    cpfCnpj: "",
     telefone: "",
     chavePix: "",
     bloqueado: false

@@ -74,6 +74,12 @@ function extrairDigitos(valor) {
   return String(valor || "").replace(/\D/g, "");
 }
 
+function normalizarCpfCnpjUsuario(valor) {
+  const digitos = extrairDigitos(valor);
+  if (!digitos) return "";
+  return digitos.slice(0, 14);
+}
+
 function sanitizarUsuarios(arr) {
   const base = Array.isArray(arr) ? arr : [];
   const sane = base
@@ -100,6 +106,7 @@ function sanitizarUsuarios(arr) {
         role,
         email: String(raw.email || "").trim(),
         telefone: String(raw.telefone || "").trim(),
+        cpfCnpj: normalizarCpfCnpjUsuario(raw.cpfCnpj || raw.cpf_cnpj),
       };
     })
     .filter(Boolean);
@@ -234,7 +241,8 @@ async function sincronizarUsuarioCarteira() {
       login: usuarioAtual.login,
       nome: usuarioAtual.nome,
       email: usuarioAtual.email || "",
-      telefone: usuarioAtual.telefone || ""
+      telefone: usuarioAtual.telefone || "",
+      cpfCnpj: normalizarCpfCnpjUsuario(usuarioAtual.cpfCnpj || usuarioAtual.cpf_cnpj || "")
     })
   });
 }

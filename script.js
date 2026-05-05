@@ -60,6 +60,10 @@
       .replace(/\s+/g, "");
   }
 
+  function apenasDigitos(valor) {
+    return String(valor || "").replace(/\D/g, "");
+  }
+
   async function requisicaoCarteiraJSON(url, opcoes, timeoutMs) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), Number(timeoutMs) > 0 ? Number(timeoutMs) : 12000);
@@ -111,7 +115,8 @@
           login,
           nome: String(usuario.nome || "Usuário"),
           email: String(usuario.email || ""),
-          telefone: String(usuario.telefone || "")
+          telefone: String(usuario.telefone || ""),
+          cpfCnpj: apenasDigitos(usuario.cpfCnpj || usuario.cpf_cnpj || "")
         })
       },
       12000
@@ -220,6 +225,11 @@
       setStatus("Faça login para gerar o Pix.", true);
       return;
     }
+    const cpfUsuario = apenasDigitos(usuarioLogado.cpfCnpj || usuarioLogado.cpf_cnpj || "");
+    if (cpfUsuario.length !== 11) {
+      setStatus("CPF obrigatório para depósito Pix. Atualize seu cadastro com 11 dígitos.", true);
+      return;
+    }
 
     const valor = normalizarValor(inputValor.value);
 
@@ -263,6 +273,7 @@
           login: String(usuarioLogado.login || ""),
           nome: String(usuarioLogado.nome || ""),
           email: String(usuarioLogado.email || ""),
+          cpf_cnpj: cpfUsuario,
           valor
         })
       });

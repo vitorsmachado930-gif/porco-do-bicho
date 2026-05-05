@@ -28,6 +28,7 @@ try {
     $login = trim((string)($body['login'] ?? $_POST['login'] ?? ''));
     $nome = trim((string)($body['nome'] ?? $_POST['nome'] ?? ''));
     $email = trim((string)($body['email'] ?? $_POST['email'] ?? ''));
+    $cpfCnpj = normalizeCpf11((string)($body['cpf_cnpj'] ?? $body['cpfCnpj'] ?? $_POST['cpf_cnpj'] ?? $_POST['cpfCnpj'] ?? ''));
 
     // Valida valor > 0.
     if ($valor <= 0) {
@@ -42,9 +43,22 @@ try {
     $usuario = null;
     if ($usuarioId > 0) {
         $usuario = findUserById($pdo, $usuarioId);
+        if ($usuario && $cpfCnpj !== '') {
+            $upCpf = $pdo->prepare(
+                'UPDATE usuarios
+                 SET cpf_cnpj = :cpf
+                 WHERE id = :id
+                 LIMIT 1'
+            );
+            $upCpf->execute([
+                ':cpf' => $cpfCnpj,
+                ':id' => $usuarioId,
+            ]);
+            $usuario = findUserById($pdo, $usuarioId);
+        }
     }
     if (!$usuario && $login !== '') {
-        $usuario = upsertUserByLogin($pdo, $login, $nome, $email);
+        $usuario = upsertUserByLogin($pdo, $login, $nome, $email, $cpfCnpj);
         $usuarioId = (int)($usuario['id'] ?? 0);
     }
     if (!$usuario) {
@@ -52,6 +66,12 @@ try {
             'ok' => false,
             'error' => 'Usuário não encontrado para depósito.',
             'detail' => 'Informe usuario_id válido ou login do usuário logado.',
+        ]);
+    }
+    if (normalizeCpf11((string)($usuario['cpf_cnpj'] ?? '')) === '') {
+        jsonResponse(422, [
+            'ok' => false,
+            'error' => 'CPF obrigatório para depósito Pix. Cadastre um CPF com 11 dígitos.',
         ]);
     }
 
@@ -193,6 +213,7 @@ try {
     // 5) Retorna para frontend.
     jsonResponse(201, [
         'ok' => true,
+        'payment_id' => $paymentId,
         'asaas_payment_id' => $paymentId,
         'valor' => $valor,
         'payload_pix' => $payloadPix,

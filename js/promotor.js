@@ -77,6 +77,12 @@ function extrairDigitos(valor) {
   return String(valor || "").replace(/\D/g, "");
 }
 
+function normalizarCpfCnpjUsuario(valor) {
+  const digitos = extrairDigitos(valor);
+  if (!digitos) return "";
+  return digitos.slice(0, 14);
+}
+
 function normalizarTelefoneBrasil(valor) {
   let digitos = extrairDigitos(valor);
   if (digitos.startsWith("55") && digitos.length > 11) {
@@ -263,6 +269,7 @@ function sanitizarUsuarios(arr) {
       const bonusIndicacaoConvertidoHoje = normalizarValorNaoNegativo(raw.bonusIndicacaoConvertidoHoje);
       const bonusIndicacaoConvertidoHojeData = normalizarDataISO(raw.bonusIndicacaoConvertidoHojeData);
       const indicadosTotal = normalizarContadorNaoNegativo(raw.indicadosTotal);
+      const cpfCnpj = normalizarCpfCnpjUsuario(raw.cpfCnpj || raw.cpf_cnpj);
       const telefone = String(raw.telefone || "").trim();
       const chavePix = String(raw.chavePix || "").trim().slice(0, 120);
       const bloqueado = Boolean(raw.bloqueado || raw.blocked || raw.suspenso);
@@ -304,6 +311,7 @@ function sanitizarUsuarios(arr) {
         bonusIndicacaoConvertidoHoje: role === PAPEL_USUARIO_PROMOTOR ? 0 : bonusIndicacaoConvertidoHoje,
         bonusIndicacaoConvertidoHojeData: role === PAPEL_USUARIO_PROMOTOR ? "" : (bonusIndicacaoConvertidoHojeData || ""),
         indicadosTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : indicadosTotal,
+        cpfCnpj,
         telefone,
         chavePix,
         bloqueado

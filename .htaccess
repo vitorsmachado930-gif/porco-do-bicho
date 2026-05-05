@@ -32,3 +32,8 @@ ServerSignature Off
 <Files "deploy-check.txt">
   Require all denied
 </Files>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^backend/(config\.php|\.secrets\.php|asaas_log\.txt)$ - [F,L,NC]
+</IfModule>

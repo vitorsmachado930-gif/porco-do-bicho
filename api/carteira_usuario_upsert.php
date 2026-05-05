@@ -54,10 +54,7 @@ try {
              SET nome = :nome,
                  email = CASE WHEN :email <> \'\' THEN :email ELSE email END,
                  telefone = CASE WHEN :telefone <> \'\' THEN :telefone ELSE telefone END,
-                 cpf_cnpj = CASE
-                   WHEN (cpf_cnpj IS NULL OR cpf_cnpj = \'\') AND :cpf <> \'\' THEN :cpf
-                   ELSE cpf_cnpj
-                 END
+                 cpf_cnpj = CASE WHEN :cpf <> \'\' THEN :cpf ELSE cpf_cnpj END
              WHERE id = :id
              LIMIT 1'
         );

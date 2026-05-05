@@ -14,7 +14,11 @@ if ($method === 'GET') {
 
 // Permite somente POST para eventos do Asaas.
 if ($method !== 'POST') {
-    textResponse(405, 'METHOD NOT ALLOWED');
+    appendAsaasLog('webhook_erro', [
+        'reason' => 'metodo_invalido',
+        'method' => $method,
+    ]);
+    textResponse(200, 'OK');
 }
 
 try {
@@ -39,7 +43,11 @@ try {
             appendAsaasLog('webhook_token_invalido', [
                 'recebido' => $receivedToken,
             ]);
-            textResponse(401, 'TOKEN INVALID');
+            appendAsaasLog('webhook_erro', [
+                'reason' => 'token_invalido',
+                'recebido' => $receivedToken,
+            ]);
+            textResponse(200, 'OK');
         }
     }
 
@@ -191,7 +199,7 @@ try {
         $pdo->rollBack();
     }
 
-    appendAsaasLog('webhook_erro_interno', [
+    appendAsaasLog('webhook_erro', [
         'message' => $e->getMessage(),
     ]);
 

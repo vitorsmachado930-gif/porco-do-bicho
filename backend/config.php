@@ -14,17 +14,16 @@ date_default_timezone_set('America/Sao_Paulo');
 */
 const DB_HOST = 'localhost';
 const DB_PORT = 3306;
-const DB_NAME = 'u952566011_porco_wallet';
-const DB_USER = 'u952566011_porco_user'; // (ou o usuário que aparece na Hostinger)
-const DB_PASS = '1965917Vi!';
+const DB_NAME = 'SEU_BANCO_MYSQL';
+const DB_USER = 'SEU_USUARIO_MYSQL';
+const DB_PASS = 'SUA_SENHA_MYSQL';
 
-// Sandbox: https://api-sandbox.asaas.com/v3
 // Produção: https://api.asaas.com/v3
-const ASAAS_BASE_URL = 'https://api-sandbox.asaas.com/v3';
-const ASAAS_API_KEY = '$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmM2MmI1NjljLTUxMTEtNDczMS1hNWI4LTU4ZjAwNWViNzdmYTo6JGFhY2hfMjRlNTEyOTQtMjc4Ny00MTg3LWEyYTktYTFmOWRkYWEyNDAz';
+const ASAAS_BASE_URL = 'https://api.asaas.com/v3';
+const ASAAS_API_KEY = 'SUA_CHAVE_API_PRODUCAO_ASAAS';
 
 // Token opcional de validação do webhook (header asaas-access-token).
-const ASAAS_WEBHOOK_TOKEN = 'whsec_r-WXEweg9cYycRuov_QMs83g5de_PuA-Q64-dkEGqJM';
+const ASAAS_WEBHOOK_TOKEN = 'SEU_TOKEN_WEBHOOK_ASAAS';
 
 // Caminho do arquivo de log do webhook.
 const ASAAS_LOG_FILE = __DIR__ . '/asaas_log.txt';
@@ -32,13 +31,46 @@ const ASAAS_LOG_FILE = __DIR__ . '/asaas_log.txt';
 /**
  * Lê variável de ambiente e usa fallback constante quando não existir.
  */
+function loadLocalSecrets(): array
+{
+    static $cache = null;
+    if (is_array($cache)) {
+        return $cache;
+    }
+
+    $cache = [];
+    $secretsFile = __DIR__ . DIRECTORY_SEPARATOR . '.secrets.php';
+    if (!is_file($secretsFile)) {
+        return $cache;
+    }
+
+    $data = require $secretsFile;
+    if (is_array($data)) {
+        foreach ($data as $k => $v) {
+            $key = trim((string)$k);
+            $val = trim((string)$v);
+            if ($key !== '' && $val !== '') {
+                $cache[$key] = $val;
+            }
+        }
+    }
+
+    return $cache;
+}
+
 function envOrDefault(string $envName, string $default): string
 {
     $value = getenv($envName);
-    if (!is_string($value) || trim($value) === '') {
-        return $default;
+    if (is_string($value) && trim($value) !== '') {
+        return trim($value);
     }
-    return trim($value);
+
+    $local = loadLocalSecrets();
+    if (isset($local[$envName]) && trim((string)$local[$envName]) !== '') {
+        return trim((string)$local[$envName]);
+    }
+
+    return $default;
 }
 
 /**
@@ -139,34 +171,18 @@ function onlyDigits(string $value): string
 }
 
 /**
- * Gera CPF válido determinístico a partir de uma semente numérica.
- * Útil para ambiente de teste quando usuário ainda não informou CPF.
+ * Normaliza CPF para 11 dígitos.
  */
-function generateValidCpfFromSeed(int $seed): string
+function normalizeCpf11(string $value): string
 {
-    $base = str_pad((string)($seed % 1000000000), 9, '0', STR_PAD_LEFT);
-    $digits = str_split($base);
-
-    $sum1 = 0;
-    for ($i = 0, $w = 10; $i < 9; $i++, $w--) {
-        $sum1 += ((int)$digits[$i]) * $w;
+    $cpf = onlyDigits($value);
+    if (strlen($cpf) !== 11) {
+        return '';
     }
-    $d1 = 11 - ($sum1 % 11);
-    if ($d1 >= 10) {
-        $d1 = 0;
+    if (preg_match('/^(\d)\1{10}$/', $cpf)) {
+        return '';
     }
-
-    $sum2 = 0;
-    for ($i = 0, $w = 11; $i < 9; $i++, $w--) {
-        $sum2 += ((int)$digits[$i]) * $w;
-    }
-    $sum2 += $d1 * 2;
-    $d2 = 11 - ($sum2 % 11);
-    if ($d2 >= 10) {
-        $d2 = 0;
-    }
-
-    return $base . (string)$d1 . (string)$d2;
+    return $cpf;
 }
 
 /**
@@ -196,7 +212,11 @@ function asaasRequest(string $method, string $path, ?array $body = null): array
     $base = envOrDefault('ASAAS_BASE_URL', ASAAS_BASE_URL);
     $apiKey = envOrDefault('ASAAS_API_KEY', ASAAS_API_KEY);
 
-    if ($apiKey === '' || str_starts_with($apiKey, 'SUA_API_KEY')) {
+    if (
+        $apiKey === '' ||
+        str_starts_with($apiKey, 'SUA_API_KEY') ||
+        str_starts_with($apiKey, 'SUA_CHAVE')
+    ) {
         throw new RuntimeException('API Key do Asaas não configurada no backend/config.php.');
     }
 
@@ -417,7 +437,7 @@ function findUserByLogin(PDO $pdo, string $login): ?array
 /**
  * Cria ou atualiza usuário por login para uso no fluxo de depósito Pix.
  */
-function upsertUserByLogin(PDO $pdo, string $login, string $nome, string $email = ''): array
+function upsertUserByLogin(PDO $pdo, string $login, string $nome, string $email = '', string $cpfCnpj = ''): array
 {
     $loginNormalizado = strtolower(preg_replace('/\s+/', '', trim($login)) ?? '');
     if ($loginNormalizado === '') {
@@ -426,19 +446,22 @@ function upsertUserByLogin(PDO $pdo, string $login, string $nome, string $email 
 
     $nomeFinal = trim($nome) !== '' ? trim($nome) : ('Usuário ' . $loginNormalizado);
     $emailFinal = trim($email);
+    $cpfFinal = normalizeCpf11($cpfCnpj);
 
     $existente = findUserByLogin($pdo, $loginNormalizado);
     if ($existente) {
         $stmt = $pdo->prepare(
             'UPDATE usuarios
              SET nome = :nome,
-                 email = CASE WHEN :email <> "" THEN :email ELSE email END
+                 email = CASE WHEN :email <> "" THEN :email ELSE email END,
+                 cpf_cnpj = CASE WHEN :cpf <> "" THEN :cpf ELSE cpf_cnpj END
              WHERE id = :id
              LIMIT 1'
         );
         $stmt->execute([
             ':nome' => $nomeFinal,
             ':email' => $emailFinal,
+            ':cpf' => $cpfFinal,
             ':id' => (int)$existente['id'],
         ]);
         $atualizado = findUserById($pdo, (int)$existente['id']);
@@ -449,13 +472,14 @@ function upsertUserByLogin(PDO $pdo, string $login, string $nome, string $email 
     }
 
     $stmt = $pdo->prepare(
-        'INSERT INTO usuarios (login, nome, email, saldo)
-         VALUES (:login, :nome, :email, 0.00)'
+        'INSERT INTO usuarios (login, nome, email, cpf_cnpj, saldo)
+         VALUES (:login, :nome, :email, :cpf, 0.00)'
     );
     $stmt->execute([
         ':login' => $loginNormalizado,
         ':nome' => $nomeFinal,
         ':email' => $emailFinal,
+        ':cpf' => $cpfFinal,
     ]);
 
     $novoId = (int)$pdo->lastInsertId();
@@ -477,13 +501,10 @@ function getOrCreateAsaasCustomer(PDO $pdo, array $usuario): string
         return $storedCustomer;
     }
 
-    // Asaas pede cpfCnpj no cadastro de cliente.
-    $cpf = onlyDigits((string)($usuario['cpf_cnpj'] ?? ''));
-
-    // Fallback de teste (sandbox) quando CPF ainda não existe no cadastro.
-    // Em produção, o ideal é salvar o CPF/CNPJ real do usuário.
+    // Asaas exige CPF/CNPJ válido no cadastro do customer.
+    $cpf = normalizeCpf11((string)($usuario['cpf_cnpj'] ?? ''));
     if ($cpf === '') {
-        $cpf = generateValidCpfFromSeed(max(1, $userId));
+        throw new RuntimeException('CPF obrigatório para criar cliente no Asaas (11 dígitos).');
     }
 
     $nome = trim((string)($usuario['nome'] ?? 'Usuário'));

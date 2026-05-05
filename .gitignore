@@ -1,3 +1,6 @@
 .DS_Store
 .vscode/
 api/wallet_secrets.php
+backend/.secrets.php
+backend/asaas_log.txt
+storage/*.log

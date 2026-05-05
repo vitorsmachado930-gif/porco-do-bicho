@@ -41,6 +41,19 @@ function walletConfig(): array
     $defaultAsaasKey = defined('ASAAS_API_KEY') ? (string)constant('ASAAS_API_KEY') : '';
     $defaultWebhookToken = defined('ASAAS_WEBHOOK_TOKEN') ? (string)constant('ASAAS_WEBHOOK_TOKEN') : '';
 
+    // Se backend/config.php estiver carregado, aproveita envOrDefault()
+    // para também ler backend/.secrets.php sem expor no Git.
+    if (function_exists('envOrDefault')) {
+        $defaultDbHost = envOrDefault('DB_HOST', $defaultDbHost);
+        $defaultDbPort = envOrDefault('DB_PORT', $defaultDbPort);
+        $defaultDbName = envOrDefault('DB_NAME', $defaultDbName);
+        $defaultDbUser = envOrDefault('DB_USER', $defaultDbUser);
+        $defaultDbPass = envOrDefault('DB_PASS', $defaultDbPass);
+        $defaultAsaasBase = envOrDefault('ASAAS_BASE_URL', $defaultAsaasBase);
+        $defaultAsaasKey = envOrDefault('ASAAS_API_KEY', $defaultAsaasKey);
+        $defaultWebhookToken = envOrDefault('ASAAS_WEBHOOK_TOKEN', $defaultWebhookToken);
+    }
+
     $cfg = [
         'db_host' => walletEnv('DB_HOST', $defaultDbHost),
         'db_port' => (int)(walletEnv('DB_PORT', $defaultDbPort) ?? $defaultDbPort),
