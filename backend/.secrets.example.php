@@ -13,4 +13,10 @@ return [
     'ASAAS_BASE_URL' => 'https://api.asaas.com/v3',
     'ASAAS_API_KEY' => 'SUA_CHAVE_API_PRODUCAO_ASAAS',
     'ASAAS_WEBHOOK_TOKEN' => 'SEU_TOKEN_WEBHOOK_ASAAS',
+
+    'WHATSAPP_PROVIDER' => 'meta',
+    // false = cadastro/liberação sem código; true = exige código WhatsApp
+    'WHATSAPP_VERIFICATION_ENABLED' => 'false',
+    'WHATSAPP_TOKEN' => 'SEU_TOKEN_META_CLOUD_API',
+    'WHATSAPP_PHONE_NUMBER_ID' => 'SEU_PHONE_NUMBER_ID_META',
 ];

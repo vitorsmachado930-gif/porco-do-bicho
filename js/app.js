@@ -7,6 +7,7 @@ const PENDENCIAS_DEBITO_CARTEIRA_KEY = "pendencias_debito_carteira";
 // Aviso: dados em localStorage podem ser alterados no navegador.
 // Em produção, validações e cotações devem ser garantidas no backend.
 const USUARIO_SESSAO_KEY = "usuario_sessao_id";
+const USUARIO_SESSAO_CPF_KEY = "usuario_sessao_cpf";
 const ADMIN_SESSAO_KEY = "admin_sessao_ativa";
 const LIMITES_APOSTA_KEY = "limites_aposta";
 const DADOS_UPDATED_AT_KEY = "dados_updated_at";
@@ -26,8 +27,14 @@ const PAINEL_SYNC_API_URL = `${API_ORIGIN_ATIVO}/api/painel.php`;
 const CARTEIRA_USUARIO_UPSERT_API_URL = `${API_ORIGIN_ATIVO}/api/carteira_usuario_upsert.php`;
 const CARTEIRA_SALDO_USUARIO_API_URL = `${API_ORIGIN_ATIVO}/api/carteira_saldo_usuario.php`;
 const CARTEIRA_APOSTAR_API_URL = `${API_ORIGIN_ATIVO}/api/carteira_apostar.php`;
+const BACKEND_CADASTRO_API_URL = `${API_ORIGIN_ATIVO}/backend/cadastro.php`;
+const BACKEND_LOGIN_API_URL = `${API_ORIGIN_ATIVO}/backend/login.php`;
+const BACKEND_WHATSAPP_ENVIAR_API_URL = `${API_ORIGIN_ATIVO}/backend/enviar_codigo_whatsapp.php`;
+const BACKEND_WHATSAPP_CONFIRMAR_API_URL = `${API_ORIGIN_ATIVO}/backend/confirmar_whatsapp.php`;
+const BACKEND_ADMIN_SAUDE_API_URL = `${API_ORIGIN_ATIVO}/backend/admin_saude.php`;
 const RESULTADOS_SYNC_INTERVALO_MS = 30000;
-const PAINEL_SYNC_INTERVALO_MS = 30000;
+const PAINEL_SYNC_INTERVALO_MS = 5000;
+const SALDO_SYNC_INTERVALO_MS = 5000;
 const MAX_DIAS_HISTORICO = 7;
 const MINUTOS_ANTES_RESULTADO_PARA_FECHAR_APOSTA = 1;
 const PRACA_FIXA = "Rio";
@@ -126,6 +133,9 @@ const USUARIO_TESTE_FIXO = Object.freeze({
   bonusIndicacaoConvertidoHojeData: "",
   indicadosTotal: 0,
   telefone: "",
+  whatsapp: "",
+  whatsappVerificado: false,
+  carteiraUsuarioId: null,
   chavePix: "",
   bloqueado: false
 });
@@ -200,12 +210,16 @@ let sincronizacaoPainelAtiva = false;
 let aplicandoPainelRemoto = false;
 let sincronizacaoPainelTimer = null;
 let pushPainelRemotoTimer = null;
+let sincronizacaoSaldoTimer = null;
+let atualizacaoSaudeAdminEmAndamento = false;
+let ultimaAtualizacaoSaudeAdminMs = 0;
 let apostasBilheteRascunho = [];
 let contextoBilheteRascunho = null;
 let loteriasApostaSelecionadas = [];
 let direcionarEtapaLoteria = false;
 let painelApostaExpandido = false;
 let salvandoApostaEmAndamento = false;
+let usuarioPendenteWhatsappId = null;
 
 function hojeISO() {
   return dataLocalParaISO(new Date());
@@ -316,6 +330,24 @@ function formatarHorarioBR(dataHora) {
     hour: "2-digit",
     minute: "2-digit"
   });
+}
+
+function configurarAutoFecharCalendarioData() {
+  const anexar = (input) => {
+    if (!input || input.dataset.calendarioAutoCloseBind === "1") return;
+    input.dataset.calendarioAutoCloseBind = "1";
+    input.addEventListener("change", () => {
+      window.setTimeout(() => {
+        try {
+          input.blur();
+        } catch (_err) {
+          // Ignora falhas de blur em navegadores específicos.
+        }
+      }, 0);
+    });
+  };
+
+  document.querySelectorAll('input[type="date"]').forEach(anexar);
 }
 
 function atualizarDataApostaVisivel(dataISO) {
@@ -524,6 +556,12 @@ function normalizarTelefoneUsuario(valor) {
   return telefone.slice(0, 24);
 }
 
+function normalizarWhatsappUsuario(valor) {
+  const digitos = extrairDigitos(valor);
+  if (!digitos) return "";
+  return digitos.slice(0, 13);
+}
+
 function normalizarCpfCnpjUsuario(valor) {
   const digitos = extrairDigitos(valor);
   if (!digitos) return "";
@@ -576,6 +614,18 @@ function criarUsuarioTesteFixo(rawExistente) {
     indicadosTotal: 0,
     cpfCnpj: normalizarCpfCnpjUsuario(raw.cpfCnpj || raw.cpf_cnpj),
     telefone: normalizarTelefoneUsuario(raw.telefone),
+    whatsapp: normalizarWhatsappUsuario(raw.whatsapp || raw.telefone),
+    whatsappVerificado: Boolean(raw.whatsappVerificado || raw.whatsapp_verificado),
+    whatsappVerificationRequired: Boolean(
+      raw.whatsappVerificationRequired ||
+      raw.whatsapp_verification_required ||
+      raw.requires_whatsapp_confirmation
+    ),
+    carteiraUsuarioId:
+      Number.isFinite(Number(raw.carteiraUsuarioId || raw.carteira_usuario_id)) &&
+      Number(raw.carteiraUsuarioId || raw.carteira_usuario_id) > 0
+        ? Math.floor(Number(raw.carteiraUsuarioId || raw.carteira_usuario_id))
+        : null,
     chavePix: normalizarChavePixUsuario(raw.chavePix),
     bloqueado: false
   };
@@ -608,6 +658,18 @@ function normalizarUsuarioItem(raw, index) {
   const indicadosTotal = normalizarContadorNaoNegativo(raw.indicadosTotal);
   const cpfCnpj = normalizarCpfCnpjUsuario(raw.cpfCnpj || raw.cpf_cnpj);
   const telefone = normalizarTelefoneUsuario(raw.telefone);
+  const whatsapp = normalizarWhatsappUsuario(raw.whatsapp || raw.telefone);
+  const whatsappVerificado = Boolean(raw.whatsappVerificado || raw.whatsapp_verificado);
+  const whatsappVerificationRequired = Boolean(
+    raw.whatsappVerificationRequired ||
+    raw.whatsapp_verification_required ||
+    raw.requires_whatsapp_confirmation
+  );
+  const carteiraUsuarioId =
+    Number.isFinite(Number(raw.carteiraUsuarioId || raw.carteira_usuario_id)) &&
+    Number(raw.carteiraUsuarioId || raw.carteira_usuario_id) > 0
+      ? Math.floor(Number(raw.carteiraUsuarioId || raw.carteira_usuario_id))
+      : null;
   const chavePix = normalizarChavePixUsuario(raw.chavePix);
   const bloqueado = Boolean(raw.bloqueado || raw.blocked || raw.suspenso);
 
@@ -642,6 +704,10 @@ function normalizarUsuarioItem(raw, index) {
     indicadosTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : indicadosTotal,
     cpfCnpj,
     telefone,
+    whatsapp,
+    whatsappVerificado,
+    whatsappVerificationRequired,
+    carteiraUsuarioId,
     chavePix,
     bloqueado
   };
@@ -661,9 +727,8 @@ function sanitizarUsuarios(arr) {
     sane.push(normalizado);
   });
 
-  if (sane.length === 0) {
-    sane.push(criarUsuarioTestePadrao());
-  }
+  // Não recria usuário de teste automaticamente.
+  // Mantém a lista vazia quando não houver cadastros.
 
   const idsPromotores = new Set(
     sane.filter((item) => item.role === PAPEL_USUARIO_PROMOTOR).map((item) => item.id)
@@ -697,6 +762,15 @@ function sanitizarUsuarios(arr) {
 
 function usuarioEhPromotor(usuario) {
   return Boolean(usuario && usuario.role === PAPEL_USUARIO_PROMOTOR);
+}
+
+function usuarioExigeConfirmacaoWhatsapp(usuario) {
+  return Boolean(
+    usuario &&
+      (usuario.whatsappVerificationRequired === true ||
+        Number(usuario.whatsappVerificationRequired) === 1 ||
+        Number(usuario.whatsapp_verification_required) === 1)
+  );
 }
 
 function usuarioEhApostador(usuario) {
@@ -2221,6 +2295,13 @@ function serializarPainelParaHash(listaUsuarios, listaApostas) {
     indicadosTotal: normalizarContadorNaoNegativo(item.indicadosTotal),
     cpfCnpj: normalizarCpfCnpjUsuario(item.cpfCnpj || item.cpf_cnpj),
     telefone: normalizarTelefoneUsuario(item.telefone),
+    whatsapp: normalizarWhatsappUsuario(item.whatsapp || item.telefone),
+    whatsappVerificado: Boolean(item.whatsappVerificado || item.whatsapp_verificado),
+    carteiraUsuarioId:
+      Number.isFinite(Number(item.carteiraUsuarioId || item.carteira_usuario_id)) &&
+      Number(item.carteiraUsuarioId || item.carteira_usuario_id) > 0
+        ? Math.floor(Number(item.carteiraUsuarioId || item.carteira_usuario_id))
+        : null,
     chavePix: normalizarChavePixUsuario(item.chavePix),
     bloqueado: Boolean(item.bloqueado)
   }));
@@ -2831,9 +2912,35 @@ async function enviarEstadoPainelRemoto(timestamp) {
   return ts;
 }
 
+function chaveUsuarioSincronizacao(usuario) {
+  if (!usuario || typeof usuario !== "object") return "";
+  const cpf = normalizarCpfCnpjUsuario(usuario.cpfCnpj || usuario.cpf_cnpj);
+  if (cpf.length === 11) return `cpf:${cpf}`;
+  const login = normalizarLoginUsuario(usuario.login);
+  if (login) return `login:${login}`;
+  const id = Number(usuario.id);
+  if (Number.isFinite(id) && id > 0) return `id:${Math.floor(id)}`;
+  return "";
+}
+
+function mesclarUsuariosRemotosComLocais(usuariosRemotos) {
+  const remotos = sanitizarUsuarios(usuariosRemotos);
+  const locais = sanitizarUsuarios(usuarios);
+  const chavesRemotas = new Set(remotos.map(chaveUsuarioSincronizacao).filter(Boolean));
+  const merged = remotos.slice();
+
+  locais.forEach((itemLocal) => {
+    const chave = chaveUsuarioSincronizacao(itemLocal);
+    if (!chave || chavesRemotas.has(chave)) return;
+    merged.push(itemLocal);
+  });
+
+  return sanitizarUsuarios(merged);
+}
+
 function aplicarEstadoPainelRemoto(estadoRemoto) {
   const remoto = estadoRemoto && typeof estadoRemoto === "object" ? estadoRemoto : {};
-  const usuariosRemotos = sanitizarUsuarios(remoto.usuarios);
+  const usuariosRemotos = mesclarUsuariosRemotosComLocais(remoto.usuarios);
   const apostasRemotas = sanitizarApostas(remoto.apostas);
   const updatedAtRemoto = Number(remoto.updatedAt);
   const updatedAtValido =
@@ -3132,33 +3239,53 @@ function salvarUsuarios(opcoes) {
 
 function carregarSessaoUsuario() {
   const salvo = localStorage.getItem(USUARIO_SESSAO_KEY);
-  if (!salvo) return null;
+  const cpfSalvo = normalizarCpfCnpjUsuario(localStorage.getItem(USUARIO_SESSAO_CPF_KEY) || "");
+  if (!salvo && !cpfSalvo) return null;
 
   const id = Number(salvo);
-  if (!Number.isFinite(id)) {
-    localStorage.removeItem(USUARIO_SESSAO_KEY);
-    return null;
+  const idValido = Number.isFinite(id);
+  let encontrado = idValido ? usuarios.find((u) => u.id === id) || null : null;
+
+  // Fallback por CPF: evita logout quando o ID local muda após sincronizações remotas.
+  if (!encontrado && cpfSalvo.length === 11) {
+    encontrado =
+      usuarios.find((u) => normalizarCpfCnpjUsuario(u.cpfCnpj || u.cpf_cnpj) === cpfSalvo) || null;
   }
 
-  const encontrado = usuarios.find((u) => u.id === id) || null;
   if (!encontrado) {
     localStorage.removeItem(USUARIO_SESSAO_KEY);
+    localStorage.removeItem(USUARIO_SESSAO_CPF_KEY);
     return null;
   }
   if (encontrado.bloqueado) {
     localStorage.removeItem(USUARIO_SESSAO_KEY);
+    localStorage.removeItem(USUARIO_SESSAO_CPF_KEY);
     return null;
   }
 
+  localStorage.setItem(USUARIO_SESSAO_KEY, String(encontrado.id));
+  const cpfAtual = normalizarCpfCnpjUsuario(encontrado.cpfCnpj || encontrado.cpf_cnpj);
+  if (cpfAtual.length === 11) {
+    localStorage.setItem(USUARIO_SESSAO_CPF_KEY, cpfAtual);
+  } else {
+    localStorage.removeItem(USUARIO_SESSAO_CPF_KEY);
+  }
   return encontrado;
 }
 
 function salvarSessaoUsuario() {
   if (!usuarioAtual) {
     localStorage.removeItem(USUARIO_SESSAO_KEY);
+    localStorage.removeItem(USUARIO_SESSAO_CPF_KEY);
     return;
   }
   localStorage.setItem(USUARIO_SESSAO_KEY, String(usuarioAtual.id));
+  const cpfAtual = normalizarCpfCnpjUsuario(usuarioAtual.cpfCnpj || usuarioAtual.cpf_cnpj);
+  if (cpfAtual.length === 11) {
+    localStorage.setItem(USUARIO_SESSAO_CPF_KEY, cpfAtual);
+  } else {
+    localStorage.removeItem(USUARIO_SESSAO_CPF_KEY);
+  }
 }
 
 function carregarSessaoAdmin() {
@@ -4788,7 +4915,15 @@ function mostrarConfirmacaoApostaRapida(texto, tipo) {
 
 function sincronizarUsuarioAtualComLista() {
   if (!usuarioAtual) return null;
-  const idx = usuarios.findIndex((item) => item.id === usuarioAtual.id);
+  let idx = usuarios.findIndex((item) => item.id === usuarioAtual.id);
+  if (idx === -1) {
+    const cpfAtual = normalizarCpfCnpjUsuario(usuarioAtual.cpfCnpj || usuarioAtual.cpf_cnpj);
+    if (cpfAtual.length === 11) {
+      idx = usuarios.findIndex(
+        (item) => normalizarCpfCnpjUsuario(item.cpfCnpj || item.cpf_cnpj) === cpfAtual
+      );
+    }
+  }
   if (idx === -1) {
     usuarioAtual = null;
     salvarSessaoUsuario();
@@ -4800,6 +4935,7 @@ function sincronizarUsuarioAtualComLista() {
     return null;
   }
   usuarioAtual = usuarios[idx];
+  salvarSessaoUsuario();
   return usuarioAtual;
 }
 
@@ -4960,7 +5096,8 @@ function abrirPainelLoginUsuario() {
 function atualizarVisibilidadeApostas() {
   const cardApostas = document.getElementById("cardApostas");
   const avisoApostasEncerradas = document.getElementById("avisoApostasEncerradas");
-  const logado = Boolean(usuarioAtual);
+  const usuarioSincronizado = sincronizarUsuarioAtualComLista();
+  const logado = Boolean(usuarioSincronizado);
 
   if (!logado) {
     painelApostaExpandido = false;
@@ -4982,16 +5119,21 @@ function atualizarVisibilidadeApostas() {
 }
 
 function definirModoUsuarioPublico(modo) {
-  const modoFinal = modo === "cadastro" || modo === "recuperar" ? modo : "login";
+  const modoFinal =
+    modo === "cadastro" || modo === "recuperar" || modo === "confirmar_whatsapp"
+      ? modo
+      : "login";
   modoUsuarioPublico = modoFinal;
 
   const blocoLogin = document.getElementById("usuarioModoLogin");
   const blocoCadastro = document.getElementById("usuarioModoCadastro");
   const blocoRecuperar = document.getElementById("usuarioModoRecuperar");
+  const blocoConfirmar = document.getElementById("usuarioModoConfirmarWhatsapp");
 
   if (blocoLogin) blocoLogin.style.display = modoFinal === "login" ? "block" : "none";
   if (blocoCadastro) blocoCadastro.style.display = modoFinal === "cadastro" ? "block" : "none";
   if (blocoRecuperar) blocoRecuperar.style.display = modoFinal === "recuperar" ? "block" : "none";
+  if (blocoConfirmar) blocoConfirmar.style.display = modoFinal === "confirmar_whatsapp" ? "block" : "none";
 }
 
 function abrirCadastroUsuario() {
@@ -5006,6 +5148,23 @@ function abrirRecuperacaoSenha() {
   atualizarStatusUsuario("", false);
   definirModoUsuarioPublico("recuperar");
   atualizarVisibilidadeUsuario();
+}
+
+function configurarEventosConfirmacaoWhatsapp() {
+  const btnEnviar = document.getElementById("btnEnviarCodigoWhatsapp");
+  const btnConfirmar = document.getElementById("btnConfirmarCodigoWhatsapp");
+  if (btnEnviar && !btnEnviar.dataset.listenerWhatsapp) {
+    btnEnviar.dataset.listenerWhatsapp = "1";
+    btnEnviar.addEventListener("click", () => {
+      enviarCodigoWhatsappConfirmacao();
+    });
+  }
+  if (btnConfirmar && !btnConfirmar.dataset.listenerWhatsapp) {
+    btnConfirmar.dataset.listenerWhatsapp = "1";
+    btnConfirmar.addEventListener("click", () => {
+      confirmarCodigoWhatsappConta();
+    });
+  }
 }
 
 function voltarLoginUsuario() {
@@ -5027,9 +5186,10 @@ function atualizarVisibilidadeUsuario() {
   const areaLogado = document.getElementById("usuarioAreaLogado");
   const btnSair = document.getElementById("btnSairUsuario");
   const status = document.getElementById("usuarioStatus");
+  const exibindoConfirmacaoWhatsapp = Boolean(usuarioAtual) && modoUsuarioPublico === "confirmar_whatsapp";
 
   if (cabecalhoUsuario) {
-    cabecalhoUsuario.style.display = usuarioAtual ? "flex" : "none";
+    cabecalhoUsuario.style.display = usuarioAtual && !exibindoConfirmacaoWhatsapp ? "flex" : "none";
   }
 
   if (cabecalhoUsuarioNome) {
@@ -5049,35 +5209,38 @@ function atualizarVisibilidadeUsuario() {
   }
 
   if (cardUsuario) {
-    cardUsuario.style.display = usuarioAtual ? "none" : "block";
+    cardUsuario.style.display = usuarioAtual && !exibindoConfirmacaoWhatsapp ? "none" : "block";
     cardUsuario.classList.toggle("compacto", Boolean(usuarioAtual));
   }
 
   if (blocoUsuarioTopo) {
-    blocoUsuarioTopo.style.display = usuarioAtual ? "none" : "block";
+    blocoUsuarioTopo.style.display = usuarioAtual && !exibindoConfirmacaoWhatsapp ? "none" : "block";
   }
 
   if (areaPublica) {
-    areaPublica.style.display = !usuarioAtual && painelUsuarioAberto ? "block" : "none";
-    if (!usuarioAtual) {
+    areaPublica.style.display =
+      (!usuarioAtual && painelUsuarioAberto) || exibindoConfirmacaoWhatsapp ? "block" : "none";
+    if (!usuarioAtual || exibindoConfirmacaoWhatsapp) {
       definirModoUsuarioPublico(modoUsuarioPublico);
     }
   }
 
   if (entradaInicial) {
-    entradaInicial.style.display = !usuarioAtual && !painelUsuarioAberto ? "block" : "none";
+    entradaInicial.style.display =
+      !usuarioAtual && !painelUsuarioAberto && !exibindoConfirmacaoWhatsapp ? "block" : "none";
   }
 
   if (areaLogado) {
-    areaLogado.style.display = usuarioAtual ? "block" : "none";
+    areaLogado.style.display = usuarioAtual && !exibindoConfirmacaoWhatsapp ? "block" : "none";
   }
 
   if (btnSair) {
-    btnSair.style.display = usuarioAtual ? "block" : "none";
+    btnSair.style.display = usuarioAtual && !exibindoConfirmacaoWhatsapp ? "block" : "none";
   }
 
   if (status) {
-    status.style.display = !usuarioAtual && painelUsuarioAberto ? "block" : "none";
+    status.style.display =
+      (!usuarioAtual && painelUsuarioAberto) || exibindoConfirmacaoWhatsapp ? "block" : "none";
   }
 
   atualizarVisibilidadeApostas();
@@ -5091,11 +5254,13 @@ function preencherCredenciaisTesteNoFormulario() {
   const loginUsuario = document.getElementById("loginUsuario");
   const senhaUsuario = document.getElementById("senhaUsuario");
   const usuarioTeste = usuarios.find((item) => Number(item.id) === Number(USUARIO_TESTE_FIXO.id)) || null;
-  const loginPadrao = usuarioTeste ? String(usuarioTeste.login || "").trim() : USUARIO_TESTE_FIXO.login;
+  const loginPadrao = usuarioTeste
+    ? normalizarCpfCnpjUsuario(usuarioTeste.cpfCnpj || usuarioTeste.cpf_cnpj || "")
+    : "";
   const senhaPadrao = usuarioTeste ? String(usuarioTeste.senha || "") : USUARIO_TESTE_FIXO.senha;
 
   if (loginUsuario && !String(loginUsuario.value || "").trim()) {
-    loginUsuario.value = loginPadrao || USUARIO_TESTE_FIXO.login;
+    loginUsuario.value = loginPadrao || "";
   }
 
   if (senhaUsuario && !String(senhaUsuario.value || "").trim()) {
@@ -5105,23 +5270,25 @@ function preencherCredenciaisTesteNoFormulario() {
 
 function limparCamposUsuario() {
   const cadastroNome = document.getElementById("cadastroNome");
-  const cadastroLogin = document.getElementById("cadastroLogin");
   const cadastroSenha = document.getElementById("cadastroSenha");
   const cadastroCpf = document.getElementById("cadastroCpf");
-  const cadastroIndicador = document.getElementById("cadastroIndicador");
+  const cadastroWhatsapp = document.getElementById("cadastroWhatsapp");
+  const codigoWhatsapp = document.getElementById("codigoConfirmacaoWhatsapp");
   const loginUsuario = document.getElementById("loginUsuario");
   const senhaUsuario = document.getElementById("senhaUsuario");
   const recuperarLogin = document.getElementById("recuperarLogin");
   const recuperarSenha = document.getElementById("recuperarSenha");
 
   if (cadastroNome) cadastroNome.value = "";
-  if (cadastroLogin) cadastroLogin.value = "";
   if (cadastroSenha) cadastroSenha.value = "";
   if (cadastroCpf) cadastroCpf.value = "";
-  if (cadastroIndicador) cadastroIndicador.value = "";
+  if (cadastroWhatsapp) cadastroWhatsapp.value = "";
+  if (codigoWhatsapp) codigoWhatsapp.value = "";
   const usuarioTeste = usuarios.find((item) => Number(item.id) === Number(USUARIO_TESTE_FIXO.id)) || null;
   if (loginUsuario) {
-    loginUsuario.value = usuarioTeste ? String(usuarioTeste.login || "").trim() : USUARIO_TESTE_FIXO.login;
+    loginUsuario.value = usuarioTeste
+      ? normalizarCpfCnpjUsuario(usuarioTeste.cpfCnpj || usuarioTeste.cpf_cnpj || "")
+      : "";
   }
   if (senhaUsuario) {
     senhaUsuario.value = usuarioTeste ? String(usuarioTeste.senha || "") : USUARIO_TESTE_FIXO.senha;
@@ -5130,18 +5297,158 @@ function limparCamposUsuario() {
   if (recuperarSenha) recuperarSenha.value = "";
 }
 
-function cadastrarUsuario() {
+async function chamarApiBackendJSON(url, body, timeoutMs = 12000) {
+  const resp = await fetchComTimeout(
+    url,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      cache: "no-store",
+      body: JSON.stringify(body || {})
+    },
+    timeoutMs
+  );
+
+  let payload = null;
+  let textoBruto = "";
+  try {
+    payload = await resp.json();
+  } catch (_err) {
+    payload = null;
+    try {
+      textoBruto = await resp.text();
+    } catch (_errText) {
+      textoBruto = "";
+    }
+  }
+
+  if (!resp.ok || !(payload && payload.ok)) {
+    const mensagemBase = payload && payload.error ? String(payload.error) : `Erro ${resp.status}.`;
+    const mensagemDebug = payload && payload.debug ? String(payload.debug) : "";
+    const trechoTexto = String(textoBruto || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 220);
+    const mensagemTexto = trechoTexto ? `${mensagemBase} (${trechoTexto})` : mensagemBase;
+    const mensagem = mensagemDebug ? `${mensagemBase} (${mensagemDebug})` : mensagemTexto;
+    const err = new Error(mensagem);
+    err.payload = payload;
+    err.status = resp.status;
+    throw err;
+  }
+
+  return payload;
+}
+
+function abrirConfirmacaoWhatsapp(usuarioLocal, backendUsuarioId) {
+  const idBackend = Number(backendUsuarioId);
+  if (!usuarioLocal || !Number.isFinite(idBackend) || idBackend <= 0) {
+    return;
+  }
+
+  usuarioLocal.carteiraUsuarioId = idBackend;
+  usuarioLocal.whatsappVerificationRequired = true;
+  usuarioLocal.whatsappVerificado = false;
+  usuarioPendenteWhatsappId = idBackend;
+  salvarUsuarios({
+    atualizarTimestamp: false,
+    pularSyncRemoto: true
+  });
+
+  painelUsuarioAberto = true;
+  definirModoUsuarioPublico("confirmar_whatsapp");
+  atualizarVisibilidadeUsuario();
+  atualizarStatusUsuario("Confirme seu WhatsApp para liberar depósito Pix.", false);
+  mostrarConfirmacaoApostaRapida("Confirmação de WhatsApp pendente.");
+}
+
+async function enviarCodigoWhatsappConfirmacao() {
+  const usuario = sincronizarUsuarioAtualComLista();
+  if (!usuario) {
+    atualizarStatusUsuario("Faça login para confirmar WhatsApp.", true);
+    return;
+  }
+
+  const usuarioIdBackend = Number(usuario.carteiraUsuarioId || usuarioPendenteWhatsappId || 0);
+  if (!Number.isFinite(usuarioIdBackend) || usuarioIdBackend <= 0) {
+    atualizarStatusUsuario("Conta ainda não sincronizada com o backend. Faça login novamente.", true);
+    return;
+  }
+
+  try {
+    const payload = await chamarApiBackendJSON(BACKEND_WHATSAPP_ENVIAR_API_URL, {
+      usuario_id: usuarioIdBackend
+    });
+    atualizarStatusUsuario(String(payload.message || "Código enviado no WhatsApp."), false);
+    mostrarConfirmacaoApostaRapida("Código enviado para seu WhatsApp.");
+  } catch (err) {
+    const msg = String((err && err.message) || "Falha ao enviar código.");
+    atualizarStatusUsuario(msg, true);
+    mostrarConfirmacaoApostaRapida(msg, "erro");
+  }
+}
+
+async function confirmarCodigoWhatsappConta() {
+  const usuario = sincronizarUsuarioAtualComLista();
+  if (!usuario) {
+    atualizarStatusUsuario("Faça login para confirmar WhatsApp.", true);
+    return;
+  }
+
+  const inputCodigo = document.getElementById("codigoConfirmacaoWhatsapp");
+  const codigo = extrairDigitos(inputCodigo ? inputCodigo.value : "");
+  if (codigo.length !== 6) {
+    atualizarStatusUsuario("Informe o código com 6 dígitos.", true);
+    return;
+  }
+
+  const usuarioIdBackend = Number(usuario.carteiraUsuarioId || usuarioPendenteWhatsappId || 0);
+  if (!Number.isFinite(usuarioIdBackend) || usuarioIdBackend <= 0) {
+    atualizarStatusUsuario("Conta ainda não sincronizada com o backend. Faça login novamente.", true);
+    return;
+  }
+
+  try {
+    const payload = await chamarApiBackendJSON(BACKEND_WHATSAPP_CONFIRMAR_API_URL, {
+      usuario_id: usuarioIdBackend,
+      codigo
+    });
+
+    usuario.whatsappVerificado = true;
+    usuario.carteiraUsuarioId = usuarioIdBackend;
+    usuarioPendenteWhatsappId = null;
+    salvarUsuarios({
+      atualizarTimestamp: false,
+      pularSyncRemoto: true
+    });
+    if (inputCodigo) inputCodigo.value = "";
+
+    atualizarStatusUsuario(String(payload.message || "WhatsApp verificado com sucesso."), false);
+    mostrarConfirmacaoApostaRapida("WhatsApp confirmado com sucesso.");
+    definirModoUsuarioPublico("login");
+    atualizarVisibilidadeUsuario();
+    mostrar();
+  } catch (err) {
+    const msg = String((err && err.message) || "Falha ao confirmar código.");
+    atualizarStatusUsuario(msg, true);
+    mostrarConfirmacaoApostaRapida(msg, "erro");
+  }
+}
+
+async function cadastrarUsuario() {
   const nome = String(document.getElementById("cadastroNome").value || "").trim();
-  const login = normalizarLoginUsuario(document.getElementById("cadastroLogin").value);
-  const senha = String(document.getElementById("cadastroSenha").value || "");
-  const validacaoCpf = validarCpfCadastroUsuario(
+  const cpf = normalizarCpfCnpjUsuario(
     (document.getElementById("cadastroCpf") && document.getElementById("cadastroCpf").value) || ""
   );
-  const indicadorLogin = normalizarLoginUsuario(
-    (document.getElementById("cadastroIndicador") &&
-      document.getElementById("cadastroIndicador").value) ||
-      ""
+  const login = normalizarLoginUsuario(cpf);
+  const senha = String(document.getElementById("cadastroSenha").value || "");
+  const whatsapp = normalizarWhatsappUsuario(
+    (document.getElementById("cadastroWhatsapp") && document.getElementById("cadastroWhatsapp").value) || ""
   );
+  const validacaoCpf = validarCpfCadastroUsuario(cpf);
 
   if (nome.length < 2) {
     atualizarStatusUsuario("Informe um nome com pelo menos 2 caracteres.", true);
@@ -5149,24 +5456,9 @@ function cadastrarUsuario() {
     return;
   }
 
-  if (!/^[a-z0-9._-]{3,24}$/.test(login)) {
-    atualizarStatusUsuario("Login inválido. Use 3-24 caracteres (a-z, 0-9, . _ -).", true);
-    mostrarConfirmacaoApostaRapida(
-      "Login inválido. Use 3-24 caracteres (a-z, 0-9, . _ -).",
-      "erro"
-    );
-    return;
-  }
-
-  if (login === "admin") {
-    atualizarStatusUsuario("O login admin é reservado para o painel.", true);
-    mostrarConfirmacaoApostaRapida("O login admin é reservado para o painel.", "erro");
-    return;
-  }
-
-  if (senha.length < 4) {
-    atualizarStatusUsuario("A senha deve ter pelo menos 4 caracteres.", true);
-    mostrarConfirmacaoApostaRapida("A senha deve ter pelo menos 4 caracteres.", "erro");
+  if (senha.length < 6) {
+    atualizarStatusUsuario("A senha deve ter pelo menos 6 caracteres.", true);
+    mostrarConfirmacaoApostaRapida("A senha deve ter pelo menos 6 caracteres.", "erro");
     return;
   }
   if (!validacaoCpf.ok) {
@@ -5174,41 +5466,37 @@ function cadastrarUsuario() {
     mostrarConfirmacaoApostaRapida(validacaoCpf.mensagem, "erro");
     return;
   }
-
-  if (indicadorLogin && indicadorLogin === login) {
-    atualizarStatusUsuario("O login indicador não pode ser o mesmo do novo cadastro.", true);
-    mostrarConfirmacaoApostaRapida(
-      "O login indicador não pode ser o mesmo do novo cadastro.",
-      "erro"
-    );
+  if (whatsapp.length < 10) {
+    atualizarStatusUsuario("Informe WhatsApp com DDD (somente números).", true);
+    mostrarConfirmacaoApostaRapida("Informe WhatsApp com DDD (somente números).", "erro");
     return;
   }
 
-  const existe = usuarios.some((u) => u.login === login);
-  if (existe) {
-    atualizarStatusUsuario("Este login já está em uso.", true);
-    mostrarConfirmacaoApostaRapida("Este login já está em uso.", "erro");
+  // Não bloqueia por cache/localStorage.
+  // A validação final de duplicidade deve vir do backend (fonte de verdade).
+
+  let respostaCadastroBackend = null;
+  try {
+    respostaCadastroBackend = await chamarApiBackendJSON(BACKEND_CADASTRO_API_URL, {
+      senha,
+      nome,
+      cpf: validacaoCpf.valor,
+      whatsapp
+    });
+  } catch (err) {
+    const msg = String((err && err.message) || "Falha ao cadastrar no servidor.");
+    atualizarStatusUsuario(msg, true);
+    mostrarConfirmacaoApostaRapida(msg, "erro");
     return;
   }
 
-  let indicador = null;
-  if (indicadorLogin) {
-    indicador =
-      usuarios.find(
-        (u) => u.login === indicadorLogin && usuarioEhApostador(u) && normalizarLoginUsuario(u.login) !== "admin"
-      ) || null;
-    if (!indicador) {
-      atualizarStatusUsuario(
-        "Indicador inválido. Informe o login de um apostador já cadastrado.",
-        true
-      );
-      mostrarConfirmacaoApostaRapida(
-        "Indicador inválido. Informe o login de um apostador já cadastrado.",
-        "erro"
-      );
-      return;
-    }
-  }
+  const usuarioBackend = respostaCadastroBackend && respostaCadastroBackend.usuario
+    ? respostaCadastroBackend.usuario
+    : null;
+  const whatsappVerificationRequiredBackend =
+    Boolean(respostaCadastroBackend && respostaCadastroBackend.whatsapp_verification_required === true);
+  const carteiraUsuarioId = Number(usuarioBackend && usuarioBackend.id);
+  const whatsappVerificadoBackend = Number(usuarioBackend && usuarioBackend.whatsapp_verificado) === 1;
 
   const novoUsuario = {
     id: Date.now(),
@@ -5223,7 +5511,7 @@ function cadastrarUsuario() {
     comissaoTotal: 0,
     totalDepositos: 0,
     saldoApostador: 0,
-    indicadorId: indicador ? indicador.id : null,
+    indicadorId: null,
     bonusIndicacaoSaldo: 0,
     bonusIndicacaoTotal: 0,
     bonusIndicacaoConvertidoTotal: 0,
@@ -5231,56 +5519,63 @@ function cadastrarUsuario() {
     bonusIndicacaoConvertidoHojeData: "",
     indicadosTotal: 0,
     cpfCnpj: validacaoCpf.valor,
-    telefone: "",
+    telefone: whatsapp,
+    whatsapp,
+    whatsappVerificado: whatsappVerificadoBackend,
+    whatsappVerificationRequired: whatsappVerificationRequiredBackend,
+    carteiraUsuarioId: Number.isFinite(carteiraUsuarioId) && carteiraUsuarioId > 0 ? carteiraUsuarioId : null,
     chavePix: "",
     bloqueado: false
   };
 
   usuarios.unshift(novoUsuario);
-  let bonusGerado = 0;
-  if (indicador) {
-    const indicadorAtual =
-      usuarios.find((u) => u.id === indicador.id && usuarioEhApostador(u)) || null;
-    bonusGerado = aplicarBonusIndicacaoPorCadastro(indicadorAtual);
-  }
   salvarUsuarios();
-  usuarioAtual = novoUsuario;
-  salvarSessaoUsuario();
-  painelUsuarioAberto = false;
-  definirModoUsuarioPublico("login");
-  atualizarVisibilidadeUsuario();
-  const textoBonus =
-    indicador && bonusGerado > 0
-      ? ` Indicação registrada para @${indicador.login} com bônus de ${formatarMoedaBR(bonusGerado)}.`
-      : "";
-  atualizarStatusUsuario(`Cadastro concluído. Conectado como ${nome} (@${login}).${textoBonus}`, false);
-  mostrarConfirmacaoApostaRapida(`Cadastro concluído com sucesso.${textoBonus}`);
+
+  if (
+    whatsappVerificationRequiredBackend &&
+    !whatsappVerificadoBackend &&
+    Number.isFinite(carteiraUsuarioId) &&
+    carteiraUsuarioId > 0
+  ) {
+    // Mantém usuário apenas no fluxo atual para confirmar o código.
+    // Não persistimos sessão logada antes da confirmação.
+    usuarioAtual = novoUsuario;
+    abrirConfirmacaoWhatsapp(novoUsuario, carteiraUsuarioId);
+    localStorage.removeItem(USUARIO_SESSAO_KEY);
+    painelUsuarioAberto = true;
+    atualizarStatusUsuario(
+      "Cadastro pendente. Confirme o código do WhatsApp para concluir sua conta.",
+      false
+    );
+    mostrarConfirmacaoApostaRapida("Cadastro pendente de confirmação no WhatsApp.");
+  } else {
+    usuarioAtual = novoUsuario;
+    salvarSessaoUsuario();
+    painelUsuarioAberto = false;
+    definirModoUsuarioPublico("login");
+    atualizarVisibilidadeUsuario();
+    atualizarStatusUsuario(`Cadastro concluído. Conectado como ${nome}.`, false);
+    mostrarConfirmacaoApostaRapida("Cadastro concluído com sucesso.");
+  }
+
   limparCamposUsuario();
   mostrar();
 }
 
 function redefinirSenhaUsuario() {
-  const login = normalizarLoginUsuario(document.getElementById("recuperarLogin").value);
+  const cpf = normalizarCpfCnpjUsuario(document.getElementById("recuperarLogin").value);
   const novaSenha = String(document.getElementById("recuperarSenha").value || "");
 
-  if (login === "admin") {
-    atualizarStatusUsuario("A conta admin usa senha fixa: 1965917.", false);
-    mostrarConfirmacaoApostaRapida("A conta admin usa senha fixa: 1965917.", "erro");
-    const recuperarSenha = document.getElementById("recuperarSenha");
-    if (recuperarSenha) recuperarSenha.value = "";
+  if (!cpf || cpf.length !== 11 || novaSenha.length < 6) {
+    atualizarStatusUsuario("Informe CPF válido e nova senha (mínimo 6 caracteres).", true);
+    mostrarConfirmacaoApostaRapida("Informe CPF válido e nova senha (mínimo 6 caracteres).", "erro");
     return;
   }
 
-  if (!login || novaSenha.length < 4) {
-    atualizarStatusUsuario("Informe login e nova senha (mínimo 4 caracteres).", true);
-    mostrarConfirmacaoApostaRapida("Informe login e nova senha (mínimo 4 caracteres).", "erro");
-    return;
-  }
-
-  const idx = usuarios.findIndex((u) => u.login === login);
+  const idx = usuarios.findIndex((u) => normalizarCpfCnpjUsuario(u.cpfCnpj || u.cpf_cnpj) === cpf);
   if (idx === -1) {
-    atualizarStatusUsuario("Login não encontrado.", true);
-    mostrarConfirmacaoApostaRapida("Login não encontrado.", "erro");
+    atualizarStatusUsuario("CPF não encontrado.", true);
+    mostrarConfirmacaoApostaRapida("CPF não encontrado.", "erro");
     return;
   }
 
@@ -5289,7 +5584,7 @@ function redefinirSenhaUsuario() {
   painelUsuarioAberto = true;
   definirModoUsuarioPublico("login");
   const loginUsuario = document.getElementById("loginUsuario");
-  if (loginUsuario) loginUsuario.value = login;
+  if (loginUsuario) loginUsuario.value = cpf;
   atualizarStatusUsuario("Senha atualizada. Faça login.", false);
   mostrarConfirmacaoApostaRapida("Senha atualizada com sucesso.");
 
@@ -5297,17 +5592,19 @@ function redefinirSenhaUsuario() {
   if (recuperarSenha) recuperarSenha.value = "";
 }
 
-function entrarUsuario() {
-  const login = normalizarLoginUsuario(document.getElementById("loginUsuario").value);
+async function entrarUsuario() {
+  const loginValorBruto = String(document.getElementById("loginUsuario").value || "").trim();
+  const loginAdmin = normalizarLoginUsuario(loginValorBruto);
+  const cpf = normalizarCpfCnpjUsuario(loginValorBruto);
   const senha = String(document.getElementById("senhaUsuario").value || "");
 
-  if (!login || !senha) {
-    atualizarStatusUsuario("Informe login e senha.", true);
-    mostrarConfirmacaoApostaRapida("Informe login e senha.", "erro");
+  if (!loginValorBruto || !senha) {
+    atualizarStatusUsuario("Informe CPF e senha.", true);
+    mostrarConfirmacaoApostaRapida("Informe CPF e senha.", "erro");
     return;
   }
 
-  if (login === "admin") {
+  if (loginAdmin === "admin") {
     if (senha !== SENHA) {
       atualizarStatusUsuario("Senha do admin inválida.", true);
       mostrarConfirmacaoApostaRapida("Senha do admin inválida.", "erro");
@@ -5322,17 +5619,166 @@ function entrarUsuario() {
     return;
   }
 
-  const encontrado = usuarios.find((u) => u.login === login && u.senha === senha);
-  if (!encontrado) {
-    atualizarStatusUsuario("Login ou senha inválidos.", true);
-    mostrarConfirmacaoApostaRapida("Login ou senha inválidos.", "erro");
+  if (cpf.length !== 11) {
+    atualizarStatusUsuario("Informe CPF válido com 11 dígitos.", true);
+    mostrarConfirmacaoApostaRapida("Informe CPF válido com 11 dígitos.", "erro");
     return;
   }
+
+  let backendUser = null;
+  let backendWhatsappVerificationRequired = false;
+  let backendErroLogin = "";
+  let backendErroPayload = null;
+  try {
+    const loginPayload = await chamarApiBackendJSON(BACKEND_LOGIN_API_URL, {
+      cpf,
+      senha
+    });
+    backendUser = loginPayload && loginPayload.usuario ? loginPayload.usuario : null;
+    backendWhatsappVerificationRequired =
+      Boolean(loginPayload && loginPayload.whatsapp_verification_required === true);
+  } catch (err) {
+    backendErroLogin = String((err && err.message) || "");
+    backendErroPayload = err && err.payload ? err.payload : null;
+  }
+
+  let encontrado = usuarios.find(
+    (u) => normalizarCpfCnpjUsuario(u.cpfCnpj || u.cpf_cnpj) === cpf
+  );
+
+  if (!backendUser) {
+    const precisaConfirmarWhatsapp =
+      backendErroPayload && backendErroPayload.requires_whatsapp_confirmation === true;
+    if (precisaConfirmarWhatsapp) {
+      const usuarioBackendPendente = backendErroPayload && backendErroPayload.usuario
+        ? backendErroPayload.usuario
+        : null;
+      const idBackendPendente = Number(usuarioBackendPendente && usuarioBackendPendente.id);
+      if (!encontrado) {
+        encontrado = {
+          id: Date.now(),
+          nome: String((usuarioBackendPendente && usuarioBackendPendente.nome) || "Usuário"),
+          login: cpf,
+          senha,
+          saldo: normalizarSaldoUsuario(Number((usuarioBackendPendente && usuarioBackendPendente.saldo) || 0)),
+          role: PAPEL_USUARIO_APOSTADOR,
+          promotorId: null,
+          comissaoPercentual: COMISSAO_PROMOTOR_PADRAO,
+          comissaoSaldo: 0,
+          comissaoTotal: 0,
+          totalDepositos: 0,
+          saldoApostador: 0,
+          indicadorId: null,
+          bonusIndicacaoSaldo: 0,
+          bonusIndicacaoTotal: 0,
+          bonusIndicacaoConvertidoTotal: 0,
+          bonusIndicacaoConvertidoHoje: 0,
+          bonusIndicacaoConvertidoHojeData: "",
+          indicadosTotal: 0,
+          cpfCnpj: cpf,
+          telefone: normalizarWhatsappUsuario((usuarioBackendPendente && usuarioBackendPendente.whatsapp) || ""),
+          whatsapp: normalizarWhatsappUsuario((usuarioBackendPendente && usuarioBackendPendente.whatsapp) || ""),
+          whatsappVerificado: false,
+          whatsappVerificationRequired: true,
+          carteiraUsuarioId: Number.isFinite(idBackendPendente) && idBackendPendente > 0
+            ? Math.floor(idBackendPendente)
+            : null,
+          chavePix: "",
+          bloqueado: false
+        };
+        usuarios.unshift(encontrado);
+      }
+
+      if (Number.isFinite(idBackendPendente) && idBackendPendente > 0) {
+        encontrado.carteiraUsuarioId = Math.floor(idBackendPendente);
+      }
+      encontrado.whatsappVerificado = false;
+      encontrado.whatsappVerificationRequired = true;
+      encontrado.senha = senha;
+      salvarUsuarios({
+        atualizarTimestamp: false,
+        pularSyncRemoto: true
+      });
+      usuarioAtual = encontrado;
+      if (Number.isFinite(Number(encontrado.carteiraUsuarioId)) && Number(encontrado.carteiraUsuarioId) > 0) {
+        abrirConfirmacaoWhatsapp(encontrado, Number(encontrado.carteiraUsuarioId));
+      } else {
+        atualizarStatusUsuario("Conta pendente de confirmação no WhatsApp.", true);
+      }
+      localStorage.removeItem(USUARIO_SESSAO_KEY);
+      mostrarConfirmacaoApostaRapida("Confirme seu WhatsApp para concluir o cadastro.", "erro");
+      return;
+    }
+
+    const mensagemErro = backendErroLogin || "CPF ou senha inválidos.";
+    // Garante que a interface não permaneça com sessão antiga quando login falhar.
+    usuarioPendenteWhatsappId = null;
+    usuarioAtual = null;
+    salvarSessaoUsuario();
+    painelApostaExpandido = false;
+    atualizarVisibilidadeUsuario();
+    atualizarStatusUsuario(mensagemErro, true);
+    mostrarConfirmacaoApostaRapida(mensagemErro, "erro");
+    return;
+  } else if (!encontrado) {
+    encontrado = {
+      id: Date.now(),
+      nome: String(backendUser.nome || "Usuário"),
+      login: cpf,
+      senha,
+      saldo: normalizarSaldoUsuario(Number(backendUser.saldo || 0)),
+      role: PAPEL_USUARIO_APOSTADOR,
+      promotorId: null,
+      comissaoPercentual: COMISSAO_PROMOTOR_PADRAO,
+      comissaoSaldo: 0,
+      comissaoTotal: 0,
+      totalDepositos: 0,
+      saldoApostador: 0,
+      indicadorId: null,
+      bonusIndicacaoSaldo: 0,
+      bonusIndicacaoTotal: 0,
+      bonusIndicacaoConvertidoTotal: 0,
+      bonusIndicacaoConvertidoHoje: 0,
+      bonusIndicacaoConvertidoHojeData: "",
+      indicadosTotal: 0,
+      cpfCnpj: cpf,
+      telefone: normalizarWhatsappUsuario(backendUser.whatsapp || ""),
+      whatsapp: normalizarWhatsappUsuario(backendUser.whatsapp || ""),
+      whatsappVerificado: Number(backendUser.whatsapp_verificado) === 1,
+      whatsappVerificationRequired: backendWhatsappVerificationRequired,
+      carteiraUsuarioId: Number.isFinite(Number(backendUser.id)) ? Math.floor(Number(backendUser.id)) : null,
+      chavePix: "",
+      bloqueado: false
+    };
+    usuarios.unshift(encontrado);
+  }
+
+  if (backendUser && encontrado) {
+    encontrado.nome = String(backendUser.nome || encontrado.nome || "Usuário");
+    encontrado.login = cpf;
+    encontrado.senha = senha;
+    encontrado.cpfCnpj = normalizarCpfCnpjUsuario(backendUser.cpf_cnpj || encontrado.cpfCnpj || "");
+    encontrado.whatsapp = normalizarWhatsappUsuario(backendUser.whatsapp || encontrado.whatsapp || "");
+    encontrado.telefone = encontrado.whatsapp || encontrado.telefone || "";
+    encontrado.whatsappVerificado = Number(backendUser.whatsapp_verificado) === 1;
+    encontrado.whatsappVerificationRequired = backendWhatsappVerificationRequired;
+    encontrado.saldo = normalizarSaldoUsuario(Number(backendUser.saldo || encontrado.saldo || 0));
+    const carteiraUsuarioId = Number(backendUser.id);
+    if (Number.isFinite(carteiraUsuarioId) && carteiraUsuarioId > 0) {
+      encontrado.carteiraUsuarioId = Math.floor(carteiraUsuarioId);
+    }
+  }
+
   if (encontrado.bloqueado) {
     atualizarStatusUsuario("Usuário bloqueado pelo admin. Entre em contato para liberar o acesso.", true);
     mostrarConfirmacaoApostaRapida("Usuário bloqueado pelo admin.", "erro");
     return;
   }
+
+  salvarUsuarios({
+    atualizarTimestamp: false,
+    pularSyncRemoto: true
+  });
 
   usuarioAtual = encontrado;
   salvarSessaoUsuario();
@@ -5349,6 +5795,17 @@ function entrarUsuario() {
     atualizarStatusUsuario(`Conectado como ${encontrado.nome} (@${encontrado.login}).`, false);
     mostrarConfirmacaoApostaRapida(`Login realizado. Bem-vindo, ${encontrado.nome}!`);
   }
+
+  if (
+    usuarioEhApostador(encontrado) &&
+    usuarioExigeConfirmacaoWhatsapp(encontrado) &&
+    !Boolean(encontrado.whatsappVerificado) &&
+    Number.isFinite(Number(encontrado.carteiraUsuarioId)) &&
+    Number(encontrado.carteiraUsuarioId) > 0
+  ) {
+    abrirConfirmacaoWhatsapp(encontrado, Number(encontrado.carteiraUsuarioId));
+  }
+
   limparCamposUsuario();
   mostrar();
   sincronizarSaldoUsuarioLogadoComServidor();
@@ -5356,6 +5813,7 @@ function entrarUsuario() {
 }
 
 function sairUsuario() {
+  usuarioPendenteWhatsappId = null;
   usuarioAtual = null;
   salvarSessaoUsuario();
   painelUsuarioAberto = false;
@@ -5852,6 +6310,18 @@ async function salvarAposta() {
     mostrarConfirmacaoApostaRapida("Faça login de usuário para apostar.", "erro");
     return;
   }
+  if (
+    usuarioExigeConfirmacaoWhatsapp(usuarioSincronizado) &&
+    !Boolean(usuarioSincronizado.whatsappVerificado)
+  ) {
+    const backendIdPendente = Number(usuarioSincronizado.carteiraUsuarioId || 0);
+    if (Number.isFinite(backendIdPendente) && backendIdPendente > 0) {
+      abrirConfirmacaoWhatsapp(usuarioSincronizado, backendIdPendente);
+    }
+    atualizarStatusUsuario("Confirme seu WhatsApp para liberar apostas.", true);
+    mostrarConfirmacaoApostaRapida("Confirme seu WhatsApp para continuar.", "erro");
+    return;
+  }
   if (normalizarSaldoUsuario(usuarioSincronizado.saldo) <= 0) {
     mostrarConfirmacaoApostaRapida("Saldo insuficiente. Faça uma recarga", "erro");
     return;
@@ -6277,6 +6747,90 @@ function formatarDataHoraCurtaBR(dataHora) {
   });
 }
 
+function atualizarTextoSaudeAdmin(id, valor, erro) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.color = erro ? "#ff6b6b" : "";
+  el.innerText = String(valor || "--");
+}
+
+async function atualizarSaudeWebhookAdmin(forcar) {
+  const recebidoEl = document.getElementById("dashSaudeUltimoWebhook");
+  const creditoEl = document.getElementById("dashSaudeUltimoCredito");
+  const depositosEl = document.getElementById("dashSaudeDepositosHoje");
+  const statusEl = document.getElementById("dashSaudeStatus");
+  if (!recebidoEl || !creditoEl || !depositosEl || !statusEl) return;
+
+  if (!logado) {
+    atualizarTextoSaudeAdmin("dashSaudeUltimoWebhook", "--", false);
+    atualizarTextoSaudeAdmin("dashSaudeUltimoCredito", "--", false);
+    atualizarTextoSaudeAdmin("dashSaudeDepositosHoje", "0", false);
+    statusEl.style.color = "#9fb3c8";
+    statusEl.innerText = "Faça login no admin para visualizar a saúde Pix.";
+    return;
+  }
+
+  const agora = Date.now();
+  if (!forcar && (agora - ultimaAtualizacaoSaudeAdminMs) < 10000) {
+    return;
+  }
+  if (atualizacaoSaudeAdminEmAndamento) return;
+  atualizacaoSaudeAdminEmAndamento = true;
+  statusEl.style.color = "#9fb3c8";
+  statusEl.innerText = "Atualizando saúde Pix...";
+
+  try {
+    const resp = await fetchComTimeout(
+      `${BACKEND_ADMIN_SAUDE_API_URL}?t=${agora}`,
+      {
+        headers: {
+          Accept: "application/json"
+        },
+        cache: "no-store"
+      },
+      10000
+    );
+
+    let payload = null;
+    try {
+      payload = await resp.json();
+    } catch (_err) {
+      payload = null;
+    }
+
+    if (!resp.ok || !(payload && payload.ok && payload.saude)) {
+      throw new Error((payload && payload.error) || `Falha HTTP ${resp.status}`);
+    }
+
+    const saude = payload.saude;
+    const ultimoWebhook = saude.ultimo_webhook_recebido_em
+      ? formatarDataHoraCurtaBR(saude.ultimo_webhook_recebido_em)
+      : "--";
+    const ultimoCredito = saude.ultimo_credito_confirmado_em
+      ? formatarDataHoraCurtaBR(saude.ultimo_credito_confirmado_em)
+      : "--";
+    const totalDepositosHoje = Number(saude.total_depositos_hoje || 0);
+    const valorDepositosHoje = Number(saude.valor_depositos_hoje || 0);
+
+    atualizarTextoSaudeAdmin("dashSaudeUltimoWebhook", ultimoWebhook, false);
+    atualizarTextoSaudeAdmin("dashSaudeUltimoCredito", ultimoCredito, false);
+    atualizarTextoSaudeAdmin(
+      "dashSaudeDepositosHoje",
+      `${totalDepositosHoje} • ${formatarMoedaBR(valorDepositosHoje)}`,
+      false
+    );
+
+    statusEl.style.color = "#9fb3c8";
+    statusEl.innerText = `Última atualização: ${formatarDataHoraCurtaBR(new Date().toISOString())}`;
+    ultimaAtualizacaoSaudeAdminMs = Date.now();
+  } catch (err) {
+    statusEl.style.color = "#ff6b6b";
+    statusEl.innerText = `Falha ao atualizar saúde Pix: ${String((err && err.message) || "erro desconhecido")}`;
+  } finally {
+    atualizacaoSaudeAdminEmAndamento = false;
+  }
+}
+
 function dataCadastroUsuario(usuario) {
   const idNum = Number(usuario && usuario.id);
   if (Number.isFinite(idNum) && idNum > 946684800000 && idNum < 4102444800000) {
@@ -6557,6 +7111,9 @@ function criarUsuarioAdmin() {
     bonusIndicacaoConvertidoHojeData: "",
     indicadosTotal: 0,
     cpfCnpj: "",
+    whatsapp: "",
+    whatsappVerificado: false,
+    carteiraUsuarioId: null,
     telefone: "",
     chavePix: "",
     bloqueado: false
@@ -6637,6 +7194,9 @@ function criarPromotorAdmin() {
     bonusIndicacaoConvertidoHojeData: "",
     indicadosTotal: 0,
     cpfCnpj: "",
+    whatsapp: "",
+    whatsappVerificado: false,
+    carteiraUsuarioId: null,
     telefone: "",
     chavePix: "",
     bloqueado: false
@@ -7395,8 +7955,11 @@ function mostrarPainelAdmin() {
     atualizarGestaoPromotoresAdmin([], []);
     atualizarGestaoSaldosAdmin([]);
     atualizarGestaoEdicaoUsuarioAdmin([]);
+    atualizarSaudeWebhookAdmin(false);
     return;
   }
+
+  atualizarSaudeWebhookAdmin(false);
 
   const usuariosOrdenados = sanitizarUsuarios(usuarios).slice().sort((a, b) =>
     String(a.login || "").localeCompare(String(b.login || ""), "pt-BR")
@@ -7727,6 +8290,8 @@ async function init() {
   configurarEventosGestaoSaldoAdmin();
   configurarEventosGestaoEdicaoUsuarioAdmin();
   configurarEventosDashboardAdmin();
+  configurarAutoFecharCalendarioData();
+  configurarEventosConfirmacaoWhatsapp();
   configurarMascaraValorDepositoUsuario();
   configurarCronometroAposta();
   preencherCamposMultiplicadores();
@@ -7739,6 +8304,16 @@ async function init() {
   painelUsuarioAberto = false;
   atualizarVisibilidadeUsuario();
   definirModoUsuarioPublico("login");
+  if (
+    usuarioAtual &&
+    usuarioEhApostador(usuarioAtual) &&
+    usuarioExigeConfirmacaoWhatsapp(usuarioAtual) &&
+    !Boolean(usuarioAtual.whatsappVerificado) &&
+    Number.isFinite(Number(usuarioAtual.carteiraUsuarioId)) &&
+    Number(usuarioAtual.carteiraUsuarioId) > 0
+  ) {
+    abrirConfirmacaoWhatsapp(usuarioAtual, Number(usuarioAtual.carteiraUsuarioId));
+  }
   if (usuarioAtual) {
     if (usuarioEhPromotor(usuarioAtual)) {
       atualizarStatusUsuario(
@@ -7769,6 +8344,12 @@ async function init() {
       // Mantém fallback local quando a carteira SQL/API estiver indisponível.
     }
   }
+  if (!sincronizacaoSaldoTimer) {
+    sincronizacaoSaldoTimer = window.setInterval(() => {
+      if (!usuarioAtual) return;
+      sincronizarSaldoUsuarioLogadoComServidor();
+    }, SALDO_SYNC_INTERVALO_MS);
+  }
   mostrar();
 }
 
@@ -7783,6 +8364,8 @@ window.abrirPainelLoginUsuario = abrirPainelLoginUsuario;
 window.abrirCadastroUsuario = abrirCadastroUsuario;
 window.abrirRecuperacaoSenha = abrirRecuperacaoSenha;
 window.voltarLoginUsuario = voltarLoginUsuario;
+window.enviarCodigoWhatsappConfirmacao = enviarCodigoWhatsappConfirmacao;
+window.confirmarCodigoWhatsappConta = confirmarCodigoWhatsappConta;
 window.salvar = salvar;
 window.limparResultadoSelecionadoAdmin = limparResultadoSelecionadoAdmin;
 window.salvarMultiplicadores = salvarMultiplicadores;
@@ -7817,6 +8400,40 @@ window.recarregarSaldoAdmin = recarregarSaldoAdmin;
 window.salvarEdicaoSaldoAdmin = salvarEdicaoSaldoAdmin;
 window.salvarEdicaoUsuarioAdmin = salvarEdicaoUsuarioAdmin;
 window.selecionarSecaoAdmin = selecionarSecaoAdmin;
+window.atualizarSaudeWebhookAdmin = function (forcar) {
+  atualizarSaudeWebhookAdmin(Boolean(forcar));
+};
+
+window.addEventListener("porco:saldo-atualizado", (evento) => {
+  const saldoEvento = Number(evento && evento.detail && evento.detail.saldo);
+  if (Number.isFinite(saldoEvento) && usuarioAtual) {
+    const saldoNormalizado = normalizarSaldoUsuario(saldoEvento);
+    let idx = usuarios.findIndex((item) => item.id === usuarioAtual.id);
+    if (idx === -1) {
+      const cpfSessao = normalizarCpfCnpjUsuario(
+        localStorage.getItem(USUARIO_SESSAO_CPF_KEY) || usuarioAtual.cpfCnpj || usuarioAtual.cpf_cnpj || ""
+      );
+      if (cpfSessao.length === 11) {
+        idx = usuarios.findIndex(
+          (item) => normalizarCpfCnpjUsuario(item.cpfCnpj || item.cpf_cnpj) === cpfSessao
+        );
+      }
+    }
+    if (idx !== -1) {
+      usuarios[idx].saldo = saldoNormalizado;
+      usuarioAtual = usuarios[idx];
+      salvarUsuarios({
+        atualizarTimestamp: false,
+        pularSyncRemoto: true
+      });
+    } else {
+      usuarioAtual.saldo = saldoNormalizado;
+    }
+  }
+
+  atualizarCarteiraUsuarioAposta();
+  sincronizarSaldoUsuarioLogadoComServidor();
+});
 
 window.addEventListener("load", () => {
   init();

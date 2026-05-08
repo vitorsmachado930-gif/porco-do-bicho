@@ -5,9 +5,13 @@ declare(strict_types=1);
 // Carrega configuracao e funcoes.
 require_once __DIR__ . '/config.php';
 
-// Aceita somente POST para webhook.
-if (strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'POST') {
-    jsonResponse(405, ['ok' => false, 'error' => 'Metodo nao permitido.']);
+// Endpoint de saúde e tolerância a métodos indevidos.
+$method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+if ($method === 'GET') {
+    textResponse(200, 'WEBHOOK ASAAS OK');
+}
+if ($method !== 'POST') {
+    jsonResponse(200, ['ok' => true, 'ignored' => true, 'reason' => 'Metodo nao permitido.']);
 }
 
 try {
@@ -16,7 +20,7 @@ try {
 
     // Valida token para garantir origem legitima do webhook.
     if ($tokenRecebido === '' || !hash_equals(ASAAS_WEBHOOK_TOKEN, $tokenRecebido)) {
-        jsonResponse(401, ['ok' => false, 'error' => 'Token de webhook invalido.']);
+        jsonResponse(200, ['ok' => true, 'ignored' => true, 'reason' => 'Token de webhook invalido.']);
     }
 
     // Le payload JSON do webhook.
@@ -39,7 +43,7 @@ try {
 
     // Se vier sem identificadores, ignora com erro de validacao.
     if ($asaasPaymentId === '' && $externalReference === '') {
-        jsonResponse(422, ['ok' => false, 'error' => 'Webhook sem identificador de pagamento.']);
+        jsonResponse(200, ['ok' => true, 'ignored' => true, 'reason' => 'Webhook sem identificador de pagamento.']);
     }
 
     // Conecta ao banco.
@@ -85,15 +89,34 @@ try {
         $stmtUp = $pdo->prepare(
             'UPDATE depositos
              SET ultimo_evento = :evt,
-                 asaas_event_id = CASE WHEN :event_id <> \'\' THEN :event_id ELSE asaas_event_id END,
                  updated_at = NOW()
              WHERE id = :id'
         );
-        $stmtUp->execute([
-            ':evt' => $event,
-            ':event_id' => $eventId,
-            ':id' => (int)$deposito['id'],
-        ]);
+        if ($eventId !== '') {
+            $stmtUp = $pdo->prepare(
+                'UPDATE depositos
+                 SET ultimo_evento = :evt,
+                     asaas_event_id = :event_id_value,
+                     updated_at = NOW()
+                 WHERE id = :id'
+            );
+            $stmtUp->execute([
+                ':evt' => $event,
+                ':event_id_value' => $eventId,
+                ':id' => (int)$deposito['id'],
+            ]);
+        } else {
+            $stmtUp = $pdo->prepare(
+                'UPDATE depositos
+                 SET ultimo_evento = :evt,
+                     updated_at = NOW()
+                 WHERE id = :id'
+            );
+            $stmtUp->execute([
+                ':evt' => $event,
+                ':id' => (int)$deposito['id'],
+            ]);
+        }
 
         $pdo->commit();
         jsonResponse(200, [
@@ -140,21 +163,37 @@ try {
     ]);
 
     // Marca deposito como pago e salva evento processado.
-    $stmtDep = $pdo->prepare(
-        'UPDATE depositos
-         SET status = \'PAGO\',
-             pago_em = NOW(),
-             ultimo_evento = :evt,
-             asaas_event_id = CASE WHEN :event_id <> \'\' THEN :event_id ELSE asaas_event_id END,
-             updated_at = NOW()
-         WHERE id = :id
-         LIMIT 1'
-    );
-    $stmtDep->execute([
-        ':evt' => $event,
-        ':event_id' => $eventId,
-        ':id' => (int)$deposito['id'],
-    ]);
+    if ($eventId !== '') {
+        $stmtDep = $pdo->prepare(
+            'UPDATE depositos
+             SET status = \'PAGO\',
+                 pago_em = NOW(),
+                 ultimo_evento = :evt,
+                 asaas_event_id = :event_id_value,
+                 updated_at = NOW()
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $stmtDep->execute([
+            ':evt' => $event,
+            ':event_id_value' => $eventId,
+            ':id' => (int)$deposito['id'],
+        ]);
+    } else {
+        $stmtDep = $pdo->prepare(
+            'UPDATE depositos
+             SET status = \'PAGO\',
+                 pago_em = NOW(),
+                 ultimo_evento = :evt,
+                 updated_at = NOW()
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $stmtDep->execute([
+            ':evt' => $event,
+            ':id' => (int)$deposito['id'],
+        ]);
+    }
 
     // Confirma transacao.
     $pdo->commit();
@@ -172,10 +211,10 @@ try {
         $pdo->rollBack();
     }
 
-    // Retorna erro 500.
-    jsonResponse(500, [
-        'ok' => false,
-        'error' => 'Falha ao processar webhook do Asaas.',
-        'detail' => $e->getMessage(),
+    // Retorna 200 para não pausar fila automaticamente em caso de erro interno.
+    jsonResponse(200, [
+        'ok' => true,
+        'ignored' => true,
+        'reason' => 'Falha ao processar webhook do Asaas.',
     ]);
 }

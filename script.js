@@ -18,9 +18,15 @@
 
   const USUARIOS_KEY = "usuarios_aposta";
   const USUARIO_SESSAO_KEY = "usuario_sessao_id";
+  const USUARIO_SESSAO_CPF_KEY = "usuario_sessao_cpf";
   const CARTEIRA_USUARIO_UPSERT_API_URL = "api/carteira_usuario_upsert.php";
   const CARTEIRA_SALDO_USUARIO_API_URL = "api/carteira_saldo_usuario.php";
+  const CONSULTAR_PIX_API_URL = "backend/consultar_pix.php";
+  const PAINEL_UPDATED_AT_KEY = "painel_updated_at";
   let sessaoAtual = "";
+  let estadoUsuarioPixAtual = "";
+  let monitorPixTimer = null;
+  let monitorPixIniciadoEm = 0;
 
   function el(id) {
     return document.getElementById(id);
@@ -46,11 +52,49 @@
     try {
       const usuarios = JSON.parse(localStorage.getItem(USUARIOS_KEY) || "[]");
       const sessaoId = Number(localStorage.getItem(USUARIO_SESSAO_KEY));
-      if (!Array.isArray(usuarios) || !Number.isFinite(sessaoId)) return null;
-      return usuarios.find((u) => Number(u && u.id) === sessaoId) || null;
+      const cpfSessao = apenasDigitos(localStorage.getItem(USUARIO_SESSAO_CPF_KEY) || "");
+      if (!Array.isArray(usuarios)) return null;
+
+      let encontrado = Number.isFinite(sessaoId)
+        ? usuarios.find((u) => Number(u && u.id) === sessaoId) || null
+        : null;
+
+      if (!encontrado && cpfSessao.length === 11) {
+        encontrado =
+          usuarios.find(
+            (u) => apenasDigitos((u && (u.cpfCnpj || u.cpf_cnpj)) || "") === cpfSessao
+          ) || null;
+      }
+
+      if (encontrado) {
+        localStorage.setItem(USUARIO_SESSAO_KEY, String(encontrado.id || ""));
+        const cpfAtual = apenasDigitos((encontrado.cpfCnpj || encontrado.cpf_cnpj) || "");
+        if (cpfAtual.length === 11) {
+          localStorage.setItem(USUARIO_SESSAO_CPF_KEY, cpfAtual);
+        }
+      }
+      return encontrado;
     } catch (_err) {
       return null;
     }
+  }
+
+  function usuarioWhatsappVerificado(usuario) {
+    return Boolean(
+      usuario &&
+      (usuario.whatsappVerificado === true ||
+        Number(usuario.whatsappVerificado) === 1 ||
+        Number(usuario.whatsapp_verificado) === 1)
+    );
+  }
+
+  function usuarioExigeWhatsappVerificado(usuario) {
+    return Boolean(
+      usuario &&
+      (usuario.whatsappVerificationRequired === true ||
+        Number(usuario.whatsappVerificationRequired) === 1 ||
+        Number(usuario.whatsapp_verification_required) === 1)
+    );
   }
 
   function normalizarLogin(login) {
@@ -168,10 +212,118 @@
 
     inputId.value = String(usuario.id || "");
     inputId.readOnly = true;
-    resumo.textContent = `Usuário logado: @${usuario.login || "--"} (pronto para depósito Pix)`;
+    resumo.textContent = !usuarioExigeWhatsappVerificado(usuario) || usuarioWhatsappVerificado(usuario)
+      ? `Usuário logado: @${usuario.login || "--"} (pronto para depósito Pix)`
+      : `Usuário logado: @${usuario.login || "--"} (confirme seu WhatsApp para liberar o Pix)`;
   }
 
-  function limparResultadoPix() {
+  function atualizarSaldoLocalUsuarioLogado(novoSaldo) {
+    const saldo = Number(novoSaldo);
+    if (!Number.isFinite(saldo)) return;
+    try {
+      const usuarios = JSON.parse(localStorage.getItem(USUARIOS_KEY) || "[]");
+      const sessaoId = Number(localStorage.getItem(USUARIO_SESSAO_KEY));
+      const sessaoCpf = apenasDigitos(localStorage.getItem(USUARIO_SESSAO_CPF_KEY) || "");
+      if (!Array.isArray(usuarios)) return;
+
+      const idx = usuarios.findIndex((u) => {
+        const idMatch = Number.isFinite(sessaoId) && Number(u && u.id) === sessaoId;
+        const cpfUser = apenasDigitos((u && (u.cpfCnpj || u.cpf_cnpj)) || "");
+        const cpfMatch = sessaoCpf.length === 11 && cpfUser === sessaoCpf;
+        return idMatch || cpfMatch;
+      });
+
+      if (idx !== -1) {
+        usuarios[idx].saldo = Number(saldo.toFixed(2));
+        localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuarios));
+      }
+      localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
+      window.dispatchEvent(
+        new CustomEvent("porco:saldo-atualizado", {
+          detail: { saldo: Number(saldo.toFixed(2)) }
+        })
+      );
+    } catch (_err) {
+      // Mantém fluxo sem quebrar UI caso localStorage esteja corrompido.
+    }
+  }
+
+  function pararMonitoramentoPix() {
+    if (monitorPixTimer) {
+      clearInterval(monitorPixTimer);
+      monitorPixTimer = null;
+    }
+    monitorPixIniciadoEm = 0;
+  }
+
+  async function verificarPagamentoPix(depositoId, paymentId, usuario, monitorUsuarioId) {
+    const cpf = apenasDigitos((usuario && (usuario.cpfCnpj || usuario.cpf_cnpj)) || "");
+    const usuarioIdMonitor = Number(monitorUsuarioId || 0);
+    const usuarioIdSessao = Number((usuario && usuario.id) || 0);
+    const usuarioId = Number.isFinite(usuarioIdMonitor) && usuarioIdMonitor > 0
+      ? usuarioIdMonitor
+      : (Number.isFinite(usuarioIdSessao) ? usuarioIdSessao : 0);
+
+    const resp = await fetch(CONSULTAR_PIX_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        deposito_id: Number(depositoId || 0),
+        payment_id: String(paymentId || ""),
+        usuario_id: Number.isFinite(usuarioId) ? usuarioId : 0,
+        cpf
+      })
+    });
+
+    let payload = null;
+    try {
+      payload = await resp.json();
+    } catch (_err) {
+      payload = null;
+    }
+
+    if (!resp.ok || !payload || payload.ok !== true) {
+      throw new Error(
+        payload && payload.error ? String(payload.error) : `Falha ao consultar Pix (${resp.status}).`
+      );
+    }
+
+    if (payload.pago === true) {
+      atualizarSaldoLocalUsuarioLogado(payload.saldo);
+      // Após confirmar, remove o QR da tela para limpar a interface automaticamente.
+      limparResultadoPix(true);
+      setStatus("Pagamento confirmado! Saldo atualizado.", false);
+      pararMonitoramentoPix();
+      return true;
+    }
+
+    return false;
+  }
+
+  function iniciarMonitoramentoPix(depositoId, paymentId, usuario, monitorUsuarioId) {
+    pararMonitoramentoPix();
+    monitorPixIniciadoEm = Date.now();
+    verificarPagamentoPix(depositoId, paymentId, usuario, monitorUsuarioId).catch(() => {});
+    monitorPixTimer = setInterval(async () => {
+      try {
+        const pago = await verificarPagamentoPix(depositoId, paymentId, usuario, monitorUsuarioId);
+        if (pago) return;
+
+        // Timeout de 10 minutos para não ficar consultando indefinidamente.
+        if (Date.now() - monitorPixIniciadoEm > 10 * 60 * 1000) {
+          setStatus("Pix gerado. Aguardando confirmação do pagamento.", false);
+          pararMonitoramentoPix();
+        }
+      } catch (_err) {
+        // Em caso de erro transitório, segue tentando até timeout.
+      }
+    }, 3000);
+  }
+
+  function limparResultadoPix(manterStatus = false) {
     const box = el(IDS.box);
     const qr = el(IDS.qr);
     const copia = el(IDS.copia);
@@ -184,15 +336,19 @@
       qr.style.display = "none";
     }
     if (box) box.style.display = "none";
-    setStatus("", false);
+    if (!manterStatus) {
+      setStatus("", false);
+    }
   }
 
   function atualizarVisibilidadePix() {
     const card = el(IDS.card);
+    const btnGerar = el(IDS.btnGerar);
     if (!card) return;
 
     const usuario = carregarUsuarioLogado();
     if (!usuario) {
+      pararMonitoramentoPix();
       card.style.display = "none";
       limparResultadoPix();
       preencherUsuarioAutomatico();
@@ -201,6 +357,22 @@
 
     card.style.display = "";
     preencherUsuarioAutomatico();
+    estadoUsuarioPixAtual = JSON.stringify({
+      id: Number(usuario.id || 0),
+      login: String(usuario.login || ""),
+      whatsappVerificado: usuarioWhatsappVerificado(usuario),
+      whatsappVerificationRequired: usuarioExigeWhatsappVerificado(usuario)
+    });
+    if (btnGerar) {
+      const requerConfirmacao = usuarioExigeWhatsappVerificado(usuario);
+      const verificado = usuarioWhatsappVerificado(usuario);
+      btnGerar.disabled = requerConfirmacao && !verificado;
+      if (requerConfirmacao && !verificado) {
+        setStatus("Confirme seu WhatsApp no cadastro para liberar o depósito Pix.", true);
+      } else if (String(el(IDS.status)?.textContent || "").includes("Confirme seu WhatsApp")) {
+        setStatus("", false);
+      }
+    }
   }
 
   function mostrarResultadoPix(payload) {
@@ -233,6 +405,10 @@
     const usuarioLogado = carregarUsuarioLogado();
     if (!usuarioLogado || !Number.isFinite(Number(usuarioLogado.id)) || Number(usuarioLogado.id) <= 0) {
       setStatus("Faça login para gerar o Pix.", true);
+      return;
+    }
+    if (usuarioExigeWhatsappVerificado(usuarioLogado) && !usuarioWhatsappVerificado(usuarioLogado)) {
+      setStatus("Confirme seu WhatsApp antes de gerar Pix.", true);
       return;
     }
     const cpfUsuario = apenasDigitos(usuarioLogado.cpfCnpj || usuarioLogado.cpf_cnpj || "");
@@ -296,6 +472,13 @@
 
       mostrarResultadoPix(payload);
       setStatus("Pix gerado. Após o pagamento, o saldo será atualizado automaticamente.", false);
+      const monitorUsuarioId = Number(payload.usuario_id || usuarioId || 0);
+      iniciarMonitoramentoPix(
+        payload.deposito_id,
+        payload.payment_id || payload.asaas_payment_id,
+        usuarioLogado,
+        monitorUsuarioId
+      );
     } catch (err) {
       setStatus(String((err && err.message) || "Erro inesperado ao gerar Pix."), true);
     } finally {
@@ -338,7 +521,14 @@
     // Detecta login/logout no mesmo navegador sem recarregar a página.
     setInterval(() => {
       const novaSessao = String(localStorage.getItem(USUARIO_SESSAO_KEY) || "");
-      if (novaSessao !== sessaoAtual) {
+      const usuarioAtual = carregarUsuarioLogado();
+      const novoEstadoUsuario = JSON.stringify({
+        id: Number((usuarioAtual && usuarioAtual.id) || 0),
+        login: String((usuarioAtual && usuarioAtual.login) || ""),
+        whatsappVerificado: usuarioWhatsappVerificado(usuarioAtual),
+        whatsappVerificationRequired: usuarioExigeWhatsappVerificado(usuarioAtual)
+      });
+      if (novaSessao !== sessaoAtual || novoEstadoUsuario !== estadoUsuarioPixAtual) {
         sessaoAtual = novaSessao;
         atualizarVisibilidadePix();
       }

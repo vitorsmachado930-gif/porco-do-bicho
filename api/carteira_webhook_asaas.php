@@ -5,7 +5,16 @@ require_once __DIR__ . DIRECTORY_SEPARATOR . 'wallet_common.php';
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'wallet_db.php';
 
 walletTratarPreflight();
-walletValidarMetodo('POST');
+
+$method = walletMetodo();
+if ($method === 'GET') {
+    walletResponder(200, ['ok' => true, 'message' => 'WEBHOOK CARTEIRA ASAAS OK']);
+}
+if ($method !== 'POST') {
+    // Nunca devolve 4xx para Asaas, evitando fila pausada por tentativa inválida.
+    walletResponder(200, ['ok' => true, 'ignored' => true, 'reason' => 'Metodo invalido.']);
+}
+
 walletAplicarRateLimit('carteira-webhook-asaas', 600, 60);
 
 try {
@@ -14,12 +23,13 @@ try {
 
     $tokenEsperado = trim((string)$cfg['asaas_webhook_token']);
     if ($tokenEsperado === '') {
-        walletResponder(500, ['ok' => false, 'error' => 'Webhook token nao configurado.']);
+        // Mantém 200 para não pausar fila enquanto configuração é ajustada.
+        walletResponder(200, ['ok' => true, 'ignored' => true, 'reason' => 'Webhook token nao configurado.']);
     }
 
     $tokenRecebido = walletAsaasResolveHeader('asaas-access-token');
     if (!hash_equals($tokenEsperado, $tokenRecebido)) {
-        walletResponder(401, ['ok' => false, 'error' => 'Token do webhook invalido.']);
+        walletResponder(200, ['ok' => true, 'ignored' => true, 'reason' => 'Token do webhook invalido.']);
     }
 
     $body = walletBodyJson(2 * 1024 * 1024);
@@ -30,7 +40,7 @@ try {
     $externalReference = trim((string)($payment['externalReference'] ?? ''));
 
     if ($paymentId === '' && $externalReference === '') {
-        walletResponder(422, ['ok' => false, 'error' => 'Webhook sem identificador de pagamento.']);
+        walletResponder(200, ['ok' => true, 'ignored' => true, 'reason' => 'Webhook sem identificador de pagamento.']);
     }
 
     // So credita quando o pagamento foi efetivamente recebido.
@@ -127,8 +137,10 @@ try {
         $pdo->rollBack();
     }
 
-    walletResponder(500, [
-        'ok' => false,
-        'error' => 'Falha ao processar webhook.',
+    // Retorna 200 mesmo em erro interno para evitar pausa automática da fila no Asaas.
+    walletResponder(200, [
+        'ok' => true,
+        'ignored' => true,
+        'reason' => 'Falha interna ao processar webhook.',
     ]);
 }

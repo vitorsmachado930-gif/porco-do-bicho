@@ -35,7 +35,7 @@
 
     <div id="usuarioAreaPublica">
       <div id="usuarioModoLogin">
-        <input id="loginUsuario" placeholder="Login">
+        <input id="loginUsuario" inputmode="numeric" maxlength="14" placeholder="CPF (somente números)">
         <input id="senhaUsuario" type="password" placeholder="Senha">
         <button onclick="entrarUsuario()">Entrar para apostar</button>
 
@@ -46,16 +46,24 @@
       </div>
 
       <div id="usuarioModoCadastro" style="display:none;">
-        <input id="cadastroNome" placeholder="Nome">
-        <input id="cadastroLogin" placeholder="Login de acesso">
+        <input id="cadastroNome" placeholder="Nome completo">
+        <input id="cadastroWhatsapp" inputmode="numeric" maxlength="15" placeholder="WhatsApp com DDD">
+        <input id="cadastroCpf" inputmode="numeric" maxlength="14" placeholder="CPF (11 dígitos)">
         <input id="cadastroSenha" type="password" placeholder="Senha">
-        <input id="cadastroIndicador" placeholder="Login do indicador (opcional)">
         <button onclick="cadastrarUsuario()">Criar cadastro</button>
         <button class="btn-secondary" type="button" onclick="voltarLoginUsuario()">Voltar ao login</button>
       </div>
 
+      <div id="usuarioModoConfirmarWhatsapp" style="display:none;">
+        <p>Confirme seu WhatsApp para liberar depósito Pix.</p>
+        <button id="btnEnviarCodigoWhatsapp" type="button">Enviar código</button>
+        <input id="codigoConfirmacaoWhatsapp" inputmode="numeric" maxlength="6" placeholder="Digite o código de 6 dígitos">
+        <button id="btnConfirmarCodigoWhatsapp" class="btn-secondary" type="button">Confirmar WhatsApp</button>
+        <button class="btn-secondary" type="button" onclick="voltarLoginUsuario()">Voltar ao login</button>
+      </div>
+
       <div id="usuarioModoRecuperar" style="display:none;">
-        <input id="recuperarLogin" placeholder="Login cadastrado">
+        <input id="recuperarLogin" inputmode="numeric" maxlength="14" placeholder="CPF cadastrado">
         <input id="recuperarSenha" type="password" placeholder="Nova senha">
         <button onclick="redefinirSenhaUsuario()">Salvar nova senha</button>
         <button class="btn-secondary" type="button" onclick="voltarLoginUsuario()">Voltar ao login</button>
@@ -351,7 +359,7 @@
   </div>
 </footer>
 
-<script src="js/app.js?v=20260504-01"></script>
-<script src="script.js?v=20260504-asaas-01"></script>
+<script src="js/app.js?v=20260507-cal-01"></script>
+<script src="script.js?v=20260507-cal-01"></script>
 </body>
 </html>

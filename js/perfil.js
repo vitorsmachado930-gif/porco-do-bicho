@@ -2,6 +2,7 @@ const STORAGE_KEY = "dados";
 const APOSTAS_KEY = "apostas";
 const USUARIOS_KEY = "usuarios_aposta";
 const USUARIO_SESSAO_KEY = "usuario_sessao_id";
+const USUARIO_SESSAO_CPF_KEY = "usuario_sessao_cpf";
 const PAINEL_UPDATED_AT_KEY = "painel_updated_at";
 const MAX_DIAS_HISTORICO = 7;
 const API_ORIGIN_FALLBACK = "https://porcodobicho.com";
@@ -15,6 +16,7 @@ const API_ORIGIN_ATIVO = (() => {
   return isLocal ? API_ORIGIN_FALLBACK : "";
 })();
 const CARTEIRA_SALDO_USUARIO_API_URL = `${API_ORIGIN_ATIVO}/api/carteira_saldo_usuario.php`;
+const BACKEND_ATUALIZAR_CPF_API_URL = `${API_ORIGIN_ATIVO}/backend/atualizar_cpf.php`;
 const PAPEL_USUARIO_APOSTADOR = "apostador";
 const PAPEL_USUARIO_PROMOTOR = "promotor";
 const BONUS_INDICACAO_VALOR_POR_CADASTRO = 10;
@@ -150,6 +152,24 @@ function formatarHorarioBR(dataHora) {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+function configurarAutoFecharCalendarioDataPerfil() {
+  const anexar = (input) => {
+    if (!input || input.dataset.calendarioAutoCloseBind === "1") return;
+    input.dataset.calendarioAutoCloseBind = "1";
+    input.addEventListener("change", () => {
+      window.setTimeout(() => {
+        try {
+          input.blur();
+        } catch (_err) {
+          // Ignora falhas de blur em navegadores específicos.
+        }
+      }, 0);
+    });
+  };
+
+  document.querySelectorAll('input[type="date"]').forEach(anexar);
+}
+
 function obterHorarioLoteria(loteria) {
   const match = String(loteria || "").match(/(\d{1,2}):(\d{2})/);
   if (!match) return null;
@@ -178,6 +198,25 @@ function normalizarCpfCnpjUsuario(valor) {
   const digitos = extrairDigitos(valor);
   if (!digitos) return "";
   return digitos.slice(0, 14);
+}
+
+function formatarCpf(valor) {
+  const digitos = extrairDigitos(valor).slice(0, 11);
+  if (digitos.length <= 3) return digitos;
+  if (digitos.length <= 6) return `${digitos.slice(0, 3)}.${digitos.slice(3)}`;
+  if (digitos.length <= 9) return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6)}`;
+  return `${digitos.slice(0, 3)}.${digitos.slice(3, 6)}.${digitos.slice(6, 9)}-${digitos.slice(9)}`;
+}
+
+function validarCpfPerfil(valor) {
+  const cpf = extrairDigitos(valor).slice(0, 11);
+  if (cpf.length !== 11) {
+    return { ok: false, mensagem: "Informe um CPF com 11 dígitos.", valor: "" };
+  }
+  if (/^(\d)\1{10}$/.test(cpf)) {
+    return { ok: false, mensagem: "CPF inválido.", valor: "" };
+  }
+  return { ok: true, mensagem: "", valor: cpf };
 }
 
 function normalizarTelefoneBrasil(valor) {
@@ -342,6 +381,11 @@ function sanitizarUsuarios(arr) {
       const indicadosTotal = normalizarContadorNaoNegativo(raw.indicadosTotal);
       const cpfCnpj = normalizarCpfCnpjUsuario(raw.cpfCnpj || raw.cpf_cnpj);
       const telefone = formatarTelefoneBrasil(raw.telefone);
+      const carteiraUsuarioIdNum = Number(raw.carteiraUsuarioId || raw.carteira_usuario_id);
+      const carteiraUsuarioId =
+        Number.isFinite(carteiraUsuarioIdNum) && carteiraUsuarioIdNum > 0
+          ? Math.floor(carteiraUsuarioIdNum)
+          : null;
       const chavePix = String(raw.chavePix || "").trim().slice(0, 120);
       const bloqueado = Boolean(raw.bloqueado || raw.blocked || raw.suspenso);
       if (!Number.isFinite(id)) return null;
@@ -370,6 +414,7 @@ function sanitizarUsuarios(arr) {
         indicadosTotal: role === PAPEL_USUARIO_PROMOTOR ? 0 : indicadosTotal,
         cpfCnpj,
         telefone,
+        carteiraUsuarioId,
         chavePix,
         bloqueado
       };
@@ -482,15 +527,49 @@ function carregarEstado() {
   resultados = sanitizarResultados(lerJSONStorage(STORAGE_KEY, []));
 
   const sessaoId = Number(localStorage.getItem(USUARIO_SESSAO_KEY));
-  if (!Number.isFinite(sessaoId)) {
+  const sessaoCpf = normalizarCpfCnpjUsuario(localStorage.getItem(USUARIO_SESSAO_CPF_KEY) || "");
+  if (!Number.isFinite(sessaoId) && sessaoCpf.length !== 11) {
     usuarioAtual = null;
     return;
   }
-  usuarioAtual = usuarios.find((u) => u.id === sessaoId) || null;
+
+  usuarioAtual = Number.isFinite(sessaoId) ? usuarios.find((u) => u.id === sessaoId) || null : null;
+  if (!usuarioAtual && sessaoCpf.length === 11) {
+    usuarioAtual =
+      usuarios.find((u) => normalizarCpfCnpjUsuario(u.cpfCnpj || u.cpf_cnpj) === sessaoCpf) || null;
+  }
+
   if (usuarioAtual && usuarioAtual.bloqueado) {
     localStorage.removeItem(USUARIO_SESSAO_KEY);
+    localStorage.removeItem(USUARIO_SESSAO_CPF_KEY);
     usuarioAtual = null;
   }
+}
+
+function voltarParaHomeMantendoSessao(event) {
+  if (event && typeof event.preventDefault === "function") {
+    event.preventDefault();
+  }
+
+  try {
+    if (Array.isArray(usuarios) && usuarios.length > 0) {
+      salvarJSONStorage(USUARIOS_KEY, usuarios);
+    }
+    if (usuarioAtual && Number.isFinite(Number(usuarioAtual.id))) {
+      localStorage.setItem(USUARIO_SESSAO_KEY, String(Number(usuarioAtual.id)));
+      const cpfAtual = normalizarCpfCnpjUsuario(usuarioAtual.cpfCnpj || usuarioAtual.cpf_cnpj);
+      if (cpfAtual.length === 11) {
+        localStorage.setItem(USUARIO_SESSAO_CPF_KEY, cpfAtual);
+      } else {
+        localStorage.removeItem(USUARIO_SESSAO_CPF_KEY);
+      }
+    }
+    localStorage.setItem(PAINEL_UPDATED_AT_KEY, String(Date.now()));
+  } catch (_err) {
+    // Se o storage falhar, ainda assim segue para a Home.
+  }
+
+  window.location.href = "../index.html";
 }
 
 function gruposDoPalpite(palpite) {
@@ -706,10 +785,25 @@ function sincronizarPerfilComStorage(forcar) {
   ultimoPainelSyncPerfil = tsAtual;
 
   const sessaoId = Number(localStorage.getItem(USUARIO_SESSAO_KEY));
+  const sessaoCpf = normalizarCpfCnpjUsuario(localStorage.getItem(USUARIO_SESSAO_CPF_KEY) || "");
   usuarios = sanitizarUsuarios(lerJSONStorage(USUARIOS_KEY, []));
   apostas = sanitizarApostas(lerJSONStorage(APOSTAS_KEY, []));
   resultados = sanitizarResultados(lerJSONStorage(STORAGE_KEY, []));
   usuarioAtual = Number.isFinite(sessaoId) ? usuarios.find((u) => u.id === sessaoId) || null : null;
+  if (!usuarioAtual && sessaoCpf.length === 11) {
+    usuarioAtual =
+      usuarios.find((u) => normalizarCpfCnpjUsuario(u.cpfCnpj || u.cpf_cnpj) === sessaoCpf) || null;
+  }
+
+  if (usuarioAtual && Number.isFinite(Number(usuarioAtual.id))) {
+    localStorage.setItem(USUARIO_SESSAO_KEY, String(Number(usuarioAtual.id)));
+    const cpfAtual = normalizarCpfCnpjUsuario(usuarioAtual.cpfCnpj || usuarioAtual.cpf_cnpj);
+    if (cpfAtual.length === 11) {
+      localStorage.setItem(USUARIO_SESSAO_CPF_KEY, cpfAtual);
+    } else {
+      localStorage.removeItem(USUARIO_SESSAO_CPF_KEY);
+    }
+  }
 
   atualizarResumoUsuario();
   atualizarCardSaldoPerfil({ animarSeSubiu: true });
@@ -769,6 +863,7 @@ function configurarSincronizacaoPerfilTempoReal() {
       chave === APOSTAS_KEY ||
       chave === STORAGE_KEY ||
       chave === USUARIO_SESSAO_KEY ||
+      chave === USUARIO_SESSAO_CPF_KEY ||
       chave === PAINEL_UPDATED_AT_KEY
     ) {
       sincronizarPerfilComStorage(true);
@@ -781,6 +876,11 @@ function configurarSincronizacaoPerfilTempoReal() {
   intervaloSyncPerfil = window.setInterval(() => {
     sincronizarPerfilComStorage(false);
   }, 1500);
+
+  // Garante atualização do saldo no perfil mesmo sem recarregar a página.
+  window.setInterval(() => {
+    sincronizarSaldoPerfilComServidor();
+  }, 8000);
 }
 
 function atualizarStatusBonusPerfil(texto, erro) {
@@ -906,6 +1006,7 @@ function converterBonusIndicacaoPerfil() {
 function obterCamposPerfil() {
   return {
     nome: document.getElementById("perfilNome"),
+    cpf: document.getElementById("perfilCpf"),
     telefone: document.getElementById("perfilTelefone"),
     chavePix: document.getElementById("perfilChavePix")
   };
@@ -944,6 +1045,7 @@ function definirModoEdicaoPerfil(ativo, opcoes) {
   const campos = obterCamposPerfil();
   const desabilitar = !modoEdicaoPerfil;
   if (campos.nome) campos.nome.disabled = desabilitar;
+  if (campos.cpf) campos.cpf.disabled = desabilitar;
   if (campos.telefone) campos.telefone.disabled = desabilitar;
   if (campos.chavePix) campos.chavePix.disabled = desabilitar;
 
@@ -958,12 +1060,14 @@ function definirModoEdicaoPerfil(ativo, opcoes) {
 function preencherCamposPerfil() {
   const campos = obterCamposPerfil();
   const nome = campos.nome;
+  const cpf = campos.cpf;
   const telefone = campos.telefone;
   const chavePix = campos.chavePix;
-  if (!nome || !telefone || !chavePix) return;
+  if (!nome || !cpf || !telefone || !chavePix) return;
 
   if (!usuarioAtual) {
     nome.value = "";
+    cpf.value = "";
     telefone.value = "";
     chavePix.value = "";
     definirModoEdicaoPerfil(false);
@@ -971,6 +1075,7 @@ function preencherCamposPerfil() {
   }
 
   nome.value = usuarioAtual.nome || "";
+  cpf.value = formatarCpf(usuarioAtual.cpfCnpj || usuarioAtual.cpf_cnpj || "");
   telefone.value = formatarTelefoneBrasil(usuarioAtual.telefone || "");
   chavePix.value = usuarioAtual.chavePix || "";
   definirModoEdicaoPerfil(false);
@@ -983,18 +1088,20 @@ function atualizarStatusPerfil(texto, erro) {
   el.innerText = texto || "";
 }
 
-function salvarDadosPerfil() {
+async function salvarDadosPerfil() {
   if (!usuarioAtual) {
     atualizarStatusPerfil("Sessão de usuário não encontrada. Volte para a Home e faça login.", true);
     return;
   }
 
   const nomeEl = document.getElementById("perfilNome");
+  const cpfEl = document.getElementById("perfilCpf");
   const telefoneEl = document.getElementById("perfilTelefone");
   const pixEl = document.getElementById("perfilChavePix");
-  if (!nomeEl || !telefoneEl || !pixEl) return;
+  if (!nomeEl || !cpfEl || !telefoneEl || !pixEl) return;
 
   const nome = String(nomeEl.value || "").trim();
+  const validacaoCpf = validarCpfPerfil(cpfEl.value || "");
   const validacaoTelefone = validarTelefoneBrasil(telefoneEl.value || "");
   const telefone = validacaoTelefone.ok ? validacaoTelefone.valor : "";
   const chavePix = String(pixEl.value || "").trim().slice(0, 120);
@@ -1008,6 +1115,10 @@ function salvarDadosPerfil() {
     atualizarStatusPerfil(validacaoTelefone.mensagem, true);
     return;
   }
+  if (!validacaoCpf.ok) {
+    atualizarStatusPerfil(validacaoCpf.mensagem, true);
+    return;
+  }
 
   const idx = usuarios.findIndex((u) => u.id === usuarioAtual.id);
   if (idx === -1) {
@@ -1015,9 +1126,58 @@ function salvarDadosPerfil() {
     return;
   }
 
+  const cpfAntigo = extrairDigitos(usuarioAtual.cpfCnpj || usuarioAtual.cpf_cnpj || "").slice(0, 11);
+  const cpfNovo = validacaoCpf.valor;
+
+  if (cpfNovo !== cpfAntigo) {
+    atualizarStatusPerfil("Atualizando CPF no servidor...", false);
+    try {
+      const usuarioIdBackend = Number(usuarioAtual.carteiraUsuarioId || usuarioAtual.id || 0);
+      const resp = await fetch(BACKEND_ATUALIZAR_CPF_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        cache: "no-store",
+        body: JSON.stringify({
+          usuario_id: Number.isFinite(usuarioIdBackend) ? usuarioIdBackend : 0,
+          cpf_atual: cpfAntigo,
+          novo_cpf: cpfNovo,
+          senha: String(usuarioAtual.senha || "")
+        })
+      });
+
+      let payload = null;
+      try {
+        payload = await resp.json();
+      } catch (_err) {
+        payload = null;
+      }
+
+      if (!resp.ok || !(payload && payload.ok)) {
+        const msg = payload && payload.error ? String(payload.error) : `Falha ao atualizar CPF (${resp.status}).`;
+        atualizarStatusPerfil(msg, true);
+        return;
+      }
+
+      if (payload && payload.usuario && payload.usuario.id) {
+        const backendId = Number(payload.usuario.id);
+        if (Number.isFinite(backendId) && backendId > 0) {
+          usuarioAtual.carteiraUsuarioId = Math.floor(backendId);
+        }
+      }
+    } catch (_err) {
+      atualizarStatusPerfil("Falha de conexão ao atualizar CPF no servidor.", true);
+      return;
+    }
+  }
+
   usuarios[idx] = {
     ...usuarios[idx],
     nome,
+    cpfCnpj: cpfNovo,
+    login: cpfNovo,
     telefone,
     chavePix
   };
@@ -1045,6 +1205,24 @@ function configurarMascaraTelefonePerfil() {
 
   telefoneEl.addEventListener("blur", () => {
     telefoneEl.value = formatarTelefoneBrasil(telefoneEl.value);
+  });
+}
+
+function configurarMascaraCpfPerfil() {
+  const cpfEl = document.getElementById("perfilCpf");
+  if (!cpfEl) return;
+
+  cpfEl.addEventListener("input", () => {
+    const cursorNoFim = cpfEl.selectionStart === cpfEl.value.length;
+    cpfEl.value = formatarCpf(cpfEl.value);
+    if (cursorNoFim) {
+      const pos = cpfEl.value.length;
+      cpfEl.setSelectionRange(pos, pos);
+    }
+  });
+
+  cpfEl.addEventListener("blur", () => {
+    cpfEl.value = formatarCpf(cpfEl.value);
   });
 }
 
@@ -1471,12 +1649,14 @@ function initPerfil() {
   secaoPerfilAtual = "info";
   ultimoPainelSyncPerfil = valorTimestampPainelLocal();
   configurarMascaraTelefonePerfil();
+  configurarMascaraCpfPerfil();
   atualizarResumoUsuario();
   atualizarSecaoPerfilVisivel();
   atualizarCardSaldoPerfil({ animarSeSubiu: false });
   atualizarCardBonusIndicacaoPerfil();
   atualizarStatusBonusPerfil("", false);
   preencherCamposPerfil();
+  configurarAutoFecharCalendarioDataPerfil();
   configurarFiltroDataApostas();
   mostrarApostasPerfil();
   configurarSincronizacaoPerfilTempoReal();
@@ -1534,6 +1714,12 @@ function initPerfil() {
   if (btnConverterBonus) {
     btnConverterBonus.disabled = !usuarioAtual;
     btnConverterBonus.addEventListener("click", converterBonusIndicacaoPerfil);
+  }
+
+  const linkVoltarHome = document.getElementById("linkVoltarHomePerfil");
+  if (linkVoltarHome && !linkVoltarHome.dataset.keepSession) {
+    linkVoltarHome.dataset.keepSession = "1";
+    linkVoltarHome.addEventListener("click", voltarParaHomeMantendoSessao);
   }
 
   atualizarControlesEdicaoPerfil();

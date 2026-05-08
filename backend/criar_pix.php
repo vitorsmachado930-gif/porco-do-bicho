@@ -26,6 +26,7 @@ try {
     $usuarioId = (int)($body['usuario_id'] ?? $_POST['usuario_id'] ?? 0);
     $valor = parseMoney($body['valor'] ?? $_POST['valor'] ?? 0);
     $login = trim((string)($body['login'] ?? $_POST['login'] ?? ''));
+    $cpf = normalizeCpf11((string)($body['cpf'] ?? $_POST['cpf'] ?? ''));
 
     // Valida valor > 0.
     if ($valor <= 0) {
@@ -34,12 +35,18 @@ try {
 
     // Conecta ao banco e garante estrutura mínima.
     $pdo = db();
-    ensureWalletSchema($pdo);
+    ensureWalletSchemaSafely($pdo);
+    $senhaColumn = getUsuariosPasswordColumn($pdo);
 
-    // Busca usuário por ID, com fallback por login.
+    // Busca usuário por ID, com fallback por CPF e login legado.
     $usuario = null;
     if ($usuarioId > 0) {
         $usuario = findUserById($pdo, $usuarioId);
+    }
+    if (!$usuario && $cpf !== '') {
+        $stmtCpf = $pdo->prepare('SELECT * FROM usuarios WHERE cpf_cnpj = :cpf LIMIT 1');
+        $stmtCpf->execute([':cpf' => $cpf]);
+        $usuario = $stmtCpf->fetch() ?: null;
     }
     if (!$usuario && $login !== '') {
         $usuario = findUserByLogin($pdo, $login);
@@ -51,10 +58,30 @@ try {
         ]);
     }
 
+    $nomeUsuario = trim((string)($usuario['nome'] ?? ''));
+    $cpfUsuario = normalizeCpf11((string)($usuario['cpf_cnpj'] ?? ''));
+    $whatsappUsuario = normalizeWhatsapp((string)($usuario['whatsapp'] ?? ''));
+    $senhaUsuario = trim((string)($usuario[$senhaColumn] ?? ''));
+    $whatsappVerificado = (int)($usuario['whatsapp_verificado'] ?? 0);
+
+    if (whatsappVerificationEnabled() && $whatsappVerificado !== 1) {
+        jsonResponse(403, [
+            'ok' => false,
+            'error' => 'Confirme seu WhatsApp antes de gerar Pix.',
+        ]);
+    }
+
+    if ($nomeUsuario === '' || $cpfUsuario === '' || $whatsappUsuario === '' || $senhaUsuario === '') {
+        jsonResponse(422, [
+            'ok' => false,
+            'error' => 'Complete seu cadastro para gerar Pix.',
+        ]);
+    }
+
     if (!userReadyForPix($usuario)) {
         jsonResponse(422, [
             'ok' => false,
-            'error' => 'Complete seu cadastro para gerar PIX',
+            'error' => 'Complete seu cadastro para gerar Pix.',
         ]);
     }
 
@@ -198,6 +225,7 @@ try {
     // 5) Retorna para frontend.
     jsonResponse(201, [
         'ok' => true,
+        'usuario_id' => $usuarioId,
         'payment_id' => $paymentId,
         'asaas_payment_id' => $paymentId,
         'valor' => $valor,

@@ -12,7 +12,7 @@
 <body>
   <header class="topo-pagina">
     <div class="topo-pagina-conteudo topo-perfil">
-      <a href="../index.html">← Voltar para Home</a>
+      <a id="linkVoltarHomePerfil" href="../index.html">← Voltar para Home</a>
       <strong>Meu Perfil</strong>
     </div>
   </header>
@@ -44,6 +44,10 @@
       <div id="perfilCamposEdicao" class="perfil-campos-edicao" hidden>
         <label for="perfilNome">Nome</label>
         <input id="perfilNome" type="text" placeholder="Seu nome completo" maxlength="80">
+
+        <label for="perfilCpf">CPF (11 dígitos)</label>
+        <input id="perfilCpf" type="text" inputmode="numeric" placeholder="Somente números" maxlength="14">
+        <small class="perfil-dica-campo">Use um CPF válido para gerar e pagar o Pix de teste.</small>
 
         <label for="perfilTelefone">Telefone (DDD + número)</label>
         <input id="perfilTelefone" type="tel" inputmode="tel" placeholder="(11) 98765-4321" maxlength="16">
@@ -121,6 +125,6 @@
     Porco do Bicho • Área de perfil • Atualizado em 25/04/2026.
   </footer>
 
-  <script src="../js/perfil.js?v=20260504-01"></script>
+  <script src="../js/perfil.js?v=20260507-cal-01"></script>
 </body>
 </html>

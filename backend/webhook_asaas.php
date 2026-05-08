@@ -91,7 +91,9 @@ try {
     }
 
     $pdo = db();
-    ensureWalletSchema($pdo);
+    // No webhook, nunca devemos travar crédito por ajuste/migração de schema.
+    // Se houver divergência de collation em base legada, seguimos com o fluxo.
+    ensureWalletSchemaSafely($pdo);
 
     $pdo->beginTransaction();
 
@@ -166,23 +168,39 @@ try {
     ]);
 
     // Marca depósito como pago e registra dados do evento.
-    $upDep = $pdo->prepare(
-        'UPDATE depositos
-         SET status = :status,
-             pago_em = NOW(),
-             asaas_event_id = CASE WHEN :event_id <> "" THEN :event_id ELSE asaas_event_id END,
-             atualizado_em = NOW(),
-             asaas_payment_id = CASE WHEN asaas_payment_id IS NULL OR asaas_payment_id = "" THEN :payment_id ELSE asaas_payment_id END
-         WHERE id = :id
-         LIMIT 1'
-    );
-
-    $upDep->execute([
-        ':status' => 'PAGO',
-        ':event_id' => $eventId,
-        ':payment_id' => $paymentId,
-        ':id' => $depositoId,
-    ]);
+    if ($eventId !== '') {
+        $upDep = $pdo->prepare(
+            'UPDATE depositos
+             SET status = :status,
+                 pago_em = NOW(),
+                 asaas_event_id = :event_id_value,
+                 atualizado_em = NOW(),
+                 asaas_payment_id = CASE WHEN asaas_payment_id IS NULL OR asaas_payment_id = "" THEN :payment_id ELSE asaas_payment_id END
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $upDep->execute([
+            ':status' => 'PAGO',
+            ':event_id_value' => $eventId,
+            ':payment_id' => $paymentId,
+            ':id' => $depositoId,
+        ]);
+    } else {
+        $upDep = $pdo->prepare(
+            'UPDATE depositos
+             SET status = :status,
+                 pago_em = NOW(),
+                 atualizado_em = NOW(),
+                 asaas_payment_id = CASE WHEN asaas_payment_id IS NULL OR asaas_payment_id = "" THEN :payment_id ELSE asaas_payment_id END
+             WHERE id = :id
+             LIMIT 1'
+        );
+        $upDep->execute([
+            ':status' => 'PAGO',
+            ':payment_id' => $paymentId,
+            ':id' => $depositoId,
+        ]);
+    }
 
     $pdo->commit();
 

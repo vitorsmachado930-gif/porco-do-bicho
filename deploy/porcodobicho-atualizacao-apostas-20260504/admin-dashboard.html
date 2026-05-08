@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin Completo | Porco do Bicho</title>
+  <link rel="icon" type="image/png" href="img/mascote/icone.png?v=20260425">
+  <link rel="stylesheet" href="style.css?v=20260508-admin-full-02">
+  <link rel="stylesheet" href="admin-dashboard.css?v=20260508-admin-full-02">
+</head>
+<body>
+  <header class="topo-pagina">
+    <div class="topo-pagina-conteudo topo-admin">
+      <a href="index.html">← Voltar para Home</a>
+      <strong>Dashboard Administrativo Completo</strong>
+      <a href="admin.html" class="btn-link-admin">Painel Admin Legado</a>
+    </div>
+  </header>
+
+  <main class="dashboard-admin-layout">
+    <aside class="dashboard-admin-sidebar">
+      <div class="sidebar-topo">
+        <h2>Porco do Bicho</h2>
+        <p>Gestão financeira e operacional</p>
+      </div>
+
+      <button class="sidebar-item ativo" data-modulo="visao_geral">Visão Geral</button>
+      <button class="sidebar-item" data-modulo="usuarios">Usuários</button>
+      <button class="sidebar-item" data-modulo="promotores">Promotores</button>
+      <button class="sidebar-item" data-modulo="indicacoes">Indicações</button>
+      <button class="sidebar-item" data-modulo="apostas">Apostas</button>
+      <button class="sidebar-item" data-modulo="resultados">Resultados</button>
+      <button class="sidebar-item" data-modulo="premiacoes">Premiações</button>
+      <button class="sidebar-item" data-modulo="financeiro">Saldos e Financeiro</button>
+      <button class="sidebar-item" data-modulo="depositos">Depósitos Pix / Asaas</button>
+      <button class="sidebar-item" data-modulo="saques">Saques</button>
+      <button class="sidebar-item" data-modulo="relatorios">Relatórios</button>
+      <button class="sidebar-item" data-modulo="auditoria">Segurança e Auditoria</button>
+
+      <div class="sidebar-rodape">
+        <button id="btnLogoutAdminDash" class="btn-danger">Sair do Dashboard</button>
+      </div>
+    </aside>
+
+    <section class="dashboard-admin-main">
+      <section id="adminLoginCard" class="dash-card login-card">
+        <h3>Acesso Administrativo</h3>
+        <p>Digite a senha do admin para liberar os módulos.</p>
+        <input id="adminSenhaInput" type="password" placeholder="Senha do admin">
+        <button id="btnEntrarAdminDash">Entrar</button>
+        <p id="adminLoginStatus" class="status-text"></p>
+      </section>
+
+      <section id="adminConteudo" style="display:none;">
+        <div class="dash-card filtros-periodo">
+          <div class="filtros-grid">
+            <label>
+              Modo
+              <select id="filtroPeriodoModo">
+                <option value="hoje">Hoje</option>
+                <option value="intervalo">Somatório de data até data</option>
+              </select>
+            </label>
+            <label>
+              De
+              <input id="filtroPeriodoInicio" type="date">
+            </label>
+            <label>
+              Até
+              <input id="filtroPeriodoFim" type="date">
+            </label>
+            <button id="btnAtualizarModulo" type="button">Atualizar módulo atual</button>
+          </div>
+          <p id="dashPeriodoInfo" class="status-text">Período atual: hoje.</p>
+        </div>
+
+        <section class="modulo-admin ativo" data-modulo="visao_geral">
+          <h3>Visão Geral</h3>
+          <div id="cardsVisaoGeral" class="cards-resumo-grid"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="usuarios">
+          <h3>Gestão de Usuários</h3>
+          <div class="dash-card filtros-inline">
+            <input id="filtroUsuarioNome" type="text" placeholder="Filtrar por nome">
+            <input id="filtroUsuarioCpf" type="text" placeholder="Filtrar por CPF">
+            <input id="filtroUsuarioWhatsapp" type="text" placeholder="Filtrar por WhatsApp">
+            <select id="filtroUsuarioStatus">
+              <option value="">Status: todos</option>
+              <option value="ativo">Ativo</option>
+              <option value="bloqueado">Bloqueado</option>
+            </select>
+            <button id="btnFiltrarUsuarios">Buscar usuários</button>
+          </div>
+
+          <div class="dash-card acoes-inline">
+            <input id="acaoUsuarioId" type="number" min="1" placeholder="ID do usuário">
+            <input id="acaoUsuarioValor" type="number" step="0.01" min="0.01" placeholder="Valor ajuste saldo">
+            <select id="acaoUsuarioTipoSaldo">
+              <option value="credito">Crédito</option>
+              <option value="debito">Débito</option>
+            </select>
+            <input id="acaoUsuarioJustificativa" type="text" placeholder="Justificativa obrigatória de auditoria">
+            <button id="btnAjustarSaldoUsuario">Ajustar saldo</button>
+            <button id="btnBloquearUsuario">Bloquear</button>
+            <button id="btnDesbloquearUsuario">Desbloquear</button>
+          </div>
+
+          <div class="dash-card acoes-inline">
+            <input id="editarUsuarioId" type="number" min="1" placeholder="ID do usuário/promotor">
+            <input id="editarUsuarioNome" type="text" placeholder="Nome">
+            <input id="editarUsuarioCpf" type="text" placeholder="CPF (11 dígitos)">
+            <input id="editarUsuarioWhatsapp" type="text" placeholder="WhatsApp">
+            <select id="editarUsuarioPerfil">
+              <option value="apostador">Apostador</option>
+              <option value="promotor">Promotor</option>
+              <option value="operador">Operador</option>
+              <option value="admin">Admin</option>
+            </select>
+            <input id="editarUsuarioPromotorBaseId" type="number" min="0" placeholder="Base promotor (0 = admin)">
+            <input id="editarUsuarioIndicadorId" type="number" min="0" placeholder="Indicador ID (0 = nenhum)">
+            <input id="editarUsuarioComissao" type="number" min="0" step="0.01" placeholder="% comissão">
+            <input id="editarUsuarioChavePix" type="text" placeholder="Chave Pix">
+            <input id="editarUsuarioJustificativa" type="text" placeholder="Justificativa de edição">
+            <button id="btnSalvarEdicaoUsuario">Salvar cadastro/informações</button>
+          </div>
+
+          <div class="dash-card acoes-inline">
+            <input id="transferirApostadorId" type="number" min="1" placeholder="ID apostador">
+            <input id="transferirDestinoPromotorId" type="number" min="0" placeholder="Novo promotor (0 = base admin)">
+            <input id="transferirJustificativa" type="text" placeholder="Justificativa da troca de base">
+            <button id="btnTransferirBaseApostador">Transferir base</button>
+          </div>
+
+          <div class="dash-card acoes-inline">
+            <input id="excluirUsuarioId" type="number" min="1" placeholder="ID usuário/promotor">
+            <input id="excluirDestinoBasePromotorId" type="number" min="0" placeholder="Se for promotor: destino da base (0 = admin)">
+            <input id="excluirJustificativa" type="text" placeholder="Justificativa da exclusão">
+            <button id="btnExcluirUsuarioPromotor" class="btn-danger">Excluir usuário/promotor</button>
+          </div>
+
+          <div id="tabelaUsuarios" class="tabela-admin"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="promotores">
+          <h3>Gestão de Promotores</h3>
+          <div class="dash-card acoes-inline">
+            <input id="promotorUsuarioId" type="number" min="1" placeholder="ID usuário para virar promotor">
+            <input id="promotorComissaoPercentual" type="number" min="0" step="0.01" placeholder="% comissão">
+            <input id="promotorJustificativa" type="text" placeholder="Justificativa de alteração">
+            <button id="btnCriarPromotor">Criar/Atualizar promotor</button>
+            <button id="btnSalvarComissaoPromotor">Salvar comissão</button>
+          </div>
+          <div id="tabelaPromotores" class="tabela-admin"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="indicacoes">
+          <h3>Sistema de Indicação</h3>
+          <div id="tabelaIndicacoes" class="tabela-admin"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="apostas">
+          <h3>Gestão de Apostas</h3>
+          <div class="dash-card filtros-inline">
+            <input id="filtroApostaUsuario" type="text" placeholder="Usuário">
+            <input id="filtroApostaTipo" type="text" placeholder="Tipo aposta">
+            <input id="filtroApostaLoteria" type="text" placeholder="Loteria">
+            <select id="filtroApostaStatus">
+              <option value="">Status: todos</option>
+              <option value="aberta">Aberta</option>
+              <option value="premiada">Premiada</option>
+              <option value="perdida">Perdida</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+            <button id="btnFiltrarApostas">Buscar apostas</button>
+          </div>
+          <div id="tabelaApostas" class="tabela-admin"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="resultados">
+          <h3>Gestão de Resultados</h3>
+          <p class="status-text">Inclui os resultados lançados e histórico de edição para auditoria.</p>
+          <div id="tabelaResultados" class="tabela-admin"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="premiacoes">
+          <h3>Premiações</h3>
+          <div class="dash-card acoes-inline">
+            <input id="premioIdPagar" type="number" min="1" placeholder="ID prêmio registrado">
+            <input id="premioJustificativa" type="text" placeholder="Justificativa">
+            <button id="btnMarcarPremioPago">Marcar prêmio como pago</button>
+          </div>
+          <div id="tabelaPremiacoes" class="tabela-admin"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="financeiro">
+          <h3>Saldos e Financeiro</h3>
+          <div id="tabelaFinanceiro" class="tabela-admin"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="depositos">
+          <h3>Depósitos Pix / Asaas</h3>
+          <div class="dash-card acoes-inline">
+            <input id="depositoIdVerificar" type="number" min="1" placeholder="ID depósito">
+            <button id="btnVerificarDepositoAgora">Verificar agora</button>
+            <button id="btnSincronizarDepositosPendentes">Sincronizar pendentes</button>
+          </div>
+          <div id="tabelaDepositos" class="tabela-admin"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="saques">
+          <h3>Saques</h3>
+          <div class="dash-card acoes-inline">
+            <input id="saqueUsuarioId" type="number" min="1" placeholder="ID usuário">
+            <input id="saqueValor" type="number" min="0.01" step="0.01" placeholder="Valor saque">
+            <input id="saqueChavePix" type="text" placeholder="Chave Pix">
+            <input id="saqueObs" type="text" placeholder="Observação">
+            <button id="btnCriarSaque">Criar solicitação</button>
+          </div>
+          <div class="dash-card acoes-inline">
+            <input id="saqueIdStatus" type="number" min="1" placeholder="ID saque">
+            <select id="saqueNovoStatus">
+              <option value="pendente">Pendente</option>
+              <option value="aprovado">Aprovado</option>
+              <option value="recusado">Recusado</option>
+              <option value="pago">Pago</option>
+            </select>
+            <input id="saqueObsStatus" type="text" placeholder="Observação da mudança">
+            <button id="btnAtualizarStatusSaque">Atualizar status</button>
+          </div>
+          <div id="tabelaSaques" class="tabela-admin"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="relatorios">
+          <h3>Relatórios</h3>
+          <div class="dash-card acoes-inline">
+            <button class="btn-secondary" data-export="overview">Exportar visão geral (CSV)</button>
+            <button class="btn-secondary" data-export="depositos">Exportar depósitos (CSV)</button>
+            <button class="btn-secondary" data-export="saques">Exportar saques (CSV)</button>
+          </div>
+          <div id="tabelaRelatorios" class="tabela-admin"></div>
+        </section>
+
+        <section class="modulo-admin" data-modulo="auditoria">
+          <h3>Segurança e Auditoria</h3>
+          <div id="tabelaAuditoria" class="tabela-admin"></div>
+        </section>
+
+        <p id="statusAdminAcao" class="status-text"></p>
+      </section>
+    </section>
+  </main>
+
+  <script src="admin-dashboard.js?v=20260508-admin-full-02"></script>
+</body>
+</html>
